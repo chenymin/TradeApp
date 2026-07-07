@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "features": {
+    "privy-login": {
+      "slug": "privy-login",
+      "title": "Privy Login",
+      "createdAt": "2026-07-01",
+      "currentStage": "编码实现",
+      "paths": {
+        "requirement": "docs/requirements/2026-07-01-privy-login.md",
+        "design": "docs/plans/2026-07-01-privy-login-design.md",
+        "implementation": "docs/plans/2026-07-01-privy-login-implementation.md",
+        "review": "docs/plans/2026-07-01-privy-login-review.md",
+        "quality": "docs/plans/2026-07-01-privy-login-quality-review.md",
+        "release": "docs/plans/2026-07-01-privy-login-release.md"
+      },
+      "config": {
+        "language": "zh-CN",
+        "manifestPath": "docs/ai-delivery/features.json",
+        "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+        "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+        "executorProfilesPath": "docs/ai-delivery/executors.json",
+        "requirementsDir": "docs/requirements",
+        "plansDir": "docs/plans",
+        "templateDir": "docs/templates",
+        "promptDir": "docs/prompts",
+        "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+        "prTemplatePath": ".github/pull_request_template.md",
+        "riskPacks": [],
+        "teamPreset": {
+          "defaultBranch": "",
+          "requiredGates": [],
+          "riskPacks": [],
+          "externalProviders": []
+        }
+      },
+      "suppressedFindings": [
+        "suggested-risk-tags"
+      ]
+    },
+    "rn-full-app-port": {
+      "slug": "rn-full-app-port",
+      "title": "React Native Full App Port",
+      "createdAt": "2026-07-02",
+      "currentStage": "编码实现",
+      "paths": {
+        "requirement": "docs/requirements/2026-07-02-rn-full-app-port.md",
+        "design": "docs/plans/2026-07-02-rn-full-app-port-design.md",
+        "implementation": "docs/plans/2026-07-02-rn-full-app-port-implementation.md"
+      },
+      "config": {
+        "language": "zh-CN",
+        "manifestPath": "docs/ai-delivery/features.json",
+        "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+        "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+        "executorProfilesPath": "docs/ai-delivery/executors.json",
+        "requirementsDir": "docs/requirements",
+        "plansDir": "docs/plans",
+        "templateDir": "docs/templates",
+        "promptDir": "docs/prompts",
+        "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+        "prTemplatePath": ".github/pull_request_template.md",
+        "riskPacks": [],
+        "teamPreset": {
+          "defaultBranch": "",
+          "requiredGates": [],
+          "riskPacks": [],
+          "externalProviders": []
+        }
+      }
+    }
+  }
+}

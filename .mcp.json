@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "ai-delivery": {
+      "command": "ai-delivery-mcp"
+    }
+  }
+}

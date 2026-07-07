@@ -1,0 +1,152 @@
+<svg width="1440" height="1100" viewBox="0 0 1440 1100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1440" height="1100" fill="#F7F7F2"/>
+  <text x="72" y="86" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="800">Tokenized Art Finance UI System</text>
+  <text x="72" y="122" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="500">Web3 art tokenization finance direction for MyTradeApp mobile</text>
+
+  <g transform="translate(72 170)">
+    <rect x="0" y="0" width="300" height="650" rx="42" fill="#101417"/>
+    <rect x="12" y="12" width="276" height="626" rx="34" fill="#F7F7F2"/>
+    <rect x="92" y="22" width="104" height="28" rx="14" fill="#101417"/>
+
+    <rect x="12" y="12" width="276" height="112" rx="34" fill="#FFFFFF"/>
+    <line x1="12" y1="124" x2="288" y2="124" stroke="#DDE2DD"/>
+    <text x="118" y="72" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">Public</text>
+    <text x="118" y="98" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">Launchpad</text>
+    <rect x="206" y="56" width="58" height="42" rx="16" fill="#1E6B5C"/>
+    <text x="235" y="82" text-anchor="middle" fill="white" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Connect</text>
+
+    <g transform="translate(34 160)">
+      <rect width="232" height="190" rx="14" fill="#FFFFFF" stroke="#DDE2DD"/>
+      <rect x="16" y="16" width="200" height="92" rx="10" fill="#E8E4DA"/>
+      <rect x="28" y="28" width="62" height="68" rx="4" fill="#B8872B" opacity="0.32"/>
+      <rect x="104" y="30" width="82" height="8" rx="4" fill="#172026" opacity="0.18"/>
+      <rect x="104" y="48" width="58" height="8" rx="4" fill="#172026" opacity="0.12"/>
+      <text x="16" y="134" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="19" font-weight="800">Fractional Masterwork</text>
+      <text x="16" y="158" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600">Opening allocation</text>
+      <rect x="154" y="142" width="62" height="28" rx="14" fill="#E4F1ED"/>
+      <text x="185" y="160" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">Open</text>
+    </g>
+
+    <g transform="translate(34 382)">
+      <rect width="232" height="82" rx="14" fill="#FFFFFF" stroke="#DDE2DD"/>
+      <text x="18" y="30" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">Portfolio preview</text>
+      <text x="18" y="58" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">$0.00</text>
+      <text x="168" y="57" fill="#B8872B" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">ARTFI</text>
+    </g>
+
+    <rect x="12" y="558" width="276" height="80" rx="0" fill="#FFFFFF"/>
+    <line x1="12" y1="558" x2="288" y2="558" stroke="#DDE2DD"/>
+    <g fill="none" stroke="#66727A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M44 588L58 576L72 588V610H50V596H66V610"/>
+      <path d="M107 584H137L134 594H110L107 584Z"/>
+      <path d="M122 594V610M112 610H132"/>
+      <circle cx="179" cy="582" r="5"/>
+      <circle cx="164" cy="598" r="5"/>
+      <circle cx="194" cy="606" r="5"/>
+      <path d="M168 595L175 586M184 585L190 601"/>
+      <rect x="232" y="579" width="22" height="22" rx="4"/>
+      <path d="M243 579V601M232 590H254"/>
+    </g>
+    <rect x="28" y="568" width="54" height="58" rx="14" fill="#E4F1ED"/>
+    <g stroke="#1E6B5C" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M44 588L58 576L72 588V610H50V596H66V610"/>
+    </g>
+    <text x="55" y="623" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="800">Launch</text>
+    <text x="122" y="623" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="800">Market</text>
+    <text x="179" y="623" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="800">Referral</text>
+    <text x="243" y="623" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="800">Dash</text>
+  </g>
+
+  <g transform="translate(420 170)">
+    <rect x="0" y="0" width="300" height="650" rx="42" fill="#101417"/>
+    <rect x="12" y="12" width="276" height="626" rx="34" fill="#F7F7F2"/>
+    <rect x="92" y="22" width="104" height="28" rx="14" fill="#101417"/>
+
+    <rect x="12" y="12" width="276" height="112" rx="34" fill="#FFFFFF"/>
+    <line x1="12" y1="124" x2="288" y2="124" stroke="#DDE2DD"/>
+    <text x="150" y="94" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">Profile</text>
+    <rect x="214" y="56" width="54" height="42" rx="14" fill="#E4F1ED"/>
+    <text x="241" y="82" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">0x</text>
+
+    <g transform="translate(36 156)">
+      <rect width="228" height="90" rx="14" fill="#FFFFFF" stroke="#DDE2DD"/>
+      <text x="18" y="30" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">Wallet connected</text>
+      <text x="18" y="60" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">0x7A...91</text>
+      <rect x="152" y="32" width="58" height="30" rx="15" fill="#E4F1ED"/>
+      <text x="181" y="51" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">Ready</text>
+    </g>
+
+    <g transform="translate(36 278)">
+      <rect width="228" height="206" rx="0" fill="#FFFFFF"/>
+      <text x="18" y="45" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="600">Wallet</text>
+      <text x="202" y="45" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">›</text>
+      <line x1="18" y1="66" x2="210" y2="66" stroke="#DDE2DD"/>
+      <text x="18" y="93" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="600">KYC</text>
+      <text x="202" y="93" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">›</text>
+      <line x1="18" y1="114" x2="210" y2="114" stroke="#DDE2DD"/>
+      <text x="18" y="141" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="600">邀请好友</text>
+      <text x="202" y="141" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">›</text>
+      <line x1="18" y1="162" x2="210" y2="162" stroke="#DDE2DD"/>
+      <text x="18" y="189" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="600">Settings</text>
+      <text x="202" y="189" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="600">›</text>
+    </g>
+
+    <g transform="translate(36 508)">
+      <rect width="228" height="46" rx="14" fill="#FFFFFF" stroke="#A33A2D"/>
+      <text x="114" y="30" text-anchor="middle" fill="#A33A2D" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="800">Sign out</text>
+    </g>
+  </g>
+
+  <g transform="translate(768 170)">
+    <rect x="0" y="0" width="300" height="650" rx="42" fill="#101417"/>
+    <rect x="12" y="12" width="276" height="626" rx="34" fill="#F7F7F2"/>
+    <rect x="92" y="22" width="104" height="28" rx="14" fill="#101417"/>
+
+    <rect x="12" y="12" width="276" height="626" rx="34" fill="#F7F7F2"/>
+    <rect x="12" y="258" width="276" height="380" rx="28" fill="#FFFFFF"/>
+    <path d="M132 276H168" stroke="#DDE2DD" stroke-width="4" stroke-linecap="round"/>
+    <text x="34" y="324" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">选择邀请类型</text>
+    <text x="254" y="321" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="26" font-weight="500">×</text>
+    <text x="34" y="358" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600">复制链接发送给你的朋友即可完成邀请。</text>
+
+    <rect x="34" y="394" width="232" height="42" rx="21" fill="#E4F1DE" stroke="#159100" stroke-width="2"/>
+    <text x="150" y="421" text-anchor="middle" fill="#159100" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800">投资者</text>
+
+    <rect x="34" y="450" width="232" height="42" rx="21" fill="#FFFFFF" stroke="#DDE2DD"/>
+    <text x="150" y="476" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">藏家 - 需艺委会审核评级</text>
+    <rect x="34" y="504" width="232" height="42" rx="21" fill="#FFFFFF" stroke="#DDE2DD"/>
+    <text x="150" y="530" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">艺术家 - 需艺委会审核评级</text>
+
+    <rect x="34" y="566" width="232" height="56" rx="14" fill="#F1F3EE"/>
+    <text x="50" y="590" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="600">https://test.artstarex.com/register</text>
+    <rect x="50" y="598" width="74" height="24" rx="12" fill="#101417"/>
+    <text x="87" y="614" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">Copy link</text>
+  </g>
+
+  <g transform="translate(1120 194)">
+    <text x="0" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Design tokens</text>
+    <g transform="translate(0 34)">
+      <rect width="42" height="42" rx="10" fill="#F7F7F2" stroke="#DDE2DD"/>
+      <text x="58" y="27" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Warm gallery background</text>
+    </g>
+    <g transform="translate(0 92)">
+      <rect width="42" height="42" rx="10" fill="#1E6B5C"/>
+      <text x="58" y="27" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Financial trust primary</text>
+    </g>
+    <g transform="translate(0 150)">
+      <rect width="42" height="42" rx="10" fill="#B8872B"/>
+      <text x="58" y="27" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Art value accent</text>
+    </g>
+    <g transform="translate(0 208)">
+      <rect width="42" height="42" rx="10" fill="#E4F1ED"/>
+      <text x="58" y="27" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Selected soft state</text>
+    </g>
+    <g transform="translate(0 300)">
+      <text x="0" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">Rules</text>
+      <text x="0" y="42" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">No neon crypto gradients</text>
+      <text x="0" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">No NFT cartoon style</text>
+      <text x="0" y="110" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">No card inside card layouts</text>
+      <text x="0" y="144" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="600">Use shared theme tokens first</text>
+    </g>
+  </g>
+</svg>

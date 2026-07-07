@@ -1,0 +1,100 @@
+# Task 2：Auth/Register workflow 完整化
+
+来源：[rn-full-app-port implementation](../../2026-07-02-rn-full-app-port-implementation.md)
+
+- 业务场景：用户通过 Privy 登录后，按 `wallet-login.user_status` 完成新用户注册、邀请注册或孤儿账号恢复。
+- 当前 slice 目标：把已完成的 Privy -> `wallet-login` 登录链路升级为可处理 `existing`、`new`、`orphaned`、邀请注册和账号阻断的移动端注册 workflow；不进入真实 Dashboard 数据、KYC、Wallet 或链上交易。
+- App 端邀请注册形态：
+  - 邀请仍以链接为主，不设计成仅 App 内按钮或一次性二维码。推荐人分享链接时，链接应可被 Web、微信、Telegram、浏览器和系统分享面板打开。
+  - 链接参数沿用 Web 端契约：`type=<investor|collector|creator|institution>`，二选一携带 `ref=<referrer_code>` 或 `invitation_token=<token>`。
+  - 安装 App 后：Universal Link / App Link 或自定义 scheme 打开 App，App 解析 query 并把注册 payload 存入移动端安全存储；随后登录完成时使用该 payload 调 `register-user`。
+  - 未安装 App：链接先落 Web fallback 页面；Task 2 不实现 deferred deep link 归因，后续可在 Referral task 中增加下载页、pasteboard / install referrer 或手动邀请码兜底。
+  - 如果已存在用户通过邀请链接登录，App 清除该 payload 并标记 `existing_user_with_invite`，只用于后续提示，不重新绑定邀请关系。
+- Edge Function 契约：
+  - `wallet-login` 成功响应必须保留 `access_token`、`expires_in`、`user_status`、`user`；Task 2 需要扩展 `AuthExchangeResult` 暴露 `userStatus`。
+  - `register-user` endpoint：`${EXPO_PUBLIC_SUPABASE_URL}/functions/v1/register-user`。
+  - `register-user` request headers：`Content-Type: application/json`，`Authorization: Bearer <wallet-login access_token>`。
+  - `register-user` request body：`{ selected_type, referrer_code?, invitation_token? }`。
+  - `register-user` success：`{ success: true }`。
+  - `register-user` errors：`missing_auth_token` / `invalid_auth_token` -> auth failure；`missing_user_type`、`invalid_user_type`、`referrer_code_and_token_are_mutually_exclusive`、`invalid_or_expired_invitation_token`、`invalid_referrer_code` -> registration failure；`internal_error` -> retryable server failure only when status >= 500。
+- 状态流转：
+  - `existing` + 无 stored registration payload：persist session -> authenticated。
+  - `existing` + 有 stored registration payload：clear payload -> persist session -> authenticated with `existing_user_with_invite` notice flag。
+  - `new` + stored registration payload：call `register-user` with payload -> clear payload -> persist session -> authenticated.
+  - `new` + no stored registration payload：call `register-user` with `{ selected_type: "investor" }` -> persist session -> authenticated。该默认只适用于新 Privy 用户，不表示前端可信判断用户身份。
+  - `orphaned` + stored registration payload：call `register-user` with payload -> clear payload -> persist session -> authenticated.
+  - `orphaned` + no stored registration payload：do not default silently; keep access token only in memory for current workflow, clear Supabase session, show recovery state with action `Continue as Investor`。用户确认后再调用 `register-user` with `{ selected_type: "investor" }`。
+  - `account_suspended` / `account_closed` / 403：clear session and enter `account_disabled` / blocked state.
+- 范围外：不做 Dashboard 真实数据、不做 KYC、不做钱包交易。
+- 预计影响文件：
+  - `src/features/auth/workflow/authWorkflow.ts`
+  - `src/features/auth/services/authExchangeClient.ts`
+  - `src/features/auth/services/sessionStorage.ts`
+  - `src/features/auth/workflow/authStateMachine.ts`
+  - `src/features/registration/services/registrationClient.ts`
+  - `src/features/registration/domain/registrationPayload.ts`
+  - `src/features/registration/services/registrationPayloadStorage.ts`
+  - `src/features/registration/workflow/registrationWorkflow.ts`
+  - `src/app/providers/AuthProvider.tsx`
+  - `src/app/auth/createAuthWorkflow.ts`
+  - `src/features/auth/components/LoginScreen.tsx`
+  - 对应 `__tests__`
+- 结构验收：
+  - UI 只调用 `actions.login/recover/logout`；不得在 component 中拼 Edge Function URL。
+  - `wallet-login` 和 `register-user` 请求只在 service 层。
+  - deep link payload 只作为注册输入，不作为登录身份或权限可信来源。
+  - session 持久化仍统一在 `sessionStorage` service；orphaned recovery token 不落长期存储。
+- 可测试性验收：
+  - `registrationPayload` 覆盖 ref path、invitation token path、missing type、invalid type、mutually exclusive 参数。
+  - `registrationClient` 覆盖 success、400 known errors、401、500 retryable、network failure。
+  - `authWorkflow` 使用 fake clients 覆盖 existing、existing with invite、new with payload、new default investor、orphaned with payload、orphaned recovery required、recover as investor、register failure、blocked account。
+- 验收标准：
+  - `new` 调 register-user 后 authenticated。
+  - `orphaned` 无 payload 进入 recovery，不静默注册。
+  - recovery action 可继续以 investor 注册。
+  - `account_suspended/account_closed` 被阻断。
+  - session 过期回登录。
+  - existing 用户携带邀请 payload 时不重新注册，不绑定邀请，只清理 payload 并保留提示状态。
+- 测试：
+  - 先写 failing tests：`npm test -- src/features/auth src/features/registration`
+  - `npm test -- src/features/auth src/features/registration`
+  - `npm test -- src/app/providers`
+  - `npx tsc --noEmit`
+  - `npm run ai:audit -- rn-full-app-port`
+  - Edge Function UI 扫描无命中：`rg "functions/v1|wallet-login|register-user" src/ --glob "*.tsx"`。
+  - token 日志扫描无命中：`rg "console\\.(log|warn|error).*token|console\\.(log|warn|error).*session" src/ --glob "*.ts" --glob "*.tsx"`。
+- 可追溯关系：首次登录注册、邀请注册、孤儿账号恢复、账号被暂停 / 关闭、Session 过期。
+- 实现状态：Completed for Task 2 slice（2026-07-03）。
+- 已实现文件：
+  - `src/features/auth/workflow/authWorkflow.ts`
+  - `src/features/auth/workflow/authStateMachine.ts`
+  - `src/features/auth/services/authExchangeClient.ts`
+  - `src/features/auth/components/LoginScreen.tsx`
+  - `src/app/providers/AuthProvider.tsx`
+  - `src/app/auth/createAuthWorkflow.ts`
+  - `src/app/navigation/AppNavigator.tsx`
+  - `src/features/registration/domain/registrationPayload.ts`
+  - `src/features/registration/services/registrationClient.ts`
+  - `src/features/registration/services/registrationPayloadStorage.ts`
+  - `src/features/registration/workflow/registrationLinkHandler.ts`
+- 已实现测试：
+  - `src/features/registration/__tests__/registrationPayload.test.ts`
+  - `src/features/registration/__tests__/registrationClient.test.ts`
+  - `src/features/registration/__tests__/registrationPayloadStorage.test.ts`
+  - `src/features/registration/__tests__/registrationLinkHandler.test.ts`
+  - 更新 `src/features/auth/__tests__/authExchangeClient.test.ts`
+  - 更新 `src/features/auth/__tests__/authWorkflow.test.ts`
+  - 更新 `src/features/auth/__tests__/authStateMachine.test.ts`
+  - 更新 `src/features/auth/__tests__/authScreens.test.tsx`
+  - 更新 `src/app/providers/__tests__/AuthProvider.test.tsx`
+  - 更新 `src/app/navigation/__tests__/AppNavigator.test.tsx`
+- 已运行验证：
+  - `npm test -- src/features/auth src/features/registration`
+  - `npm test -- src/app/providers`
+  - `npm test -- src/app/navigation src/app/providers`
+  - `npm test -- src/app/navigation/__tests__/AppNavigator.test.tsx`
+  - `npx tsc --noEmit`
+- 剩余边界：
+  - Universal Link / App Link listener 尚未接入原生配置；当前已提供可复用的 `handleRegistrationLink`，后续在 Referral / deep link slice 中接入 `Linking.getInitialURL()` 和 `Linking.addEventListener("url", ...)`。
+  - Deferred deep link、下载页归因和手动邀请码输入不在 Task 2 完成范围内。
+  - account blocked 当前沿用 `account_disabled` UI；更细的 suspended / closed 文案可在后续 auth polish 中补充。

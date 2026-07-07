@@ -1,0 +1,275 @@
+<svg width="1680" height="1160" viewBox="0 0 1680 1160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1680" height="1160" fill="#F7F7F2"/>
+  <text x="72" y="72" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800">Task 3 / 4 Mobile Information Architecture</text>
+  <text x="72" y="108" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="500">Launchpad list, asset detail, detail tabs, and subscribe sheet for Tokenized Art Finance</text>
+
+  <defs>
+    <linearGradient id="artA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#C9BDA7"/>
+      <stop offset="0.45" stop-color="#6E6A62"/>
+      <stop offset="1" stop-color="#1B1F22"/>
+    </linearGradient>
+    <linearGradient id="artB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#E6D6C3"/>
+      <stop offset="0.45" stop-color="#B8872B"/>
+      <stop offset="1" stop-color="#154C42"/>
+    </linearGradient>
+    <linearGradient id="artC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F1F3EE"/>
+      <stop offset="0.45" stop-color="#C85832"/>
+      <stop offset="1" stop-color="#172026"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Phone 1: Launchpad list -->
+  <g transform="translate(72 160)">
+    <text x="0" y="-24" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">1. Launchpad list</text>
+    <rect x="0" y="0" width="342" height="760" rx="46" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="736" rx="38" fill="#F7F7F2"/>
+    <rect x="121" y="22" width="100" height="27" rx="14" fill="#101417"/>
+
+    <rect x="12" y="12" width="318" height="110" rx="38" fill="#FFFFFF"/>
+    <line x1="12" y1="122" x2="330" y2="122" stroke="#DDE2DD"/>
+    <text x="171" y="92" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">Launchpad</text>
+    <rect x="242" y="58" width="66" height="40" rx="16" fill="#1E6B5C"/>
+    <text x="275" y="83" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="800">Connect</text>
+
+    <g transform="translate(30 150)">
+      <text x="0" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="800">艺术资产发行</text>
+      <text x="0" y="28" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">精选艺术品资产，按份额发行链上所有权凭证。</text>
+      <g transform="translate(0 48)">
+        <rect width="130" height="74" rx="14" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <text x="14" y="23" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">总锁仓价值</text>
+        <text x="14" y="52" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">$12.5M</text>
+        <rect x="74" y="50" width="44" height="16" rx="8" fill="#E4F1ED"/>
+        <text x="96" y="62" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="800">+23%</text>
+
+        <rect x="142" width="112" height="74" rx="14" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <text x="156" y="23" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">活跃项目</text>
+        <text x="156" y="52" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="800">1</text>
+        <rect x="188" y="50" width="52" height="16" rx="8" fill="#F1F3EE"/>
+        <text x="214" y="62" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="9" font-weight="800">3 upcoming</text>
+      </g>
+
+      <g transform="translate(0 144)">
+        <rect x="0" y="0" width="48" height="30" rx="15" fill="#172026"/>
+        <text x="24" y="20" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">全部</text>
+        <text x="70" y="20" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">进行中</text>
+        <text x="132" y="20" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">即将开始</text>
+        <text x="214" y="20" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">已完成</text>
+      </g>
+
+      <g transform="translate(0 198)">
+        <rect width="282" height="282" rx="18" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <rect x="12" y="12" width="258" height="128" rx="14" fill="url(#artA)"/>
+        <rect x="24" y="24" width="58" height="24" rx="12" fill="#B8872B"/>
+        <text x="53" y="40" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">进行中</text>
+        <rect x="190" y="104" width="64" height="20" rx="10" fill="#B8872B" opacity="0.92"/>
+        <text x="222" y="119" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="900">ART-MIST</text>
+        <text x="24" y="164" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">安塞姆·基弗</text>
+        <text x="24" y="188" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">我曾见过雾之国</text>
+        <text x="24" y="218" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">价格</text>
+        <text x="24" y="238" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">$0.1</text>
+        <text x="166" y="218" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">可购份额</text>
+        <text x="166" y="238" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">7,996,470</text>
+        <text x="24" y="264" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">发售进度</text>
+        <text x="256" y="264" text-anchor="end" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">0.0%</text>
+        <rect x="24" y="272" width="232" height="6" rx="3" fill="#E7E9E4"/>
+        <rect x="24" y="272" width="2" height="6" rx="3" fill="#1E6B5C"/>
+        <text x="24" y="300" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">8 参与者</text>
+        <text x="96" y="300" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="10" font-weight="700">剩余 2d 0h</text>
+      </g>
+
+      <g transform="translate(0 502)">
+        <rect width="282" height="92" rx="18" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <rect x="12" y="12" width="70" height="68" rx="12" fill="url(#artB)"/>
+        <text x="96" y="36" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800">迪维纳</text>
+        <text x="96" y="58" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="600">ART-IVV · 即将开始</text>
+        <text x="230" y="46" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">$0.1</text>
+      </g>
+    </g>
+
+    <rect x="12" y="668" width="318" height="80" fill="#FFFFFF"/>
+    <line x1="12" y1="668" x2="330" y2="668" stroke="#DDE2DD"/>
+    <text x="53" y="718" text-anchor="middle" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">Launch</text>
+    <text x="115" y="718" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">Market</text>
+    <text x="178" y="718" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">Referral</text>
+    <text x="244" y="718" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">Dash</text>
+    <text x="296" y="718" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">My</text>
+  </g>
+
+  <!-- Phone 2: Detail hero -->
+  <g transform="translate(460 160)">
+    <text x="0" y="-24" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">2. Asset detail first screen</text>
+    <rect x="0" y="0" width="342" height="760" rx="46" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="736" rx="38" fill="#F7F7F2"/>
+    <rect x="121" y="22" width="100" height="27" rx="14" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="92" rx="38" fill="#FFFFFF"/>
+    <line x1="12" y1="104" x2="330" y2="104" stroke="#DDE2DD"/>
+    <text x="54" y="72" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">‹</text>
+    <text x="171" y="72" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Asset</text>
+
+    <g transform="translate(28 126)">
+      <rect width="286" height="190" rx="18" fill="url(#artA)"/>
+      <rect x="16" y="16" width="58" height="24" rx="12" fill="#B8872B"/>
+      <text x="45" y="32" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="800">进行中</text>
+      <rect x="194" y="150" width="72" height="24" rx="12" fill="#B8872B"/>
+      <text x="230" y="167" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="900">ART-MIST</text>
+
+      <text x="0" y="224" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">安塞姆·基弗</text>
+      <text x="0" y="254" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="800">我曾见过雾之国</text>
+      <text x="0" y="282" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">我曾吞下雾之心</text>
+
+      <g transform="translate(0 310)">
+        <text x="0" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">当前价格</text>
+        <text x="0" y="38" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="900">$0.1</text>
+        <text x="86" y="38" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">USDT</text>
+        <text x="204" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">可购份额</text>
+        <text x="204" y="36" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="900">7,996,470</text>
+      </g>
+
+      <g transform="translate(0 374)">
+        <text x="0" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">发售进度</text>
+        <text x="250" y="0" text-anchor="end" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="800">0.0%</text>
+        <rect x="0" y="14" width="286" height="8" rx="4" fill="#E7E9E4"/>
+        <rect x="0" y="14" width="1" height="8" rx="4" fill="#1E6B5C"/>
+        <text x="0" y="48" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">8 参与者</text>
+        <text x="105" y="48" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">剩余 2d 0h</text>
+        <text x="216" y="48" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">$353 raised</text>
+      </g>
+
+      <g transform="translate(0 448)">
+        <rect width="286" height="54" rx="14" fill="#E4F1ED" stroke="#1E6B5C"/>
+        <text x="52" y="23" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">白名单已通过</text>
+        <text x="52" y="41" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="600">链上状态已确认，可进入认购入口</text>
+        <circle cx="26" cy="28" r="10" stroke="#1E6B5C" stroke-width="2"/>
+        <path d="M21 28L25 32L32 23" stroke="#1E6B5C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+
+      <g transform="translate(0 526)">
+        <text x="0" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">详情</text>
+        <text x="72" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">估值</text>
+        <text x="138" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">规则</text>
+        <text x="204" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">链上</text>
+        <rect x="0" y="12" width="34" height="3" rx="2" fill="#172026"/>
+        <line x1="0" y1="16" x2="286" y2="16" stroke="#DDE2DD"/>
+      </g>
+    </g>
+
+    <rect x="12" y="668" width="318" height="80" fill="#FFFFFF"/>
+    <line x1="12" y1="668" x2="330" y2="668" stroke="#DDE2DD"/>
+    <rect x="36" y="684" width="270" height="48" rx="18" fill="#1E6B5C"/>
+    <text x="171" y="715" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">Subscribe</text>
+  </g>
+
+  <!-- Phone 3: Detail tabs -->
+  <g transform="translate(848 160)">
+    <text x="0" y="-24" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">3. Detail tabs organize dense info</text>
+    <rect x="0" y="0" width="342" height="760" rx="46" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="736" rx="38" fill="#F7F7F2"/>
+    <rect x="121" y="22" width="100" height="27" rx="14" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="92" rx="38" fill="#FFFFFF"/>
+    <line x1="12" y1="104" x2="330" y2="104" stroke="#DDE2DD"/>
+    <text x="171" y="72" text-anchor="middle" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="800">Valuation</text>
+
+    <g transform="translate(28 128)">
+      <g>
+        <text x="0" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">详情</text>
+        <text x="70" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">估值</text>
+        <text x="138" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">规则</text>
+        <text x="204" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">链上</text>
+        <rect x="70" y="12" width="34" height="3" rx="2" fill="#172026"/>
+        <line x1="0" y1="16" x2="286" y2="16" stroke="#DDE2DD"/>
+      </g>
+
+      <g transform="translate(0 48)">
+        <rect width="286" height="142" rx="16" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <rect x="18" y="20" width="4" height="22" rx="2" fill="#B8872B"/>
+        <text x="32" y="38" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="900">估值信息</text>
+        <text x="18" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">估值机构</text>
+        <text x="18" y="98" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">Christie's Art Appraisal</text>
+        <text x="160" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">估值金额</text>
+        <text x="160" y="98" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="800">$100,000,000</text>
+        <text x="18" y="124" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">报告编号 VAL-2024-001239</text>
+      </g>
+
+      <g transform="translate(0 210)">
+        <rect width="286" height="132" rx="16" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <rect x="18" y="20" width="4" height="22" rx="2" fill="#B8872B"/>
+        <text x="32" y="38" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="900">市场分析</text>
+        <text x="18" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">市场趋势</text>
+        <text x="18" y="100" fill="#1E6B5C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">bullish</text>
+        <text x="118" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">需求水平</text>
+        <text x="118" y="100" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">high</text>
+        <text x="216" y="76" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="700">流动性</text>
+        <text x="216" y="100" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">high</text>
+      </g>
+
+      <g transform="translate(0 362)">
+        <rect width="286" height="104" rx="16" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <rect x="18" y="18" width="4" height="22" rx="2" fill="#B8872B"/>
+        <text x="32" y="36" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="900">免责声明</text>
+        <text x="18" y="64" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="600">本估值报告仅供参考，不构成投资建议。</text>
+        <text x="18" y="84" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="11" font-weight="600">艺术品市场具有波动性。</text>
+      </g>
+
+      <g transform="translate(0 492)">
+        <text x="0" y="0" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="900">链上 tab 内容</text>
+        <rect x="0" y="18" width="286" height="80" rx="16" fill="#FFFFFF" stroke="#DDE2DD"/>
+        <text x="18" y="46" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">合约地址</text>
+        <text x="184" y="46" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="900">0x527c...c7eb ↗</text>
+        <text x="18" y="70" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">事件时间线：最近 20 条购买事件</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- Phone 4: Subscribe sheet -->
+  <g transform="translate(1236 160)">
+    <text x="0" y="-24" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800">4. Subscribe bottom sheet</text>
+    <rect x="0" y="0" width="342" height="760" rx="46" fill="#101417"/>
+    <rect x="12" y="12" width="318" height="736" rx="38" fill="#F7F7F2"/>
+    <rect x="121" y="22" width="100" height="27" rx="14" fill="#101417"/>
+
+    <rect x="34" y="110" width="274" height="120" rx="18" fill="url(#artA)" opacity="0.48"/>
+    <text x="34" y="270" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="900">我曾见过雾之国</text>
+    <text x="34" y="304" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700">链上状态已确认 · 进行中</text>
+
+    <rect x="12" y="280" width="318" height="468" rx="28" fill="#FFFFFF"/>
+    <path d="M147 298H195" stroke="#DDE2DD" stroke-width="4" stroke-linecap="round"/>
+    <text x="38" y="346" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="900">购买份额</text>
+    <text x="286" y="344" text-anchor="middle" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600">×</text>
+
+    <g transform="translate(38 378)">
+      <rect width="266" height="62" rx="16" fill="#F1F3EE"/>
+      <text x="16" y="24" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">您的 USDT 余额</text>
+      <text x="210" y="24" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">84.00 USDT</text>
+      <text x="16" y="50" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">单价</text>
+      <text x="210" y="50" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">0.1 USDT / 份</text>
+    </g>
+
+    <g transform="translate(38 466)">
+      <text x="0" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">输入 USDT 金额</text>
+      <rect x="0" y="16" width="266" height="54" rx="20" fill="#FFFFFF" stroke="#DDE2DD"/>
+      <text x="18" y="50" fill="#AAB2B7" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="700">0.00</text>
+    </g>
+
+    <g transform="translate(38 560)">
+      <text x="0" y="0" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">可获得份额</text>
+      <text x="238" y="0" text-anchor="end" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">0</text>
+      <text x="0" y="34" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">最小购买</text>
+      <text x="238" y="34" text-anchor="end" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">1.00 USDT</text>
+      <text x="0" y="68" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700">Allowance</text>
+      <text x="238" y="68" text-anchor="end" fill="#B8872B" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="900">Approve needed</text>
+    </g>
+
+    <rect x="38" y="660" width="266" height="54" rx="20" fill="#AAB2B7"/>
+    <text x="171" y="694" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="900">确认购买</text>
+  </g>
+
+  <!-- Notes -->
+  <g transform="translate(72 980)">
+    <rect width="1506" height="96" rx="22" fill="#FFFFFF" stroke="#DDE2DD"/>
+    <text x="28" y="34" fill="#172026" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="900">Information rules</text>
+    <text x="28" y="66" fill="#66727A" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600">Launchpad shows only enough to decide whether to open detail. Detail page builds trust. Subscribe sheet handles money input. Sale status display is chain-first, database fallback is never trusted for purchase.</text>
+  </g>
+</svg>

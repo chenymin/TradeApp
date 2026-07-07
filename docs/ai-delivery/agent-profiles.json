@@ -1,0 +1,206 @@
+{
+  "stages": {
+    "需求澄清": {
+      "agents": ["requirements-agent"],
+      "superpowers": ["using-superpowers", "brainstorming"],
+      "gates": [
+        "需求必须说明业务目标、范围内、范围外、业务规则、状态模型、权限和验收场景。",
+        "需求必须标记风险标签。"
+      ]
+    },
+    "方案设计": {
+      "agents": ["architect-agent", "engineering-review-agent"],
+      "superpowers": ["brainstorming", "writing-plans", "plan-eng-review"],
+      "gates": [
+        "方案必须包含代码结构边界。",
+        "方案必须包含模块内聚与可测试性。",
+        "方案必须判断代码规则适用性。"
+      ]
+    },
+    "任务拆分": {
+      "agents": ["planner-agent", "qa-agent"],
+      "superpowers": ["writing-plans", "subagent-driven-development", "executing-plans"],
+      "gates": [
+        "实现计划必须按业务场景拆分 Task。",
+        "每个 Task 必须包含结构验收标准。",
+        "每个 Task 必须包含模块内聚与可测试性验收标准。"
+      ]
+    },
+    "编码实现": {
+      "agents": ["implementation-agent", "test-agent"],
+      "superpowers": [
+        "using-git-worktrees",
+        "subagent-driven-development",
+        "executing-plans",
+        "test-driven-development",
+        "verification-before-completion",
+        "systematic-debugging",
+        "dispatching-parallel-agents"
+      ],
+      "gates": [
+        "编码必须只实现当前 Task。",
+        "编码必须先写能失败的测试再实现。",
+        "完成前必须运行验证命令。"
+      ]
+    },
+    "Review": {
+      "agents": ["code-review-agent", "qa-agent"],
+      "superpowers": ["requesting-code-review", "receiving-code-review"],
+      "gates": [
+        "Review 必须先列 findings，再给结论。",
+        "Review 必须覆盖架构漂移、代码规则和模块内聚与可测试性。",
+        "没有未解决的 Critical 或 Important 问题才能合并。"
+      ]
+    },
+    "上线": {
+      "agents": ["release-agent"],
+      "superpowers": ["finishing-a-development-branch"],
+      "gates": ["上线前必须说明验证、监控和回滚路径。"]
+    }
+  },
+  "risks": {
+    "auth": {
+      "agents": ["security-agent"],
+      "gates": ["auth 风险必须完成安全 Review。"]
+    },
+    "permission": {
+      "agents": ["security-agent", "data-agent"],
+      "gates": ["permission 风险必须检查授权边界和数据访问权限。"]
+    },
+    "payment": {
+      "agents": ["security-agent", "release-agent"],
+      "gates": ["payment 风险必须检查幂等性、回滚和上线验证。"]
+    },
+    "kyc": {
+      "agents": ["security-agent", "business-review-agent"],
+      "gates": ["kyc 风险必须确认可信判断不在前端完成。"]
+    },
+    "webhook": {
+      "agents": ["security-agent", "data-agent"],
+      "gates": ["webhook 风险必须检查签名校验、幂等性和重复事件处理。"]
+    },
+    "realtime": {
+      "agents": ["performance-agent", "qa-agent"],
+      "gates": ["realtime 风险必须评估订阅、去重、失效和 rerender 影响。"]
+    },
+    "database": {
+      "agents": ["data-agent"],
+      "gates": ["database 风险必须检查表、字段、RLS、索引和一致性。"]
+    },
+    "rls": {
+      "agents": ["security-agent", "data-agent"],
+      "gates": ["rls 风险必须检查读写权限和跨用户数据隔离。"]
+    },
+    "frontend-performance": {
+      "agents": ["performance-agent"],
+      "gates": [
+        "frontend-performance 风险必须评估渲染范围、memoization 和高频状态。"
+      ]
+    },
+    "contract": {
+      "agents": ["security-agent", "business-review-agent"],
+      "gates": ["contract 风险必须检查链上结果可信来源和失败处理。"]
+    }
+  },
+  "agents": {
+    "requirements-agent": {
+      "superpowers": ["using-superpowers", "brainstorming"],
+      "responsibilities": [
+        "梳理业务目标、范围内、范围外和验收场景。",
+        "标记风险标签，并把未确认问题写回需求文档。"
+      ]
+    },
+    "architect-agent": {
+      "superpowers": ["brainstorming", "writing-plans"],
+      "responsibilities": [
+        "设计模块边界、数据流、失败模式和回滚路径。",
+        "确认代码结构边界、模块内聚与可测试性。"
+      ]
+    },
+    "engineering-review-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "评审方案是否存在架构漂移和职责混杂。",
+        "确认方案满足代码规则适用性和结构验收标准。"
+      ]
+    },
+    "planner-agent": {
+      "superpowers": ["writing-plans"],
+      "responsibilities": [
+        "按业务场景拆分可独立验证的 Task。",
+        "为每个 Task 写清影响文件、测试方式和回滚方式。"
+      ]
+    },
+    "qa-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "补齐主路径、边界路径和回归风险的测试矩阵。",
+        "确认验收场景能被自动化或手工验证。"
+      ]
+    },
+    "implementation-agent": {
+      "superpowers": [
+        "using-git-worktrees",
+        "subagent-driven-development",
+        "executing-plans",
+        "test-driven-development",
+        "verification-before-completion",
+        "systematic-debugging",
+        "dispatching-parallel-agents"
+      ],
+      "responsibilities": [
+        "只实现当前 Task，不扩散到后续阶段。",
+        "保持职责清晰，避免把 IO、业务规则和展示逻辑揉在一起。"
+      ]
+    },
+    "test-agent": {
+      "superpowers": ["test-driven-development", "verification-before-completion", "systematic-debugging"],
+      "responsibilities": [
+        "先写能失败的测试，再验证实现。",
+        "记录验证命令、结果和仍未覆盖的风险。"
+      ]
+    },
+    "code-review-agent": {
+      "superpowers": ["requesting-code-review", "receiving-code-review"],
+      "responsibilities": [
+        "按 Critical / Important / Minor 输出 findings。",
+        "重点检查业务边界、安全、性能、测试缺口和代码结构。"
+      ]
+    },
+    "security-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "检查认证、授权、密钥、可信边界和外部输入处理。",
+        "确认敏感判断不落在不可信客户端。"
+      ]
+    },
+    "data-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "检查数据库 schema、RLS、索引、一致性和幂等处理。",
+        "确认数据读写边界和跨用户隔离。"
+      ]
+    },
+    "performance-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "评估高频状态、订阅、rerender、缓存和查询成本。",
+        "提出可验证的性能风险和监控指标。"
+      ]
+    },
+    "business-review-agent": {
+      "superpowers": ["using-superpowers"],
+      "responsibilities": [
+        "检查实现方案是否贴合业务场景和业务边界。",
+        "确认范围外内容没有被偷偷带入实现。"
+      ]
+    },
+    "release-agent": {
+      "superpowers": ["finishing-a-development-branch"],
+      "responsibilities": [
+        "确认上线验证、监控、灰度和回滚方案。",
+        "检查高风险变更是否具备发布前后观察点。"
+      ]
+    }
+  }
+}

@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="980" viewBox="0 0 1440 980">
+  <defs>
+    <style>
+      .bg { fill: #f3f5f2; }
+      .phone { fill: #ffffff; stroke: #1f2933; stroke-width: 3; }
+      .screen { fill: #f7f8f5; }
+      .bar { fill: #ffffff; stroke: #dce2dc; stroke-width: 1; }
+      .card { fill: #ffffff; stroke: #dce2dc; stroke-width: 1.4; }
+      .muted-card { fill: #eef3ef; stroke: #dce2dc; stroke-width: 1; }
+      .primary { fill: #1e6b5c; }
+      .accent { fill: #2d8a72; }
+      .danger { fill: #a33a2d; }
+      .line { stroke: #9aa7a0; stroke-width: 2; fill: none; }
+      .dash { stroke: #9aa7a0; stroke-width: 2; stroke-dasharray: 7 7; fill: none; }
+      .title { fill: #172026; font: 700 26px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .h2 { fill: #172026; font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .body { fill: #40505a; font: 500 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .small { fill: #66747c; font: 500 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .white { fill: #ffffff; font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .tab { fill: #58666f; font: 700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .tab-active { fill: #1e6b5c; font: 800 11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .note { fill: #314047; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      .mono { fill: #51616a; font: 600 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1440" height="980"/>
+  <text class="title" x="64" y="64">RN Navigation Shell Prototype</text>
+  <text class="body" x="64" y="92">Goal: replace the temporary text shell with a stable mobile app frame for Task 1b.</text>
+
+  <!-- Public phone -->
+  <g transform="translate(70 130)">
+    <rect class="phone" x="0" y="0" rx="38" ry="38" width="330" height="690"/>
+    <rect class="screen" x="14" y="18" rx="28" ry="28" width="302" height="654"/>
+    <rect class="bar" x="14" y="18" rx="28" ry="28" width="302" height="86"/>
+    <text class="small" x="34" y="48">PublicStack</text>
+    <text class="h2" x="34" y="76">Launchpad</text>
+    <rect class="primary" x="236" y="45" rx="15" ry="15" width="58" height="30"/>
+    <text class="white" x="252" y="65">Sign in</text>
+
+    <rect class="muted-card" x="34" y="126" rx="8" ry="8" width="262" height="70"/>
+    <text class="small" x="50" y="152">Market snapshot</text>
+    <text class="h2" x="50" y="178">12 active offerings</text>
+
+    <rect class="bar" x="34" y="214" rx="8" ry="8" width="262" height="42"/>
+    <text class="body" x="50" y="240">All</text>
+    <rect class="primary" x="92" y="222" rx="6" ry="6" width="74" height="26"/>
+    <text class="white" x="112" y="240">Open</text>
+    <text class="body" x="185" y="240">Coming</text>
+
+    <rect class="card" x="34" y="278" rx="8" ry="8" width="262" height="122"/>
+    <rect class="muted-card" x="50" y="294" rx="6" ry="6" width="78" height="74"/>
+    <text class="h2" x="144" y="318">Blue Period #03</text>
+    <text class="small" x="144" y="342">Target 36,000 USDT</text>
+    <text class="small" x="144" y="364">Sale opens soon</text>
+    <rect class="accent" x="144" y="376" rx="10" ry="10" width="82" height="20"/>
+    <text class="white" x="158" y="391">Details</text>
+
+    <rect class="card" x="34" y="416" rx="8" ry="8" width="262" height="88"/>
+    <text class="h2" x="50" y="444">Market</text>
+    <text class="small" x="50" y="468">Search and completed assets</text>
+    <text class="small" x="50" y="490">Public access</text>
+
+    <rect class="card" x="34" y="520" rx="8" ry="8" width="262" height="70"/>
+    <text class="h2" x="50" y="548">Referral rules</text>
+    <text class="small" x="50" y="572">Public leaderboard preview</text>
+
+    <rect class="bar" x="14" y="610" rx="0" ry="0" width="302" height="62"/>
+    <text class="tab-active" x="48" y="648">Launch</text>
+    <text class="tab" x="138" y="648">Market</text>
+    <text class="tab" x="224" y="648">Referral</text>
+  </g>
+
+  <!-- Protected phone -->
+  <g transform="translate(480 130)">
+    <rect class="phone" x="0" y="0" rx="38" ry="38" width="330" height="690"/>
+    <rect class="screen" x="14" y="18" rx="28" ry="28" width="302" height="654"/>
+    <rect class="bar" x="14" y="18" rx="28" ry="28" width="302" height="86"/>
+    <text class="small" x="34" y="48">ProtectedTabs</text>
+    <text class="h2" x="34" y="76">Home</text>
+    <circle class="primary" cx="270" cy="62" r="18"/>
+    <text class="white" x="262" y="67">0x</text>
+
+    <rect class="muted-card" x="34" y="126" rx="8" ry="8" width="262" height="82"/>
+    <text class="small" x="50" y="152">Portfolio value</text>
+    <text class="h2" x="50" y="180">18,240 USDT</text>
+    <text class="small" x="196" y="180">3 assets</text>
+
+    <rect class="card" x="34" y="224" rx="8" ry="8" width="262" height="86"/>
+    <text class="h2" x="50" y="252">KYC status</text>
+    <text class="small" x="50" y="276">Awaiting review</text>
+    <rect class="primary" x="204" y="248" rx="11" ry="11" width="70" height="22"/>
+    <text class="white" x="222" y="264">Open</text>
+
+    <rect class="card" x="34" y="326" rx="8" ry="8" width="262" height="96"/>
+    <text class="h2" x="50" y="354">Holdings</text>
+    <text class="small" x="50" y="378">Blue Period #03</text>
+    <text class="small" x="50" y="400">1,200 shares · +4.2%</text>
+
+    <rect class="card" x="34" y="438" rx="8" ry="8" width="262" height="94"/>
+    <text class="h2" x="50" y="466">Next actions</text>
+    <text class="small" x="50" y="490">Complete KYC · Review wallet</text>
+    <text class="small" x="50" y="512">No production chain writes here</text>
+
+    <rect class="bar" x="14" y="610" width="302" height="62"/>
+    <text class="tab-active" x="38" y="648">Home</text>
+    <text class="tab" x="88" y="648">Invest</text>
+    <text class="tab" x="145" y="648">Market</text>
+    <text class="tab" x="210" y="648">Wallet</text>
+    <text class="tab" x="267" y="648">Profile</text>
+  </g>
+
+  <!-- Profile phone -->
+  <g transform="translate(890 130)">
+    <rect class="phone" x="0" y="0" rx="38" ry="38" width="330" height="690"/>
+    <rect class="screen" x="14" y="18" rx="28" ry="28" width="302" height="654"/>
+    <rect class="bar" x="14" y="18" rx="28" ry="28" width="302" height="86"/>
+    <text class="small" x="34" y="48">ProtectedTabs / Profile</text>
+    <text class="h2" x="34" y="76">Profile</text>
+    <circle class="primary" cx="270" cy="62" r="18"/>
+
+    <rect class="muted-card" x="34" y="126" rx="8" ry="8" width="262" height="78"/>
+    <text class="h2" x="50" y="156">Investor profile</text>
+    <text class="small" x="50" y="180">Wallet linked · Session active</text>
+
+    <rect class="card" x="34" y="222" rx="8" ry="8" width="262" height="52"/>
+    <text class="h2" x="50" y="254">KYC</text>
+    <text class="small" x="230" y="254">›</text>
+
+    <rect class="card" x="34" y="286" rx="8" ry="8" width="262" height="52"/>
+    <text class="h2" x="50" y="318">Referral</text>
+    <text class="small" x="230" y="318">›</text>
+
+    <rect class="card" x="34" y="350" rx="8" ry="8" width="262" height="52"/>
+    <text class="h2" x="50" y="382">Security</text>
+    <text class="small" x="230" y="382">›</text>
+
+    <rect class="card" x="34" y="414" rx="8" ry="8" width="262" height="52"/>
+    <text class="h2" x="50" y="446">Settings</text>
+    <text class="small" x="230" y="446">›</text>
+
+    <rect class="danger" x="34" y="500" rx="8" ry="8" width="262" height="48"/>
+    <text class="white" x="138" y="530">Sign out</text>
+
+    <rect class="bar" x="14" y="610" width="302" height="62"/>
+    <text class="tab" x="38" y="648">Home</text>
+    <text class="tab" x="88" y="648">Invest</text>
+    <text class="tab" x="145" y="648">Market</text>
+    <text class="tab" x="210" y="648">Wallet</text>
+    <text class="tab-active" x="267" y="648">Profile</text>
+  </g>
+
+  <!-- Flow map -->
+  <g transform="translate(70 860)">
+    <text class="h2" x="0" y="0">Flow rules</text>
+    <rect class="card" x="0" y="22" rx="8" ry="8" width="300" height="64"/>
+    <text class="note" x="18" y="50">Login</text>
+    <text class="small" x="18" y="72">Header button or auth-required action</text>
+
+    <path class="line" d="M310 54 H390"/>
+    <rect class="card" x="400" y="22" rx="8" ry="8" width="300" height="64"/>
+    <text class="note" x="418" y="50">Purchase / Transfer</text>
+    <text class="small" x="418" y="72">Stack detail, sheet, or modal only</text>
+
+    <path class="line" d="M710 54 H790"/>
+    <rect class="card" x="800" y="22" rx="8" ry="8" width="300" height="64"/>
+    <text class="note" x="818" y="50">KYC / Referral</text>
+    <text class="small" x="818" y="72">Profile entry, not bottom tab</text>
+
+    <path class="dash" d="M1110 54 H1210"/>
+    <rect class="muted-card" x="1220" y="22" rx="8" ry="8" width="150" height="64"/>
+    <text class="mono" x="1236" y="50">Task 1b</text>
+    <text class="small" x="1236" y="72">Before Task 2</text>
+  </g>
+</svg>

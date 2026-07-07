@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "MyTradeApp",
+    "slug": "my-trade-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.artstar.mytradeapp"
+    },
+    "android": {
+      "package": "com.artstar.mytradeapp",
+      "predictiveBackGestureEnabled": false
+    }
+  }
+}

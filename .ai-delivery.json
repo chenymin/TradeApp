@@ -1,0 +1,20 @@
+{
+  "language": "zh-CN",
+  "manifestPath": "docs/ai-delivery/features.json",
+  "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+  "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+  "executorProfilesPath": "docs/ai-delivery/executors.json",
+  "requirementsDir": "docs/requirements",
+  "plansDir": "docs/plans",
+  "templateDir": "docs/templates",
+  "promptDir": "docs/prompts",
+  "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+  "prTemplatePath": ".github/pull_request_template.md",
+  "riskPacks": [],
+  "teamPreset": {
+    "defaultBranch": "",
+    "requiredGates": [],
+    "riskPacks": [],
+    "externalProviders": []
+  }
+}

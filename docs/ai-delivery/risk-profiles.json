@@ -1,0 +1,65 @@
+{
+  "auth": {
+    "reviews": ["安全 Review"],
+    "skills": ["security-review"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["requesting-code-review", "verification-before-completion"]
+  },
+  "permission": {
+    "reviews": ["安全 Review", "数据 Review"],
+    "skills": ["security-review", "supabase-postgres-best-practices"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["requesting-code-review", "verification-before-completion"]
+  },
+  "payment": {
+    "reviews": ["安全 Review", "上线 Review"],
+    "skills": ["security-review", "qa", "ship"],
+    "templates": [
+      "docs/templates/quality-review-template.md",
+      "docs/templates/release-checklist-template.md"
+    ],
+    "superpowers": ["requesting-code-review", "verification-before-completion"]
+  },
+  "kyc": {
+    "reviews": ["安全 Review", "业务边界 Review"],
+    "skills": ["security-review", "review"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["requesting-code-review", "verification-before-completion"]
+  },
+  "webhook": {
+    "reviews": ["安全 Review", "数据 Review", "幂等性 Review"],
+    "skills": ["security-review", "supabase-postgres-best-practices", "review"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["systematic-debugging", "requesting-code-review"]
+  },
+  "realtime": {
+    "reviews": ["性能 Review", "QA Review"],
+    "skills": ["vercel-react-best-practices", "qa"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["verification-before-completion", "requesting-code-review"]
+  },
+  "database": {
+    "reviews": ["数据 Review"],
+    "skills": ["supabase-postgres-best-practices"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["test-driven-development", "verification-before-completion"]
+  },
+  "rls": {
+    "reviews": ["安全 Review", "数据 Review"],
+    "skills": ["security-review", "supabase-postgres-best-practices"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["test-driven-development", "requesting-code-review"]
+  },
+  "frontend-performance": {
+    "reviews": ["性能 Review", "最佳实践 Review"],
+    "skills": ["vercel-react-best-practices"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["test-driven-development", "verification-before-completion"]
+  },
+  "contract": {
+    "reviews": ["安全 Review", "业务边界 Review"],
+    "skills": ["security-review", "review"],
+    "templates": ["docs/templates/quality-review-template.md"],
+    "superpowers": ["requesting-code-review", "verification-before-completion"]
+  }
+}

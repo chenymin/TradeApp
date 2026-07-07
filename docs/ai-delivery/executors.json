@@ -1,0 +1,22 @@
+{
+  "executors": {
+    "echo": {
+      "type": "echo"
+    },
+    "codex": {
+      "type": "command",
+      "command": "codex",
+      "args": ["exec", "-"]
+    },
+    "superpowers": {
+      "type": "command",
+      "command": "codex",
+      "args": ["exec", "-"]
+    },
+    "runner": {
+      "type": "command",
+      "command": "node",
+      "args": []
+    }
+  }
+}

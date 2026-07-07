@@ -1,0 +1,140 @@
+name: AI Delivery Check
+
+on:
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:run
+
+  ai-delivery-audit:
+    name: AI Delivery Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Audit all registered features
+        run: |
+          MANIFEST="docs/ai-delivery/features.json"
+          if [ ! -f "$MANIFEST" ]; then
+            echo "No features manifest found, skipping audit."
+            exit 0
+          fi
+
+          SLUGS=$(jq -r '.features | keys[]' "$MANIFEST")
+          if [ -z "$SLUGS" ]; then
+            echo "No features registered, skipping audit."
+            exit 0
+          fi
+
+          {
+            echo "## AI Delivery Audit"
+            echo ""
+            echo "| Feature | Status | Findings |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          FAILED=0
+          while IFS= read -r SLUG; do
+            echo "::group::ai:audit — $SLUG"
+
+            RESULT=$(npm run --silent ai:audit -- "$SLUG" --json 2>/dev/null)
+            EXIT=$?
+
+            # Human-readable summary inside the group
+            echo "$RESULT" | jq -r '
+              if .ok then "✅ Audit 通过"
+              else "❌ Audit 未通过:\n" + ([.findings[]? | "  - [" + .code + "] " + .message] | join("\n"))
+              end' 2>/dev/null || echo "$RESULT"
+
+            # ::warning:: annotation per finding (visible inline on PR)
+            echo "$RESULT" | jq -r \
+              '.findings[]? | "::warning title=AI Delivery ['"$SLUG"']::[" + .code + "] " + .message' \
+              2>/dev/null || true
+
+            # Step summary row
+            COUNT=$(echo "$RESULT" | jq '.findings | length' 2>/dev/null || echo "?")
+            if [ "$EXIT" -eq 0 ]; then
+              echo "| \`$SLUG\` | ✅ | $COUNT |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "| \`$SLUG\` | ❌ | $COUNT |" >> "$GITHUB_STEP_SUMMARY"
+              FAILED=1
+            fi
+
+            echo "::endgroup::"
+          done <<< "$SLUGS"
+          exit $FAILED
+
+      - name: Ship gate for features changed in this PR
+        if: always()
+        run: |
+          MANIFEST="docs/ai-delivery/features.json"
+          if [ ! -f "$MANIFEST" ]; then
+            exit 0
+          fi
+
+          CHANGED_DOCS=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" -- 'docs/plans/' 'docs/ai-delivery/')
+          if [ -z "$CHANGED_DOCS" ]; then
+            echo "No AI delivery docs changed in this PR."
+            exit 0
+          fi
+
+          {
+            echo ""
+            echo "## Ship Gate"
+            echo ""
+            echo "| Feature | Gate | Status |"
+            echo "| --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          ALL_SLUGS=$(jq -r '.features | keys[]' "$MANIFEST")
+          FAILED=0
+          while IFS= read -r SLUG; do
+            if echo "$CHANGED_DOCS" | grep -qF "$SLUG"; then
+              echo "::group::ai:ship gate — $SLUG"
+
+              RESULT=$(npm run --silent ai:ship -- "$SLUG" --json 2>/dev/null)
+              EXIT=$?
+
+              # Human-readable gate summary
+              echo "$RESULT" | jq -r '
+                .gates[]? |
+                (if .pass then "✅" else "❌" end) + " " + .name + ": " + .message
+              ' 2>/dev/null || echo "$RESULT"
+
+              # ::warning:: per failed gate
+              echo "$RESULT" | jq -r \
+                '.gates[]? | select(.pass == false) |
+                 "::warning title=Ship Gate ['"$SLUG"']::" + .name + " — " + .message' \
+                2>/dev/null || true
+
+              # Step summary rows
+              echo "$RESULT" | jq -r \
+                '.gates[]? |
+                 "| `'"$SLUG"'` | " + .name + " | " + (if .pass then "✅" else "❌" end) + " |"' \
+                2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+
+              [ "$EXIT" -ne 0 ] && FAILED=1
+              echo "::endgroup::"
+            fi
+          done <<< "$ALL_SLUGS"
+          exit $FAILED
