@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "feature": "privy-login",
+  "title": "Privy Login",
+  "stage": "编码实现",
+  "status": "ready",
+  "summary": {
+    "totalEntries": 2,
+    "latestStatus": "passed",
+    "latestKind": "verification",
+    "latestStopReason": null,
+    "latestContinuationDecision": null,
+    "observabilityGapCount": 0,
+    "status": "ready"
+  },
+  "entries": [
+    {
+      "kind": "verification",
+      "timestamp": "2026-07-01T13:14:32.335Z",
+      "status": "passed",
+      "command": "npm run ai:verify -- privy-login --write",
+      "durationMs": null,
+      "exitStatus": null,
+      "artifactPath": "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md",
+      "stopReason": null,
+      "retryCount": null,
+      "continuationDecision": null,
+      "nextCommand": "Continue from verified delivery evidence.",
+      "owner": null,
+      "evidencePaths": [
+        "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md"
+      ]
+    },
+    {
+      "kind": "verification",
+      "timestamp": "2026-07-02T02:37:43.364Z",
+      "status": "passed",
+      "command": "npm run ai:verify -- privy-login --write",
+      "durationMs": null,
+      "exitStatus": null,
+      "artifactPath": "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md",
+      "stopReason": null,
+      "retryCount": null,
+      "continuationDecision": null,
+      "nextCommand": "Continue from verified delivery evidence.",
+      "owner": null,
+      "evidencePaths": [
+        "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+      ]
+    }
+  ],
+  "latest": {
+    "kind": "verification",
+    "timestamp": "2026-07-02T02:37:43.364Z",
+    "status": "passed",
+    "command": "npm run ai:verify -- privy-login --write",
+    "durationMs": null,
+    "exitStatus": null,
+    "artifactPath": "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md",
+    "stopReason": null,
+    "retryCount": null,
+    "continuationDecision": null,
+    "nextCommand": "Continue from verified delivery evidence.",
+    "owner": null,
+    "evidencePaths": [
+      "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+    ]
+  },
+  "nextAction": "Continue from verified delivery evidence.",
+  "observabilityGaps": [],
+  "evidencePaths": [
+    "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md",
+    "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+  ],
+  "rerunCommands": [
+    "npm run ai:timeline -- privy-login",
+    "npm run ai:timeline -- privy-login -- --json"
+  ]
+}

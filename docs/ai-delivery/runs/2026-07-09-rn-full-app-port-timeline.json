@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "feature": "rn-full-app-port",
+  "title": "React Native Full App Port",
+  "stage": "编码实现",
+  "status": "ready",
+  "summary": {
+    "totalEntries": 1,
+    "latestStatus": "passed",
+    "latestKind": "verification",
+    "latestStopReason": null,
+    "latestContinuationDecision": null,
+    "observabilityGapCount": 0,
+    "status": "ready"
+  },
+  "entries": [
+    {
+      "kind": "verification",
+      "timestamp": "2026-07-03T03:35:42.571Z",
+      "status": "passed",
+      "command": "npm run ai:verify -- rn-full-app-port --write",
+      "durationMs": null,
+      "exitStatus": null,
+      "artifactPath": "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md",
+      "stopReason": null,
+      "retryCount": null,
+      "continuationDecision": null,
+      "nextCommand": "Continue from verified delivery evidence.",
+      "owner": null,
+      "evidencePaths": [
+        "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+      ]
+    }
+  ],
+  "latest": {
+    "kind": "verification",
+    "timestamp": "2026-07-03T03:35:42.571Z",
+    "status": "passed",
+    "command": "npm run ai:verify -- rn-full-app-port --write",
+    "durationMs": null,
+    "exitStatus": null,
+    "artifactPath": "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md",
+    "stopReason": null,
+    "retryCount": null,
+    "continuationDecision": null,
+    "nextCommand": "Continue from verified delivery evidence.",
+    "owner": null,
+    "evidencePaths": [
+      "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+    ]
+  },
+  "nextAction": "Continue from verified delivery evidence.",
+  "observabilityGaps": [],
+  "evidencePaths": [
+    "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+  ],
+  "rerunCommands": [
+    "npm run ai:timeline -- rn-full-app-port",
+    "npm run ai:timeline -- rn-full-app-port -- --json"
+  ]
+}
