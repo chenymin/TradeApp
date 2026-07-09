@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-09",
+  "status": "healthy",
+  "summary": {
+    "totalFeatures": 2,
+    "visibleFeatures": 2,
+    "healthy": 2,
+    "blocked": 0,
+    "stale": 0,
+    "missingEvidence": 0,
+    "needsTriage": 0
+  },
+  "features": [
+    {
+      "slug": "privy-login",
+      "title": "Privy Login",
+      "stage": "编码实现",
+      "status": "healthy",
+      "audit": {
+        "ok": null,
+        "findingCount": 0,
+        "issues": []
+      },
+      "readiness": {
+        "ok": null,
+        "findingCount": 0,
+        "issues": []
+      },
+      "latestEvidence": {
+        "timeline": "docs/ai-delivery/runs/2026-07-09-privy-login-timeline.json"
+      },
+      "latestTimeline": {
+        "status": "ready",
+        "artifactPath": "docs/ai-delivery/runs/2026-07-09-privy-login-timeline.json",
+        "nextAction": "Continue from verified delivery evidence.",
+        "evidencePaths": [
+          "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md",
+          "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+        ],
+        "latest": {
+          "kind": "verification",
+          "timestamp": "2026-07-02T02:37:43.364Z",
+          "status": "passed",
+          "command": "npm run ai:verify -- privy-login --write",
+          "durationMs": null,
+          "exitStatus": null,
+          "artifactPath": "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md",
+          "stopReason": null,
+          "retryCount": null,
+          "continuationDecision": null,
+          "nextCommand": "Continue from verified delivery evidence.",
+          "owner": null,
+          "evidencePaths": [
+            "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+          ]
+        },
+        "parseError": null
+      },
+      "blockers": [],
+      "observabilityGaps": [],
+      "nextAction": "Continue from verified delivery evidence.",
+      "owner": "unknown",
+      "evidencePaths": [
+        "docs/ai-delivery/runs/2026-07-09-privy-login-timeline.json",
+        "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md",
+        "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md"
+      ]
+    },
+    {
+      "slug": "rn-full-app-port",
+      "title": "React Native Full App Port",
+      "stage": "编码实现",
+      "status": "healthy",
+      "audit": {
+        "ok": null,
+        "findingCount": 0,
+        "issues": []
+      },
+      "readiness": {
+        "ok": null,
+        "findingCount": 0,
+        "issues": []
+      },
+      "latestEvidence": {
+        "timeline": "docs/ai-delivery/runs/2026-07-09-rn-full-app-port-timeline.json"
+      },
+      "latestTimeline": {
+        "status": "ready",
+        "artifactPath": "docs/ai-delivery/runs/2026-07-09-rn-full-app-port-timeline.json",
+        "nextAction": "Continue from verified delivery evidence.",
+        "evidencePaths": [
+          "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+        ],
+        "latest": {
+          "kind": "verification",
+          "timestamp": "2026-07-03T03:35:42.571Z",
+          "status": "passed",
+          "command": "npm run ai:verify -- rn-full-app-port --write",
+          "durationMs": null,
+          "exitStatus": null,
+          "artifactPath": "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md",
+          "stopReason": null,
+          "retryCount": null,
+          "continuationDecision": null,
+          "nextCommand": "Continue from verified delivery evidence.",
+          "owner": null,
+          "evidencePaths": [
+            "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+          ]
+        },
+        "parseError": null
+      },
+      "blockers": [],
+      "observabilityGaps": [],
+      "nextAction": "Continue from verified delivery evidence.",
+      "owner": "unknown",
+      "evidencePaths": [
+        "docs/ai-delivery/runs/2026-07-09-rn-full-app-port-timeline.json",
+        "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+      ]
+    }
+  ],
+  "blockedFeatures": [],
+  "staleEvidence": [],
+  "nextActions": [],
+  "evidencePaths": [
+    "docs/ai-delivery/runs/2026-07-09-privy-login-timeline.json",
+    "docs/ai-delivery/runs/2026-07-01-privy-login-verification.md",
+    "docs/ai-delivery/runs/2026-07-02-privy-login-verification.md",
+    "docs/ai-delivery/runs/2026-07-09-rn-full-app-port-timeline.json",
+    "docs/ai-delivery/runs/2026-07-03-rn-full-app-port-verification.md"
+  ],
+  "observabilityGaps": [],
+  "needsTriageFeatures": []
+}

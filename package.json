@@ -48,7 +48,8 @@
     "ai:project-rules": "ai-delivery project-rules",
     "ai:diff-summary": "ai-delivery diff-summary",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "ai:health": "ai-delivery health"
   },
   "dependencies": {
     "@ethersproject/shims": "^5.8.0",
