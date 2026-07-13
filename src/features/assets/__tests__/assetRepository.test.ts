@@ -52,12 +52,19 @@ describe("asset repository", () => {
       sort: "price_asc",
     });
 
+    expect(fake.calls.filter((call) => call[0] === "from")).toHaveLength(2);
     expect(fake.calls).toContainEqual([
       "or",
-      "symbol.ilike.%mist\\,100\\%%,artwork_submissions.name.ilike.%mist\\,100\\%%,artwork_submissions.artist_name.ilike.%mist\\,100\\%%",
+      "symbol.ilike.%mist\\,100\\%%",
+      undefined,
+    ]);
+    expect(fake.calls).toContainEqual([
+      "or",
+      "name.ilike.%mist\\,100\\%%,artist_name.ilike.%mist\\,100\\%%",
+      { referencedTable: "artwork_submissions" },
     ]);
     expect(fake.calls).toContainEqual(["order", "token_price_usdt", { ascending: true }]);
-    expect(fake.calls).toContainEqual(["range", 2, 4]);
+    expect(fake.calls).toContainEqual(["range", 0, 4]);
   });
 
   it("throws a normalized error when Supabase fails", async () => {
@@ -103,8 +110,8 @@ function createFakeClient(
       calls.push(["eq", column, value]);
       return query;
     },
-    or(value: string) {
-      calls.push(["or", value]);
+    or(value: string, options?: unknown) {
+      calls.push(["or", value, options]);
       return query;
     },
     order(column: string, options: unknown) {

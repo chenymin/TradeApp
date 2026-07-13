@@ -75,8 +75,8 @@ function EmptyState({
   if (status === "initial_loading" || status === "idle") {
     return (
       <View accessibilityLabel="Asset list skeleton" style={styles.skeletonGroup}>
-        {[0, 1, 2].map((index) => (
-          <View accessibilityLabel={`Asset skeleton ${index + 1}`} key={index} style={styles.skeleton} />
+        {["first", "second", "third"].map((skeletonId, index) => (
+          <View accessibilityLabel={`Asset skeleton ${index + 1}`} key={skeletonId} style={styles.skeleton} />
         ))}
       </View>
     );

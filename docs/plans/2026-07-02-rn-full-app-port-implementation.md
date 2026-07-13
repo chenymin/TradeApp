@@ -109,7 +109,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 | -------- | ---- | -------- |
 | TypeScript | `npx tsc --noEmit` | exit 0 |
 | 全量单元测试 | `npm test -- src` | exit 0 |
-| ai-delivery 审核 | `node_modules/.bin/ai-delivery audit rn-full-app-port` | exit 0 |
+| ai-delivery 审核 | `npm run ai:audit -- rn-full-app-port` | exit 0 |
 | 无 UI 直连 Edge Function | `node scripts/verify-no-match.mjs -e "functions/v1" -e "wallet-login" -e "register-user" -e "generate-signature" -e "get-my-referrals" src/ --glob "*.tsx"` | 仅 service tests 允许；UI 无命中 |
 | 无 token / session / signature 明文日志 | `node scripts/verify-no-match.mjs -e "console\\.log.*token" -e "console\\.warn.*token" -e "console\\.error.*token" -e "console\\.log.*session" -e "console\\.warn.*session" -e "console\\.error.*session" -e "console\\.log.*signature" -e "console\\.warn.*signature" -e "console\\.error.*signature" -e "logger\\..*token" -e "logger\\..*session" -e "logger\\..*signature" src/ --glob "*.ts" --glob "*.tsx"` | 无命中 |
 | 无 Web-only API 泄漏 | `node scripts/verify-no-match.mjs -e "react-router-dom" -e "react-helmet-async" -e "@radix-ui" -e "className=" -e "window\\." -e "document\\." -e "sessionStorage\\." -e "localStorage\\." -e "navigator\\." src/ --glob "*.ts" --glob "*.tsx"` | 无未隔离命中 |
@@ -274,7 +274,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 ### Task 3：Asset data、Launchpad screen、Market screen
 
-- 状态：in-progress
+- 状态：done
 - 详细实现方案：[2026-07-03-task-03-public-assets-launchpad-market.md](rn-full-app-port/tasks/2026-07-03-task-03-public-assets-launchpad-market.md)
 - 业务场景：未登录和已登录用户都能浏览公开资产、筛选 Launchpad、搜索 / 排序 Market。
 - 当前 slice 目标：迁移公开资产列表为 RN repository / mapper / pagination workflow，新增 Launchpad 和 Market 移动端列表；Launchpad 使用单列 `FlatList`、状态 tabs、横向 Summary Strip、下拉刷新和上拉加载；Market 使用同一套列表能力并补搜索 / 排序 shell。
@@ -284,23 +284,35 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 - 列表交互：首次 skeleton；下拉刷新第一页；上拉加载下一页；切换筛选重置 cursor 并回顶部；刷新 / 加载更多并发互斥；旧请求返回不得覆盖新筛选。
 - 范围内：迁移 `mapAssetRow`、`useArtAssets`、`useMarketAssets` 为 RN repository / hooks；新增 Launchpad screen、AssetCard、Launchpad Summary Strip、Market screen、empty/loading/error/refresh/loading-more/end states。
 - 范围外：不做 Asset Detail 购买面板；不做链上写；Market 交易只打开外链。
-- 预计影响文件：
+- 已实现文件：
   - `src/features/assets/domain/assetModels.ts`
+  - `src/features/assets/domain/assetDisplayStatus.ts`
+  - `src/features/assets/domain/assetMappers.ts`
+  - `src/features/assets/domain/assetListState.ts`
   - `src/features/assets/services/assetRepository.ts`
-  - `src/features/assets/hooks/useArtAssets.ts`
+  - `src/features/assets/services/assetContractReadAdapter.ts`
+  - `src/features/assets/services/publicAssetPageLoader.ts`
+  - `src/features/assets/services/createRuntimePublicAssetLoader.ts`
+  - `src/features/assets/services/createDefaultPublicAssetLoader.ts`
+  - `src/features/assets/hooks/usePublicAssetList.ts`
+  - `src/features/assets/components/AssetCard.tsx`
+  - `src/features/assets/components/LaunchpadSummaryStrip.tsx`
+  - `src/features/assets/components/PublicAssetList.tsx`
   - `src/features/assets/screens/LaunchpadScreen.tsx`
   - `src/features/assets/screens/MarketScreen.tsx`
-  - `src/features/assets/components/AssetCard.tsx`
-  - `src/lib/chain/contracts.ts`
-  - 对应 `__tests__`
+  - `src/app/AppRoot.tsx`
+  - `src/app/navigation/AppNavigator.tsx`
 - 结构验收：Supabase 查询在 repository；screen 使用 `FlatList`；图片有固定 aspect ratio；无 `key={index}`。
-- 可测试性验收：asset mapper、filter/sort、market search 纯函数测试。
+- 可测试性验收：status trust、asset mapper、Supabase repository、viem adapter、aggregation loader、list reducer/hook、Market search/sort、screen 和 navigation 均使用 deterministic fake 测试。
 - 验收标准：公开 Launchpad 和 Market 可用；加载、空态、失败态完整；未登录可访问。
 - 测试：
   - `npm test -- src/features/assets`
   - `rg "key=\\{.*index\\}" src/features/assets --glob "*.tsx"` 无命中。
 - 可追溯关系：公开 Launchpad、Market 浏览。
-- 实现状态：In Progress（2026-07-13）。
+- 实现状态：Completed（2026-07-13）。
+- 验证摘要：全量 `npm test` 通过 34 个测试文件 / 146 个测试；`npm run typecheck`、`npm run ai:audit -- rn-full-app-port`、UI 无 Supabase 直连、无写链 API、无 index key、无生产 service-role 泄漏扫描通过。
+- Review 摘要：Supabase 搜索拆分为 symbol 根表查询与 `artwork_submissions!inner` 关联查询，避免 PostgREST 跨表 `.or()`；链上失败只降级为不可购买信任的数据库展示；无未解决 Critical / Important 代码发现。
+- 发布边界：部署前人工确认 `art_assets`、`artwork_submissions` 对 `anon` 暴露且 SELECT RLS 正确；iOS / Android 实机布局、图片加载、下拉刷新和滚动分页 QA 仍是发布 stop-for-human，不影响 Task 4 继续开发。
 
 ### Task 4：Asset Detail、chain read adapter、purchase eligibility read-only
 
@@ -464,9 +476,9 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 | 业务场景 | 实现位置 | 测试 / 验证 | 状态 |
 | -------- | -------- | ----------- | ---- |
-| 公开 Launchpad | Task 1：public shell / route gate 已完成；Task 3：assets repository、LaunchpadScreen | Task 1：`npm test -- src/app src/features/auth`；Task 3 待 `npm test -- src/features/assets`；iOS/Android QA | Foundation done; feature Planned |
+| 公开 Launchpad | Task 1：public shell / route gate；Task 3：assets repository、chain aggregation、LaunchpadScreen | `npm test -- src/features/assets src/app/navigation`；全量 `npm test`；iOS/Android 发布前 QA | Implemented; device QA pending |
 | 公开资产详情 | Task 1、4：AssetDetailScreen、chain read、eligibility | `npm test -- src/features/assets src/features/purchase src/lib/chain`；QA | Planned |
-| Market 浏览 | Task 3：MarketScreen、filter/sort/search | `npm test -- src/features/assets`；QA | Planned |
+| Market 浏览 | Task 3：MarketScreen、filter/sort/search | `npm test -- src/features/assets`；全量 `npm test`；iOS/Android 发布前 QA | Implemented; device QA pending |
 | 首次登录注册 | Task 2：authWorkflow、registrationWorkflow | `npm test -- src/features/auth src/features/registration` | Planned |
 | 邀请注册 | Task 2、6：deep link parser、registration payload、invite links | registration/referral tests；deep link QA | Planned |
 | 孤儿账号恢复 | Task 2：orphaned recovery workflow | registration workflow tests | Planned |
@@ -490,7 +502,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 | ------ | ---------- | -------- |
 | Typecheck | `npx tsc --noEmit` | exit 0 |
 | Unit / integration tests | `npm test -- src` | exit 0 |
-| AI Delivery audit | `node_modules/.bin/ai-delivery audit rn-full-app-port` | exit 0，无当前阶段 blocker |
+| AI Delivery audit | `npm run ai:audit -- rn-full-app-port` | exit 0，无当前阶段 blocker |
 | UI Edge Function scan | `node scripts/verify-no-match.mjs -e "functions/v1" -e "wallet-login" -e "register-user" -e "generate-signature" -e "get-my-referrals" src/ --glob "*.tsx"` | UI 无直连 Edge Function |
 | Secret / token log scan | `node scripts/verify-no-match.mjs -e "console\\.(log\|warn\|error).*token" -e "console\\.(log\|warn\|error).*session" -e "console\\.(log\|warn\|error).*signature" -e "logger\\..*(token\|session\|signature)" src/ --glob "*.ts" --glob "*.tsx"` | 无敏感日志 |
 | Web-only API scan | `rg "react-router-dom\|react-helmet-async\|@radix-ui\|className=\|window\\.\|document\\.\|sessionStorage\|localStorage\|navigator\\." src/ --glob "*.ts" --glob "*.tsx"` | 无未隔离 Web-only API |

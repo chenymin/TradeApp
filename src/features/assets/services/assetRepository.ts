@@ -9,8 +9,17 @@ import type {
 const ASSET_SELECT = `
   id, symbol, contract_address, chain_id,
   token_price_usdt, total_supply,
-  sale_start, sale_end, status, participants,
+  sale_start, sale_end, status, participants, created_at,
   artwork_submissions!submission_id(
+    name, name_en, artist_name, artist_name_en, image_urls
+  )
+`;
+
+const ASSET_SEARCH_SELECT = `
+  id, symbol, contract_address, chain_id,
+  token_price_usdt, total_supply,
+  sale_start, sale_end, status, participants, created_at,
+  artwork_submissions!submission_id!inner(
     name, name_en, artist_name, artist_name_en, image_urls
   )
 `;
@@ -23,7 +32,7 @@ type QueryResponse = {
 
 type QueryBuilder = {
   eq(column: string, value: unknown): QueryBuilder;
-  or(value: string): QueryBuilder;
+  or(value: string, options?: { referencedTable: string }): QueryBuilder;
   order(column: string, options: { ascending: boolean }): QueryBuilder;
   range(from: number, to: number): PromiseLike<QueryResponse>;
 };
@@ -41,26 +50,13 @@ export function createAssetRepository(client: AssetRepositoryClient): AssetRepos
   return {
     async fetchAssetPage(request) {
       const offset = parseCursor(request.cursor);
-      let query = client
-        .from("art_assets")
-        .select(ASSET_SELECT, { count: "exact" })
-        .eq("is_deleted", false);
-
-      if (request.filter !== "all") {
-        query = query.eq("status", request.filter);
-      }
-
       const search = request.search?.trim();
 
       if (search) {
-        const pattern = `%${escapePostgrestPattern(search)}%`;
-        query = query.or([
-          `symbol.ilike.${pattern}`,
-          `artwork_submissions.name.ilike.${pattern}`,
-          `artwork_submissions.artist_name.ilike.${pattern}`,
-        ].join(","));
+        return fetchSearchPage(client, request, offset, search);
       }
 
+      let query = createBaseQuery(client, request, ASSET_SELECT);
       const order = resolveOrder(request);
       query = query.order(order.column, { ascending: order.ascending });
 
@@ -80,6 +76,133 @@ export function createAssetRepository(client: AssetRepositoryClient): AssetRepos
       } satisfies AssetDatabasePage;
     },
   };
+}
+
+async function fetchSearchPage(
+  client: AssetRepositoryClient,
+  request: AssetPageRequest,
+  offset: number,
+  search: string,
+): Promise<AssetDatabasePage> {
+  const pattern = `%${escapePostgrestPattern(search)}%`;
+  const order = resolveOrder(request);
+  const rangeEnd = offset + request.pageSize;
+  const symbolQuery = createBaseQuery(client, request, ASSET_SELECT)
+    .or(`symbol.ilike.${pattern}`)
+    .order(order.column, { ascending: order.ascending });
+  const artworkQuery = createBaseQuery(client, request, ASSET_SEARCH_SELECT)
+    .or(
+      `name.ilike.${pattern},artist_name.ilike.${pattern}`,
+      { referencedTable: "artwork_submissions" },
+    )
+    .order(order.column, { ascending: order.ascending });
+  const [symbolResponse, artworkResponse] = await Promise.all([
+    symbolQuery.range(0, rangeEnd),
+    artworkQuery.range(0, rangeEnd),
+  ]);
+
+  throwForQueryError(symbolResponse.error);
+  throwForQueryError(artworkResponse.error);
+
+  const mergedRows = mergeRawRows([
+    ...(symbolResponse.data ?? []),
+    ...(artworkResponse.data ?? []),
+  ]).sort((left, right) => compareRawRows(left, right, request));
+  const pageRows = mergedRows.slice(offset, offset + request.pageSize);
+  const queriedPastPage = [symbolResponse, artworkResponse].some(
+    (response) => (response.data?.length ?? 0) > offset + request.pageSize,
+  );
+  const hasNextPage = mergedRows.length > offset + request.pageSize || queriedPastPage;
+
+  return {
+    nextCursor: hasNextPage ? String(offset + request.pageSize) : null,
+    rows: pageRows.map(mapDatabaseRow),
+  };
+}
+
+function createBaseQuery(
+  client: AssetRepositoryClient,
+  request: AssetPageRequest,
+  select: string,
+): QueryBuilder {
+  let query = client
+    .from("art_assets")
+    .select(select, { count: "exact" })
+    .eq("is_deleted", false);
+
+  if (request.filter !== "all") {
+    query = query.eq("status", request.filter);
+  }
+
+  return query;
+}
+
+function throwForQueryError(error: QueryResponse["error"]): void {
+  if (error) {
+    throw new Error(`Unable to load public assets: ${error.message}`);
+  }
+}
+
+function mergeRawRows(values: unknown[]): RawAssetRow[] {
+  const rows = new Map<string, RawAssetRow>();
+
+  for (const value of values) {
+    const row = value as RawAssetRow;
+    rows.set(String(row.id), row);
+  }
+
+  return [...rows.values()];
+}
+
+function compareRawRows(
+  left: RawAssetRow,
+  right: RawAssetRow,
+  request: AssetPageRequest,
+): number {
+  if (request.sort === "price_asc") {
+    return compareDecimalStrings(left.token_price_usdt, right.token_price_usdt);
+  }
+
+  if (request.sort === "price_desc") {
+    return compareDecimalStrings(right.token_price_usdt, left.token_price_usdt);
+  }
+
+  return parseTimestamp(right.created_at) - parseTimestamp(left.created_at);
+}
+
+function compareDecimalStrings(left: string | null, right: string | null): number {
+  const normalizedLeft = normalizeUnsignedDecimal(left);
+  const normalizedRight = normalizeUnsignedDecimal(right);
+
+  if (normalizedLeft.integer.length !== normalizedRight.integer.length) {
+    return normalizedLeft.integer.length - normalizedRight.integer.length;
+  }
+
+  const integerComparison = normalizedLeft.integer.localeCompare(normalizedRight.integer);
+
+  if (integerComparison !== 0) {
+    return integerComparison;
+  }
+
+  const fractionLength = Math.max(normalizedLeft.fraction.length, normalizedRight.fraction.length);
+  return normalizedLeft.fraction.padEnd(fractionLength, "0")
+    .localeCompare(normalizedRight.fraction.padEnd(fractionLength, "0"));
+}
+
+function normalizeUnsignedDecimal(value: string | null): {
+  fraction: string;
+  integer: string;
+} {
+  const [integer = "0", fraction = ""] = (value ?? "0").trim().split(".");
+  return {
+    fraction: fraction.replace(/0+$/, ""),
+    integer: integer.replace(/^0+(?=\d)/, "") || "0",
+  };
+}
+
+function parseTimestamp(value: string | null | undefined): number {
+  const timestamp = value ? Date.parse(value) : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function resolveOrder(request: AssetPageRequest): {
@@ -158,6 +281,7 @@ type RawAssetRow = {
   artwork_submissions: RawSubmission | RawSubmission[] | null;
   chain_id: number | null;
   contract_address: string | null;
+  created_at?: string | null;
   id: string;
   participants: number | null;
   sale_end: string | null;
