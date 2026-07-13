@@ -16,6 +16,48 @@ export function TextInput(props: Props) {
   return React.createElement("TextInput", props);
 }
 
+export function Image(props: Props) {
+  return React.createElement("Image", props);
+}
+
+export function ScrollView({ children, ...props }: Props) {
+  return React.createElement("ScrollView", props, children);
+}
+
+export function ActivityIndicator(props: Props) {
+  return React.createElement("ActivityIndicator", props);
+}
+
+export const FlatList = React.forwardRef(function FlatList(
+  {
+    data = [],
+    ListEmptyComponent,
+    ListFooterComponent,
+    ListHeaderComponent,
+    renderItem,
+    ...props
+  }: Props & {
+    data?: unknown[];
+    ListEmptyComponent?: React.ReactNode | (() => React.ReactNode);
+    ListFooterComponent?: React.ReactNode | (() => React.ReactNode);
+    ListHeaderComponent?: React.ReactNode | (() => React.ReactNode);
+    renderItem?: (input: { index: number; item: unknown }) => React.ReactNode;
+  },
+  ref: React.ForwardedRef<{ scrollToOffset(input: { animated: boolean; offset: number }): void }>,
+) {
+  React.useImperativeHandle(ref, () => ({ scrollToOffset() {} }));
+  const children = [renderListComponent(ListHeaderComponent)];
+
+  if (data.length === 0) {
+    children.push(renderListComponent(ListEmptyComponent));
+  } else {
+    children.push(...data.map((item, index) => renderItem?.({ index, item })));
+  }
+
+  children.push(renderListComponent(ListFooterComponent));
+  return React.createElement("FlatList", { ...props, data, renderItem }, children);
+});
+
 export function View({ children, ...props }: Props) {
   return React.createElement("View", props, children);
 }
@@ -29,3 +71,9 @@ export const StyleSheet = {
 export const Share = {
   share: async () => ({ action: "sharedAction" }),
 };
+
+function renderListComponent(
+  component: React.ReactNode | (() => React.ReactNode) | undefined,
+) {
+  return typeof component === "function" ? component() : component ?? null;
+}

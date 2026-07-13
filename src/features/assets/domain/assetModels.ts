@@ -10,6 +10,16 @@ export type AssetSaleFilter = "all" | "active" | "upcoming" | "completed";
 
 export type AssetSort = "recent" | "price_asc" | "price_desc" | "progress_desc";
 
+export type AssetListStatus =
+  | "idle"
+  | "initial_loading"
+  | "refreshing"
+  | "loading_more"
+  | "ready"
+  | "empty"
+  | "error"
+  | "end_reached";
+
 export type AssetChainStatus = "ready" | "loading" | "error" | "unsupported";
 
 export type SaleStatusSource = "chain" | "database_fallback" | "unsupported";

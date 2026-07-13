@@ -1,13 +1,16 @@
 export const colors = {
+  champagne: "#B8872B",
   background: "#F7F7F2",
   border: "#DDE2DD",
   danger: "#A33A2D",
   dangerMuted: "#F7E7E3",
   muted: "#5A6670",
   primary: "#1E6B5C",
+  primaryStrong: "#154C42",
   primarySoft: "#E4F1ED",
   primaryMuted: "#8FA9A2",
   surface: "#FFFFFF",
+  surfaceMuted: "#F1F3EE",
   text: "#172026",
 };
 

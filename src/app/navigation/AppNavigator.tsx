@@ -8,6 +8,9 @@ import type {
 import { AccountDisabledScreen } from "../../features/auth/components/AccountDisabledScreen";
 import { LoginScreen } from "../../features/auth/components/LoginScreen";
 import { InviteFriendSheet } from "../../features/referral/components/InviteFriendSheet";
+import { LaunchpadScreen } from "../../features/assets/screens/LaunchpadScreen";
+import { MarketScreen } from "../../features/assets/screens/MarketScreen";
+import type { PublicAssetPageLoader } from "../../features/assets/domain/assetModels";
 import { expoClipboardAdapter } from "../../shared/platform/clipboardAdapter";
 import { reactNativeShareAdapter } from "../../shared/platform/shareAdapter";
 import { AppText, Button, Screen, colors, spacing } from "../../shared/ui";
@@ -23,10 +26,12 @@ import {
 
 export function AppNavigator({
   actions,
+  assetPageLoader,
   initialRouteName,
   state,
 }: {
   actions: AuthProviderActions;
+  assetPageLoader?: PublicAssetPageLoader;
   initialRouteName?: AppRouteName;
   state: AuthProviderState;
 }) {
@@ -53,6 +58,7 @@ export function AppNavigator({
           initialRouteName ?? getInitialRoute(state.status),
           state.status,
         )}
+        assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
         authStatus="authenticated"
         onLogout={actions.logout}
       />
@@ -65,6 +71,7 @@ export function AppNavigator({
         initialRouteName ?? getInitialRoute(state.status),
         "logged_out",
       )}
+      assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
       authStatus="logged_out"
       onLogin={actions.login}
       onLogout={actions.logout}
@@ -74,11 +81,13 @@ export function AppNavigator({
 
 function MainTabs({
   activeRouteName,
+  assetPageLoader,
   authStatus,
   onLogin,
   onLogout,
 }: {
   activeRouteName: MainTabRouteName;
+  assetPageLoader: PublicAssetPageLoader;
   authStatus: "authenticated" | "logged_out";
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
@@ -86,6 +95,7 @@ function MainTabs({
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+  const [detailAssetId, setDetailAssetId] = useState<string | null>(null);
 
   const handleTabSelect = (routeName: MainTabRouteName) => {
     const tab = getTabRoutes().find((candidate) => candidate.routeName === routeName);
@@ -96,12 +106,13 @@ function MainTabs({
     }
 
     setCurrentRouteName(routeName);
+    setDetailAssetId(null);
   };
 
   return (
     <AppShell
       activeRouteName={currentRouteName}
-      header={getHeaderConfig(currentRouteName, authStatus)}
+      header={getHeaderConfig(detailAssetId ? "assetDetail" : currentRouteName, authStatus)}
       onLogin={onLogin}
       onTabSelect={handleTabSelect}
       overlay={
@@ -117,7 +128,20 @@ function MainTabs({
       }
       tabs={getTabRoutes()}
     >
-      {renderRoute(currentRouteName, authStatus, onLogout, () => setInviteSheetOpen(true))}
+      {detailAssetId ? (
+        <RoutePlaceholder
+          description={`Asset details for ${detailAssetId}. Full read-only layout lands in Task 4.`}
+          label="Task 4"
+          title="Asset Details"
+        />
+      ) : renderRoute(
+        currentRouteName,
+        authStatus,
+        assetPageLoader,
+        onLogout,
+        () => setInviteSheetOpen(true),
+        setDetailAssetId,
+      )}
     </AppShell>
   );
 }
@@ -125,9 +149,19 @@ function MainTabs({
 function renderRoute(
   routeName: MainTabRouteName,
   authStatus: "authenticated" | "logged_out",
+  assetPageLoader: PublicAssetPageLoader,
   onLogout: () => Promise<void>,
   onInvitePress: () => void,
+  onAssetPress: (id: string) => void,
 ) {
+  if (routeName === "launchpad") {
+    return <LaunchpadScreen loader={assetPageLoader} onAssetPress={onAssetPress} />;
+  }
+
+  if (routeName === "market") {
+    return <MarketScreen loader={assetPageLoader} onAssetPress={onAssetPress} />;
+  }
+
   if (routeName === "profile") {
     return (
       <ProfileRoute
@@ -275,6 +309,11 @@ function publicDescription(routeName: MainTabRouteName): string {
 function protectedDescription(routeName: MainTabRouteName): string {
   return "Dashboard summary, holdings, points, and KYC reminders land in Task 5.";
 }
+
+const EMPTY_ASSET_PAGE_LOADER: PublicAssetPageLoader = async () => ({
+  items: [],
+  nextCursor: null,
+});
 
 const styles = StyleSheet.create({
   profile: {
