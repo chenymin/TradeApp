@@ -7,6 +7,7 @@ import {
   renderElement,
   textContent,
 } from "../../../test/renderElement";
+import type { PublicAssetPageLoader, PublicAssetSummary } from "../../../features/assets/domain/assetModels";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -26,7 +27,7 @@ describe("AppNavigator", () => {
 
     await act(async () => {
       testRenderer = TestRenderer.create(
-        <AppNavigator actions={actions} state={{ status: "logged_out" }} />,
+        <AppNavigator actions={actions} assetPageLoader={createAssetLoader()} state={{ status: "logged_out" }} />,
       );
     });
 
@@ -42,7 +43,7 @@ describe("AppNavigator", () => {
     expect(treeText).toContain("Referral");
     expect(treeText).toContain("Dashboard");
     expect(treeText).toContain("My");
-    expect(treeText).toContain("Public");
+    expect(treeText).toContain("艺术资产发行");
     expect(treeText).toContain("Sign in");
     expect(renderer.root.findByProps({ accessibilityLabel: "Tab Launchpad" }).props.accessibilityState).toEqual({
       selected: true,
@@ -61,7 +62,7 @@ describe("AppNavigator", () => {
 
     await act(async () => {
       testRenderer = TestRenderer.create(
-        <AppNavigator actions={actions} state={{ status: "logged_out" }} />,
+        <AppNavigator actions={actions} assetPageLoader={createAssetLoader()} state={{ status: "logged_out" }} />,
       );
     });
 
@@ -123,6 +124,7 @@ describe("AppNavigator", () => {
       testRenderer = TestRenderer.create(
         <AppNavigator
           actions={createActions()}
+          assetPageLoader={createAssetLoader()}
           initialRouteName="dashboard"
           state={{ status: "logged_out" }}
         />,
@@ -137,7 +139,39 @@ describe("AppNavigator", () => {
     expect(renderer.root.findByProps({ accessibilityLabel: "Tab Launchpad" }).props.accessibilityState).toEqual({
       selected: true,
     });
-    expect(JSON.stringify(renderer.toJSON())).toContain("Public asset discovery");
+    expect(JSON.stringify(renderer.toJSON())).toContain("艺术资产发行");
+  });
+
+  it("renders real public asset tabs and opens the asset detail placeholder", async () => {
+    const loader = createAssetLoader([assetSummary()]);
+    let testRenderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      testRenderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          assetPageLoader={loader}
+          state={{ status: "logged_out" }}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    if (!testRenderer) throw new Error("Expected AppNavigator test renderer to mount");
+    const renderer = testRenderer;
+
+    expect(JSON.stringify(renderer.toJSON())).toContain("Morning Mist");
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Open asset Morning Mist" }).props.onPress();
+    });
+    expect(JSON.stringify(renderer.toJSON())).toContain("Asset details for asset-1");
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Tab Market" }).props.onPress();
+      await Promise.resolve();
+    });
+    expect(JSON.stringify(renderer.toJSON())).toContain("艺术资产市场");
+    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({ filter: "completed" }));
   });
 
   it("renders authenticated users into global tabs with Dashboard active", () => {
@@ -323,5 +357,33 @@ function createActions() {
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
     restoreSession: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createAssetLoader(items: PublicAssetSummary[] = []): ReturnType<typeof vi.fn<PublicAssetPageLoader>> {
+  return vi.fn<PublicAssetPageLoader>().mockResolvedValue({ items, nextCursor: null });
+}
+
+function assetSummary(): PublicAssetSummary {
+  return {
+    artistName: "Lin Wei",
+    availableSharesText: "750",
+    chainId: 97,
+    chainStatus: "ready",
+    contractAddress: null,
+    id: "asset-1",
+    imageUrl: null,
+    participantsCount: 8,
+    paymentSymbol: "USDT",
+    priceAmount: "0.1",
+    priceText: "$0.1 USDT",
+    progressPercent: 25,
+    remainingTimeText: "3 分钟",
+    saleCapText: "1,000",
+    saleStatus: "active",
+    soldSharesText: "250",
+    title: "Morning Mist",
+    tokenCode: "ART-MIST",
+    totalSupplyText: "2,000",
   };
 }

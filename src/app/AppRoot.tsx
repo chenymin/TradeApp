@@ -14,6 +14,7 @@ import { useAuthActions } from "../features/auth/hooks/useAuthActions";
 import { useAuthState } from "../features/auth/hooks/useAuthState";
 import { expoSecureSessionStorage } from "../features/auth/services/expoSecureSessionStorage";
 import { handleRegistrationLink } from "../features/registration/workflow/registrationLinkHandler";
+import { createDefaultPublicAssetLoader } from "../features/assets/services/createDefaultPublicAssetLoader";
 
 export function AppRoot() {
   const publicConfig = readPublicConfig();
@@ -47,6 +48,7 @@ function AuthRuntime() {
 function AuthGateRuntime() {
   const state = useAuthState();
   const actions = useAuthActions();
+  const assetPageLoader = useMemo(() => createDefaultPublicAssetLoader(), []);
 
   useEffect(() => {
     const adapter = createLinkingAdapter({
@@ -66,5 +68,5 @@ function AuthGateRuntime() {
     };
   }, []);
 
-  return <AppNavigator actions={actions} state={state} />;
+  return <AppNavigator actions={actions} assetPageLoader={assetPageLoader} state={state} />;
 }
