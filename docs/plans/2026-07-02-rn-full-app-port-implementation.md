@@ -127,6 +127,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 ### Task 1：App foundation、navigation、config、UI primitives
 
+- 状态：done
 - 业务场景：所有移动端页面需要统一导航、配置读取、基础 UI 和错误边界。
 - 范围内：新增 App config module、navigation shell、public/protected route gate、基础 `Screen`, `Text`, `Button`, `Card`, `Input`, `SegmentedControl`, `ListState` primitives、fatal config screen。
 - 范围外：不实现具体业务 screen；不接 KYC / wallet / chain 写操作。
@@ -250,6 +251,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 ### Task 2：Auth/Register workflow 完整化
 
+- 状态：done
 - 详细实现方案：[2026-07-03-task-02-auth-register-workflow.md](rn-full-app-port/tasks/2026-07-03-task-02-auth-register-workflow.md)
 - 业务场景：用户通过 Privy 登录后，按 `wallet-login.user_status` 完成新用户注册、邀请注册或孤儿账号恢复。
 - 当前 slice 目标：把已完成的 Privy -> `wallet-login` 登录链路升级为可处理 `existing`、`new`、`orphaned`、邀请注册和账号阻断的移动端注册 workflow；不进入真实 Dashboard 数据、KYC、Wallet 或链上交易。
@@ -272,6 +274,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 ### Task 3：Asset data、Launchpad screen、Market screen
 
+- 状态：in-progress
 - 详细实现方案：[2026-07-03-task-03-public-assets-launchpad-market.md](rn-full-app-port/tasks/2026-07-03-task-03-public-assets-launchpad-market.md)
 - 业务场景：未登录和已登录用户都能浏览公开资产、筛选 Launchpad、搜索 / 排序 Market。
 - 当前 slice 目标：迁移公开资产列表为 RN repository / mapper / pagination workflow，新增 Launchpad 和 Market 移动端列表；Launchpad 使用单列 `FlatList`、状态 tabs、横向 Summary Strip、下拉刷新和上拉加载；Market 使用同一套列表能力并补搜索 / 排序 shell。
@@ -297,7 +300,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
   - `npm test -- src/features/assets`
   - `rg "key=\\{.*index\\}" src/features/assets --glob "*.tsx"` 无命中。
 - 可追溯关系：公开 Launchpad、Market 浏览。
-- 实现状态：Planned。
+- 实现状态：In Progress（2026-07-13）。
 
 ### Task 4：Asset Detail、chain read adapter、purchase eligibility read-only
 
