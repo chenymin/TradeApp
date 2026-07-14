@@ -29,14 +29,17 @@ describe("sessionStorage", () => {
     );
   });
 
-  it("persists access-token-only sessions without calling Supabase setSession", async () => {
+  it("uses an access-token-only session for Supabase auth compatibility", async () => {
     const supabase = fakeSupabaseClient();
     const secureStorage = fakeSecureStorage();
     const session = { accessToken: "access-token" };
 
     await setStoredSession({ secureStorage, session, supabase });
 
-    expect(supabase.auth.setSession).not.toHaveBeenCalled();
+    expect(supabase.auth.setSession).toHaveBeenCalledWith({
+      access_token: "access-token",
+      refresh_token: "access-token",
+    });
     expect(secureStorage.setItemAsync).toHaveBeenCalledWith(
       "mytradeapp.supabase.session",
       JSON.stringify(session),
@@ -58,6 +61,23 @@ describe("sessionStorage", () => {
     expect(supabase.auth.setSession).toHaveBeenCalledWith({
       access_token: "access-token",
       refresh_token: "refresh-token",
+    });
+  });
+
+  it("restores an access-token-only session using the compatibility token", async () => {
+    const supabase = fakeSupabaseClient();
+    const session = {
+      accessToken: "access-token",
+      expiresAt: Math.floor(Date.now() / 1000) + 60,
+    };
+    const secureStorage = fakeSecureStorage(JSON.stringify(session));
+
+    await expect(restoreStoredSession({ secureStorage, supabase })).resolves.toEqual(
+      session,
+    );
+    expect(supabase.auth.setSession).toHaveBeenCalledWith({
+      access_token: "access-token",
+      refresh_token: "access-token",
     });
   });
 

@@ -26,7 +26,7 @@ describe("runtime public asset detail loader wiring", () => {
     const result = await loader({
       assetId: "asset-1",
       viewer: {
-        isLoggedIn: false,
+        isLoggedIn: true,
         kycApproved: "unknown",
         walletAddress: null,
         whitelisted: "unknown",

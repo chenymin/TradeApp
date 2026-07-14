@@ -112,13 +112,10 @@ async function setSupabaseSession(
   supabase: SupabaseSessionClient,
   session: AuthExchangeSession,
 ): Promise<void> {
-  if (!session.refreshToken) {
-    return;
-  }
-
   const { error } = await supabase.auth.setSession({
     access_token: session.accessToken,
-    refresh_token: session.refreshToken,
+    // wallet-login currently returns a short-lived Supabase JWT without a refresh token.
+    refresh_token: session.refreshToken ?? session.accessToken,
   });
 
   if (error) {

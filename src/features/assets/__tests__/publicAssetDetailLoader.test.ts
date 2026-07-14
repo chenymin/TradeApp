@@ -71,6 +71,19 @@ describe("public asset detail loader", () => {
     expect(dependencies.eventsRepository.fetchRecentEvents).toHaveBeenCalledTimes(2);
     expect(dependencies.chainAdapter.readDetailState).toHaveBeenCalledTimes(2);
   });
+
+  it("does not query private mint events for a logged-out viewer", async () => {
+    const dependencies = createDependencies();
+
+    const result = await createPublicAssetDetailLoader(dependencies)({
+      assetId: "asset-1",
+      viewer: { ...viewer(), isLoggedIn: false },
+    });
+
+    expect(dependencies.eventsRepository.fetchRecentEvents).not.toHaveBeenCalled();
+    expect(result.detail.onchain.eventsStatus).toBe("empty");
+    expect(result.warnings).toEqual([]);
+  });
 });
 
 function createDependencies(): {

@@ -27,15 +27,20 @@ export function createPublicAssetDetailLoader({
       valuationRepository.fetchLatestReport(assetId)
         .then((value) => ({ value, warning: null as AssetDetailWarning | null }))
         .catch(() => ({ value: null, warning: "valuation_unavailable" as const })),
-      eventsRepository.fetchRecentEvents(assetId)
-        .then((value) => ({
-          value,
-          warning: value.warning ? "events_unavailable" as const : null,
-        }))
-        .catch(() => ({
-          value: { events: [], warning: "events_unavailable" as const },
-          warning: "events_unavailable" as const,
-        })),
+      viewer.isLoggedIn
+        ? eventsRepository.fetchRecentEvents(assetId)
+          .then((value) => ({
+            value,
+            warning: value.warning ? "events_unavailable" as const : null,
+          }))
+          .catch(() => ({
+            value: { events: [], warning: "events_unavailable" as const },
+            warning: "events_unavailable" as const,
+          }))
+        : Promise.resolve({
+          value: { events: [], warning: null },
+          warning: null,
+        }),
       chainAdapter.readDetailState({
         chainId: database.chainId,
         contractAddress: database.contractAddress,
