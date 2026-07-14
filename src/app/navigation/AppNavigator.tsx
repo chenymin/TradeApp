@@ -10,7 +10,10 @@ import { LoginScreen } from "../../features/auth/components/LoginScreen";
 import { InviteFriendSheet } from "../../features/referral/components/InviteFriendSheet";
 import { LaunchpadScreen } from "../../features/assets/screens/LaunchpadScreen";
 import { MarketScreen } from "../../features/assets/screens/MarketScreen";
-import type { PublicAssetPageLoader } from "../../features/assets/domain/assetModels";
+import { AssetDetailScreen } from "../../features/assets/screens/AssetDetailScreen";
+import type { AssetDetailLoader } from "../../features/assets/domain/assetDetailModels";
+import type { PublicAssetPageLoader, PublicAssetSummary } from "../../features/assets/domain/assetModels";
+import type { ExternalLinkAdapter } from "../../shared/platform/linkingAdapter";
 import { expoClipboardAdapter } from "../../shared/platform/clipboardAdapter";
 import { reactNativeShareAdapter } from "../../shared/platform/shareAdapter";
 import { AppText, Button, Screen, colors, spacing } from "../../shared/ui";
@@ -26,12 +29,16 @@ import {
 
 export function AppNavigator({
   actions,
+  assetDetailLoader,
   assetPageLoader,
+  externalLinkAdapter,
   initialRouteName,
   state,
 }: {
   actions: AuthProviderActions;
+  assetDetailLoader?: AssetDetailLoader;
   assetPageLoader?: PublicAssetPageLoader;
+  externalLinkAdapter?: ExternalLinkAdapter;
   initialRouteName?: AppRouteName;
   state: AuthProviderState;
 }) {
@@ -58,8 +65,10 @@ export function AppNavigator({
           initialRouteName ?? getInitialRoute(state.status),
           state.status,
         )}
+        assetDetailLoader={assetDetailLoader ?? EMPTY_ASSET_DETAIL_LOADER}
         assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
         authStatus="authenticated"
+        externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
         onLogout={actions.logout}
       />
     );
@@ -71,8 +80,10 @@ export function AppNavigator({
         initialRouteName ?? getInitialRoute(state.status),
         "logged_out",
       )}
+      assetDetailLoader={assetDetailLoader ?? EMPTY_ASSET_DETAIL_LOADER}
       assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
       authStatus="logged_out"
+      externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
       onLogin={actions.login}
       onLogout={actions.logout}
     />
@@ -81,21 +92,29 @@ export function AppNavigator({
 
 function MainTabs({
   activeRouteName,
+  assetDetailLoader,
   assetPageLoader,
   authStatus,
+  externalLinkAdapter,
   onLogin,
   onLogout,
 }: {
   activeRouteName: MainTabRouteName;
+  assetDetailLoader: AssetDetailLoader;
   assetPageLoader: PublicAssetPageLoader;
   authStatus: "authenticated" | "logged_out";
+  externalLinkAdapter: ExternalLinkAdapter;
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
 }) {
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
-  const [detailAssetId, setDetailAssetId] = useState<string | null>(null);
+  const [detailRoute, setDetailRoute] = useState<{
+    assetId: string;
+    placeholder: PublicAssetSummary;
+    returnTo: MainTabRouteName;
+  } | null>(null);
 
   const handleTabSelect = (routeName: MainTabRouteName) => {
     const tab = getTabRoutes().find((candidate) => candidate.routeName === routeName);
@@ -106,13 +125,14 @@ function MainTabs({
     }
 
     setCurrentRouteName(routeName);
-    setDetailAssetId(null);
+    setDetailRoute(null);
   };
 
   return (
     <AppShell
-      activeRouteName={currentRouteName}
-      header={getHeaderConfig(detailAssetId ? "assetDetail" : currentRouteName, authStatus)}
+      activeRouteName={detailRoute ? undefined : currentRouteName}
+      header={getHeaderConfig(detailRoute ? "assetDetail" : currentRouteName, authStatus)}
+      onBack={detailRoute ? () => setDetailRoute(null) : undefined}
       onLogin={onLogin}
       onTabSelect={handleTabSelect}
       overlay={
@@ -126,13 +146,26 @@ function MainTabs({
           />
         ) : null
       }
-      tabs={getTabRoutes()}
+      tabs={detailRoute ? undefined : getTabRoutes()}
     >
-      {detailAssetId ? (
-        <RoutePlaceholder
-          description={`Asset details for ${detailAssetId}. Full read-only layout lands in Task 4.`}
-          label="Task 4"
-          title="Asset Details"
+      {detailRoute ? (
+        <AssetDetailScreen
+          assetId={detailRoute.assetId}
+          loader={assetDetailLoader}
+          onLogin={() => { void onLogin?.(); }}
+          onPurchasePreview={() => undefined}
+          onViewMarket={() => {
+            setCurrentRouteName("market");
+            setDetailRoute(null);
+          }}
+          openExternalUrl={(url) => externalLinkAdapter.open(url)}
+          placeholder={detailRoute.placeholder}
+          viewer={{
+            isLoggedIn: authStatus === "authenticated",
+            kycApproved: "unknown",
+            walletAddress: null,
+            whitelisted: "unknown",
+          }}
         />
       ) : renderRoute(
         currentRouteName,
@@ -140,7 +173,11 @@ function MainTabs({
         assetPageLoader,
         onLogout,
         () => setInviteSheetOpen(true),
-        setDetailAssetId,
+        (asset) => setDetailRoute({
+          assetId: asset.id,
+          placeholder: asset,
+          returnTo: currentRouteName,
+        }),
       )}
     </AppShell>
   );
@@ -152,7 +189,7 @@ function renderRoute(
   assetPageLoader: PublicAssetPageLoader,
   onLogout: () => Promise<void>,
   onInvitePress: () => void,
-  onAssetPress: (id: string) => void,
+  onAssetPress: (asset: PublicAssetSummary) => void,
 ) {
   if (routeName === "launchpad") {
     return <LaunchpadScreen loader={assetPageLoader} onAssetPress={onAssetPress} />;
@@ -314,6 +351,16 @@ const EMPTY_ASSET_PAGE_LOADER: PublicAssetPageLoader = async () => ({
   items: [],
   nextCursor: null,
 });
+
+const EMPTY_ASSET_DETAIL_LOADER: AssetDetailLoader = async () => {
+  throw new Error("Asset detail loader is unavailable");
+};
+
+const NOOP_EXTERNAL_LINK_ADAPTER: ExternalLinkAdapter = {
+  async open() {
+    return "unsupported";
+  },
+};
 
 const styles = StyleSheet.create({
   profile: {

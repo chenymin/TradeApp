@@ -15,6 +15,8 @@ import { useAuthState } from "../features/auth/hooks/useAuthState";
 import { expoSecureSessionStorage } from "../features/auth/services/expoSecureSessionStorage";
 import { handleRegistrationLink } from "../features/registration/workflow/registrationLinkHandler";
 import { createDefaultPublicAssetLoader } from "../features/assets/services/createDefaultPublicAssetLoader";
+import { createDefaultPublicAssetDetailLoader } from "../features/assets/services/createDefaultPublicAssetDetailLoader";
+import { createDefaultExternalLinkAdapter } from "../shared/platform/createDefaultExternalLinkAdapter";
 
 export function AppRoot() {
   const publicConfig = readPublicConfig();
@@ -48,7 +50,9 @@ function AuthRuntime() {
 function AuthGateRuntime() {
   const state = useAuthState();
   const actions = useAuthActions();
+  const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
   const assetPageLoader = useMemo(() => createDefaultPublicAssetLoader(), []);
+  const externalLinkAdapter = useMemo(() => createDefaultExternalLinkAdapter(), []);
 
   useEffect(() => {
     const adapter = createLinkingAdapter({
@@ -68,5 +72,13 @@ function AuthGateRuntime() {
     };
   }, []);
 
-  return <AppNavigator actions={actions} assetPageLoader={assetPageLoader} state={state} />;
+  return (
+    <AppNavigator
+      actions={actions}
+      assetDetailLoader={assetDetailLoader}
+      assetPageLoader={assetPageLoader}
+      externalLinkAdapter={externalLinkAdapter}
+      state={state}
+    />
+  );
 }

@@ -13,6 +13,7 @@ export function AppShell({
   activeRouteName,
   children,
   header,
+  onBack,
   onLogin,
   onTabSelect,
   overlay,
@@ -21,6 +22,7 @@ export function AppShell({
   activeRouteName?: MainTabRouteName;
   children: React.ReactNode;
   header: HeaderConfig;
+  onBack?: () => void;
   onLogin?: () => Promise<void> | void;
   onTabSelect?: (routeName: MainTabRouteName) => void;
   overlay?: React.ReactNode;
@@ -31,6 +33,7 @@ export function AppShell({
       <AppHeader
         action={header.action}
         eyebrow={header.eyebrow}
+        onBack={onBack}
         onLogin={onLogin}
         title={header.title}
       />

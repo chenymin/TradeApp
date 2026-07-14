@@ -26,7 +26,7 @@ describe("AssetCard", () => {
       .toEqual(expect.objectContaining({ aspectRatio: 1.6, width: "100%" }));
 
     await getPressHandler(tree, "Open asset Morning Mist")();
-    expect(onPress).toHaveBeenCalledWith("asset-1");
+    expect(onPress).toHaveBeenCalledWith(asset());
   });
 
   it("renders a fixed-height placeholder when the image is missing", () => {

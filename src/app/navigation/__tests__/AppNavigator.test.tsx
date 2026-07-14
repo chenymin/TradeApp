@@ -8,6 +8,8 @@ import {
   textContent,
 } from "../../../test/renderElement";
 import type { PublicAssetPageLoader, PublicAssetSummary } from "../../../features/assets/domain/assetModels";
+import type { AssetDetailLoader } from "../../../features/assets/domain/assetDetailModels";
+import { toAssetDetailReadModel } from "../../../features/assets/domain/assetDetailMappers";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -142,15 +144,18 @@ describe("AppNavigator", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("艺术资产发行");
   });
 
-  it("renders real public asset tabs and opens the asset detail placeholder", async () => {
+  it("opens real asset detail, hides tabs, and returns to the originating tab", async () => {
     const loader = createAssetLoader([assetSummary()]);
+    const detailLoader = createAssetDetailLoader();
     let testRenderer: ReactTestRenderer | undefined;
 
     await act(async () => {
       testRenderer = TestRenderer.create(
         <AppNavigator
           actions={createActions()}
+          assetDetailLoader={detailLoader}
           assetPageLoader={loader}
+          externalLinkAdapter={{ open: vi.fn().mockResolvedValue("opened") }}
           state={{ status: "logged_out" }}
         />,
       );
@@ -163,8 +168,25 @@ describe("AppNavigator", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("Morning Mist");
     await act(async () => {
       renderer.root.findByProps({ accessibilityLabel: "Open asset Morning Mist" }).props.onPress();
+      await Promise.resolve();
     });
-    expect(JSON.stringify(renderer.toJSON())).toContain("Asset details for asset-1");
+    expect(JSON.stringify(renderer.toJSON())).toContain("Detail Morning Mist");
+    expect(detailLoader).toHaveBeenCalledWith({
+      assetId: "asset-1",
+      placeholder: assetSummary(),
+      viewer: {
+        isLoggedIn: false,
+        kycApproved: "unknown",
+        walletAddress: null,
+        whitelisted: "unknown",
+      },
+    });
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Tab Market" })).toHaveLength(0);
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Back" }).props.onPress();
+    });
+    expect(renderer.root.findByProps({ accessibilityLabel: "Tab Launchpad" }).props.accessibilityState).toEqual({ selected: true });
 
     await act(async () => {
       renderer.root.findByProps({ accessibilityLabel: "Tab Market" }).props.onPress();
@@ -172,6 +194,13 @@ describe("AppNavigator", () => {
     });
     expect(JSON.stringify(renderer.toJSON())).toContain("艺术资产市场");
     expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({ filter: "completed" }));
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Open asset Morning Mist" }).props.onPress();
+      await Promise.resolve();
+    });
+    await act(async () => renderer.root.findByProps({ accessibilityLabel: "Back" }).props.onPress());
+    expect(renderer.root.findByProps({ accessibilityLabel: "Tab Market" }).props.accessibilityState).toEqual({ selected: true });
   });
 
   it("renders authenticated users into global tabs with Dashboard active", () => {
@@ -386,4 +415,43 @@ function assetSummary(): PublicAssetSummary {
     tokenCode: "ART-MIST",
     totalSupplyText: "2,000",
   };
+}
+
+function createAssetDetailLoader(): ReturnType<typeof vi.fn<AssetDetailLoader>> {
+  return vi.fn<AssetDetailLoader>().mockResolvedValue({
+    detail: toAssetDetailReadModel({
+      contract: { status: "error" },
+      database: {
+        artistName: "Lin Wei",
+        chainId: 97,
+        contractAddress: "0x1111111111111111111111111111111111111111",
+        creationYear: "2025",
+        description: "Detail description",
+        dimensions: "120 x 80 cm",
+        id: "asset-1",
+        imageUrl: null,
+        material: "Oil on canvas",
+        participantsCount: 8,
+        provenance: "Studio archive",
+        saleEnd: null,
+        saleStart: null,
+        status: "active",
+        symbol: "ART-MIST",
+        title: "Detail Morning Mist",
+        tokenPriceUsdt: "0.1",
+        totalSupply: "2000",
+      },
+      events: { events: [], warning: null },
+      nowSeconds: 1_000,
+      valuation: null,
+      valuationUnavailable: false,
+      viewer: {
+        isLoggedIn: false,
+        kycApproved: "unknown",
+        walletAddress: null,
+        whitelisted: "unknown",
+      },
+    }),
+    warnings: ["chain_unavailable"],
+  });
 }

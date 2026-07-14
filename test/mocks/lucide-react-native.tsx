@@ -20,3 +20,5 @@ export const LogIn = createIcon("lucide-log-in");
 export const Share2 = createIcon("lucide-share-2");
 export const Store = createIcon("lucide-store");
 export const User = createIcon("lucide-user");
+export const ArrowLeft = createIcon("lucide-arrow-left");
+export const ExternalLink = createIcon("lucide-external-link");

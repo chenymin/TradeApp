@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 
 import { AppText, Input, SegmentedControl, colors, spacing } from "../../../shared/ui";
 import { PublicAssetList } from "../components/PublicAssetList";
-import type { AssetSort, PublicAssetPageLoader } from "../domain/assetModels";
+import type { AssetSort, PublicAssetPageLoader, PublicAssetSummary } from "../domain/assetModels";
 import { usePublicAssetList } from "../hooks/usePublicAssetList";
 
 const SORTS = [
@@ -17,7 +17,7 @@ export function MarketScreen({
   onAssetPress,
 }: {
   loader: PublicAssetPageLoader;
-  onAssetPress(id: string): void;
+  onAssetPress(asset: PublicAssetSummary): void;
 }) {
   const list = usePublicAssetList({
     initialFilter: "completed",

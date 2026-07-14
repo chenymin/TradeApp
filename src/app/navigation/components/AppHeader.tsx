@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { LogIn } from "lucide-react-native";
+import { ArrowLeft, LogIn } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { colors, radii, spacing } from "../../../shared/ui";
@@ -8,11 +8,13 @@ import type { HeaderAction } from "../navigationState";
 export function AppHeader({
   action,
   eyebrow,
+  onBack,
   onLogin,
   title,
 }: {
   action: HeaderAction;
   eyebrow: string;
+  onBack?: () => void;
   onLogin?: () => Promise<void> | void;
   title: string;
 }) {
@@ -30,7 +32,13 @@ export function AppHeader({
         },
       ]}
     >
-      <View accessibilityLabel="Header side spacer" style={styles.sideSlot} />
+      <View accessibilityLabel="Header side slot" style={styles.sideSlot}>
+        {onBack ? (
+          <Pressable accessibilityLabel="Back" onPress={onBack} style={styles.backButton}>
+            <ArrowLeft color={colors.text} size={22} strokeWidth={2.4} />
+          </Pressable>
+        ) : null}
+      </View>
       <View accessibilityLabel="Header title group" style={styles.titleGroup}>
         <Text
           accessibilityLabel={`Header title ${title}`}
@@ -67,6 +75,13 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     minWidth: 104,
   },
+  backButton: {
+    alignItems: "center",
+    borderRadius: radii.md,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
+  },
   header: {
     alignItems: "center",
     backgroundColor: colors.surface,
@@ -101,6 +116,7 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   sideSlot: {
+    alignItems: "flex-start",
     minWidth: 104,
   },
   title: {
