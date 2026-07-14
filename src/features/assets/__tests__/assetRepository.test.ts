@@ -67,6 +67,24 @@ describe("asset repository", () => {
     expect(fake.calls).toContainEqual(["range", 0, 4]);
   });
 
+  it("normalizes numeric database values into decimal strings", async () => {
+    const fake = createFakeClient([{
+      ...rawRow("asset-1"),
+      token_price_usdt: 0.1,
+      total_supply: 1000,
+    }], 1);
+
+    const result = await createAssetRepository(fake.client).fetchAssetPage({
+      filter: "all",
+      pageSize: 20,
+    });
+
+    expect(result.rows[0]).toMatchObject({
+      tokenPriceUsdt: "0.1",
+      totalSupply: "1000",
+    });
+  });
+
   it("throws a normalized error when Supabase fails", async () => {
     const fake = createFakeClient([], null, { message: "permission denied" });
 

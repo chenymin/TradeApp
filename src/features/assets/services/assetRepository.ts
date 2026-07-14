@@ -170,7 +170,10 @@ function compareRawRows(
   return parseTimestamp(right.created_at) - parseTimestamp(left.created_at);
 }
 
-function compareDecimalStrings(left: string | null, right: string | null): number {
+function compareDecimalStrings(
+  left: number | string | null,
+  right: number | string | null,
+): number {
   const normalizedLeft = normalizeUnsignedDecimal(left);
   const normalizedRight = normalizeUnsignedDecimal(right);
 
@@ -189,11 +192,11 @@ function compareDecimalStrings(left: string | null, right: string | null): numbe
     .localeCompare(normalizedRight.fraction.padEnd(fractionLength, "0"));
 }
 
-function normalizeUnsignedDecimal(value: string | null): {
+function normalizeUnsignedDecimal(value: number | string | null): {
   fraction: string;
   integer: string;
 } {
-  const [integer = "0", fraction = ""] = (value ?? "0").trim().split(".");
+  const [integer = "0", fraction = ""] = normalizeDatabaseDecimal(value).split(".");
   return {
     fraction: fraction.replace(/0+$/, ""),
     integer: integer.replace(/^0+(?=\d)/, "") || "0",
@@ -251,9 +254,17 @@ function mapDatabaseRow(value: unknown): AssetDatabaseRow {
     status: normalizeStatus(row.status),
     symbol: row.symbol?.trim() || "--",
     title: submission?.name?.trim() || submission?.name_en?.trim() || "Untitled asset",
-    tokenPriceUsdt: row.token_price_usdt?.trim() || "0",
-    totalSupply: row.total_supply?.trim() || "0",
+    tokenPriceUsdt: normalizeDatabaseDecimal(row.token_price_usdt),
+    totalSupply: normalizeDatabaseDecimal(row.total_supply),
   };
+}
+
+function normalizeDatabaseDecimal(value: number | string | null): string {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "0";
+  }
+
+  return value?.trim() || "0";
 }
 
 function normalizeStatus(value: string | null | undefined): AssetSaleStatus {
@@ -288,6 +299,6 @@ type RawAssetRow = {
   sale_start: string | null;
   status: string | null;
   symbol: string | null;
-  token_price_usdt: string | null;
-  total_supply: string | null;
+  token_price_usdt: number | string | null;
+  total_supply: number | string | null;
 };
