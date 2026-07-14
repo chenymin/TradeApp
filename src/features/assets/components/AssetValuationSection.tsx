@@ -3,6 +3,8 @@ import { ExternalLink } from "lucide-react-native";
 import { AppText, colors, spacing } from "../../../shared/ui";
 import type { AssetDetailValuation } from "../domain/assetDetailModels";
 
+const VALUATION_DISCLAIMER = "本估值报告仅供参考，不构成投资建议。艺术品市场具有波动性，实际交易价格可能与估值存在差异。投资者应自行评估风险并做出独立判断。";
+
 export function AssetValuationSection({ openExternalUrl, valuation }: { openExternalUrl(url: string): Promise<unknown>; valuation: AssetDetailValuation }) {
   if (valuation.status === "error") return <LocalState text="估值报告暂时无法加载" />;
   if (valuation.status === "empty") return <LocalState text="暂无估值报告" />;
@@ -12,8 +14,8 @@ export function AssetValuationSection({ openExternalUrl, valuation }: { openExte
     <Fact label="估值金额" value={valuation.valuationText} /><Fact label="报告编号" value={valuation.reportNumber} />
     <AppText style={styles.title}>市场分析</AppText>
     <Fact label="市场趋势" value={valuation.marketTrend} /><Fact label="需求水平" value={valuation.demandLevel} />
-    {valuation.notes ? <AppText>{valuation.notes}</AppText> : null}
-    <View style={styles.disclaimer}><AppText variant="caption">本估值报告仅供参考，不构成投资建议。艺术品市场具有波动性，实际交易价格可能与估值存在差异。投资者应自行评估风险并做出独立判断。</AppText></View>
+    {valuation.notes && valuation.notes !== VALUATION_DISCLAIMER ? <AppText>{valuation.notes}</AppText> : null}
+    <View style={styles.disclaimer}><AppText variant="caption">{VALUATION_DISCLAIMER}</AppText></View>
     {valuation.reportUrl ? <Pressable accessibilityLabel="Open valuation report" onPress={() => void openExternalUrl(valuation.reportUrl!)} style={styles.link}><AppText style={styles.linkText}>查看完整报告</AppText><ExternalLink color={colors.primary} size={16} /></Pressable> : null}
   </View>;
 }

@@ -95,6 +95,18 @@ describe("AssetDetailScreen", () => {
     expect(text(renderer)).toContain("链上事件暂时无法加载");
   });
 
+  it("does not repeat the disclaimer when valuation notes contain the same text", async () => {
+    const disclaimer = "本估值报告仅供参考，不构成投资建议。艺术品市场具有波动性，实际交易价格可能与估值存在差异。投资者应自行评估风险并做出独立判断。";
+    const model = detailModel();
+    model.valuation = { ...model.valuation, notes: disclaimer };
+    const renderer = await renderScreen({
+      loader: vi.fn().mockResolvedValue({ detail: model, warnings: [] }),
+    });
+
+    await press(renderer, "Asset detail tab Valuation");
+    expect(text(renderer).split(disclaimer)).toHaveLength(2);
+  });
+
   it("shows a primary error and retries", async () => {
     const loader = vi.fn<AssetDetailLoader>()
       .mockRejectedValueOnce(new Error("Primary unavailable"))
