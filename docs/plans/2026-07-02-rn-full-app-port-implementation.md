@@ -336,7 +336,7 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 - 验收标准：资产详情展示完整；未登录 / KYC 未通过 / sale 未开放 / 无合约时按钮状态正确。
 - 测试：`npm test -- src/features/assets src/features/purchase src/lib/chain`。
 - 可追溯关系：公开资产详情、购买失败中的非写入阻断。
-- 实现状态：Planned。
+- 实现状态：Code complete（2026-07-14）。已实现只读详情 repository、BSC 56/97 合约读取、四个详情 tab、可信 CTA、局部错误降级、安全外链、placeholder 与来源 tab 返回；全量 `45` 个测试文件 / `201` 个用例和 TypeScript 检查通过。KYC / whitelist 在当前 auth runtime 中保持显式 `unknown`，不会由客户端推断；真实购买仍归 Task 9。iOS / Android 实机布局、真实 RLS 和外链行为仍为发布前人工门禁。
 
 ### Task 5：Dashboard data、profile、holdings、points、commission read model
 

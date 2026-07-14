@@ -21,7 +21,7 @@ export function PublicAssetList({
   header: React.ReactElement;
   items: PublicAssetSummary[];
   loadMore(): void;
-  onAssetPress(id: string): void;
+  onAssetPress(asset: PublicAssetSummary): void;
   queryKey: string;
   refresh(): void;
   retry(): void;

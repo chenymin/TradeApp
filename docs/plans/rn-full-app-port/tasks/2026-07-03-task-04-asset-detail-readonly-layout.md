@@ -697,4 +697,12 @@ Forbidden scans：
 
 ## 实现状态
 
-Planned。
+Code complete（2026-07-14），不推进 AI Delivery feature stage。
+
+- 已实现 `art_assets` / `artwork_submissions` 主详情、最新估值和最多 20 条 mint events 的只读 repository。
+- 已实现基于资产 chain ID 的 BSC 56 / 97 合约读取；必需读取失败返回 `error`，不以零值伪装成功。
+- 已实现 `overview / valuation / rules / onchain` 四个 tab、列表 placeholder、固定底部 CTA、安全外链和 Launchpad / Market 来源返回。
+- 数据库 fallback、RPC / 估值 / RLS 失败均保持只读或局部降级，不能启用 Subscribe。
+- 当前认证 runtime 不提供可信 wallet / KYC / whitelist 明细；这些字段保持 `unknown`，不把 authenticated 等同于 KYC 或白名单通过。
+- 全量验证：`45` 个测试文件、`201` 个用例通过；`npm run typecheck`、diff check 和 forbidden scans 通过。
+- Stop for human：iOS / Android 实机安全区与固定 CTA、真实图片和外链、Supabase anon/RLS、真实 BSC RPC 降级仍须发布前确认。

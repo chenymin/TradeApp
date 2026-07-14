@@ -16,12 +16,12 @@ export function AssetCard({
   onPress,
 }: {
   asset: PublicAssetSummary;
-  onPress(id: string): void;
+  onPress(asset: PublicAssetSummary): void;
 }) {
   return (
     <Pressable
       accessibilityLabel={`Open asset ${asset.title}`}
-      onPress={() => onPress(asset.id)}
+      onPress={() => onPress(asset)}
       style={styles.card}
     >
       {asset.imageUrl ? (

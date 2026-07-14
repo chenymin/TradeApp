@@ -23,7 +23,7 @@ export function LaunchpadScreen({
   onAssetPress,
 }: {
   loader: PublicAssetPageLoader;
-  onAssetPress(id: string): void;
+  onAssetPress(asset: PublicAssetSummary): void;
 }) {
   const list = usePublicAssetList({ loader });
   const [summaryAssets, setSummaryAssets] = useState<PublicAssetSummary[]>([]);
