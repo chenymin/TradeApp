@@ -8,10 +8,14 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
 describe("LaunchpadScreen", () => {
   it("renders the launchpad shell, metrics, filters, and assets", async () => {
-    const loader = vi.fn<PublicAssetPageLoader>().mockResolvedValue({
-      items: [asset()],
-      nextCursor: null,
-    });
+    const items = [
+      asset({ participantsCount: 4, saleStatus: "upcoming" }),
+      asset({ id: "asset-2", participantsCount: 5, saleStatus: "completed" }),
+      asset({ id: "asset-3", participantsCount: 7, saleStatus: "sold_out" }),
+    ];
+    const loader = vi.fn<PublicAssetPageLoader>()
+      .mockResolvedValueOnce({ items, nextCursor: null })
+      .mockResolvedValue({ items: [], nextCursor: null });
     const onAssetPress = vi.fn();
     const renderer = await renderScreen(
       <LaunchpadScreen loader={loader} onAssetPress={onAssetPress} />,
@@ -25,13 +29,17 @@ describe("LaunchpadScreen", () => {
     expect(content).toContain("进行中");
     expect(content).toContain("即将开始");
     expect(content).toContain("已完成");
+    expect(content).toContain("1 个即将开始");
+    expect(content).toContain("16");
     expect(content).toContain("Morning Mist");
     expect(renderer.root.findByProps({ accessibilityLabel: "Public asset list" }).props.keyExtractor(asset())).toBe("asset-1");
 
     await act(async () => {
       renderer.root.findByProps({ accessibilityLabel: "进行中" }).props.onPress();
+      await Promise.resolve();
     });
     expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({ filter: "active" }));
+    expect(JSON.stringify(renderer.toJSON())).toContain("16");
   });
 
   it("keeps an explicit empty state", async () => {
@@ -72,7 +80,7 @@ async function renderScreen(element: React.ReactElement): Promise<ReactTestRende
   return renderer;
 }
 
-function asset(): PublicAssetSummary {
+function asset(overrides: Partial<PublicAssetSummary> = {}): PublicAssetSummary {
   return {
     artistName: "Lin Wei",
     availableSharesText: "750",
@@ -93,5 +101,6 @@ function asset(): PublicAssetSummary {
     title: "Morning Mist",
     tokenCode: "ART-MIST",
     totalSupplyText: "2,000",
+    ...overrides,
   };
 }

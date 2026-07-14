@@ -1,9 +1,14 @@
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { AppText, SegmentedControl, colors, spacing } from "../../../shared/ui";
 import { LaunchpadSummaryStrip } from "../components/LaunchpadSummaryStrip";
 import { PublicAssetList } from "../components/PublicAssetList";
-import type { AssetSaleFilter, PublicAssetPageLoader } from "../domain/assetModels";
+import type {
+  AssetSaleFilter,
+  PublicAssetPageLoader,
+  PublicAssetSummary,
+} from "../domain/assetModels";
 import { usePublicAssetList } from "../hooks/usePublicAssetList";
 
 const FILTERS = [
@@ -21,6 +26,16 @@ export function LaunchpadScreen({
   onAssetPress(id: string): void;
 }) {
   const list = usePublicAssetList({ loader });
+  const [summaryAssets, setSummaryAssets] = useState<PublicAssetSummary[]>([]);
+
+  useEffect(() => {
+    if (
+      list.filter === "all" &&
+      (list.status === "ready" || list.status === "end_reached" || list.status === "empty")
+    ) {
+      setSummaryAssets(list.items);
+    }
+  }, [list.filter, list.items, list.status]);
 
   return (
     <View style={styles.screen}>
@@ -33,7 +48,7 @@ export function LaunchpadScreen({
               <AppText style={styles.englishTitle}>Tokenized Art Launchpad</AppText>
               <AppText variant="caption">精选艺术品资产，按份额发行链上所有权凭证。</AppText>
             </View>
-            <LaunchpadSummaryStrip />
+            <LaunchpadSummaryStrip assets={summaryAssets} />
             <SegmentedControl onChange={list.setFilter} options={FILTERS} value={list.filter} />
           </View>
         )}

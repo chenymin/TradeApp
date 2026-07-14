@@ -38,20 +38,32 @@ describe("AssetCard", () => {
 });
 
 describe("LaunchpadSummaryStrip", () => {
-  it("renders trust metrics in the specified order", () => {
-    const tree = renderElement(<LaunchpadSummaryStrip />);
+  it("renders trust metrics from the public asset data", () => {
+    const tree = renderElement(<LaunchpadSummaryStrip assets={[
+      asset({ participantsCount: 4, saleStatus: "upcoming" }),
+      asset({ id: "asset-2", participantsCount: 5, saleStatus: "completed" }),
+      asset({ id: "asset-3", participantsCount: 7, saleStatus: "sold_out" }),
+    ]} />);
     const content = textContent(tree);
+    const activeMetric = findByProps(tree, { accessibilityLabel: "Metric 活跃项目" });
+    const participantMetric = findByProps(tree, { accessibilityLabel: "Metric 总参与者" });
+    const completedMetric = findByProps(tree, { accessibilityLabel: "Metric 完成发售" });
 
     expect(content.indexOf("总锁仓价值")).toBeLessThan(content.indexOf("活跃项目"));
     expect(content.indexOf("活跃项目")).toBeLessThan(content.indexOf("总参与者"));
     expect(content.indexOf("总参与者")).toBeLessThan(content.indexOf("完成发售"));
     expect(content).toContain("$12.5M");
-    expect(findByProps(tree, { accessibilityLabel: "Metric 完成发售" }).props.style)
-      .toEqual(expect.arrayContaining([expect.objectContaining({ opacity: 0.68 })]));
+    expect(textContent(activeMetric)).toContain("0");
+    expect(textContent(activeMetric)).toContain("1 个即将开始");
+    expect(textContent(participantMetric)).toContain("16");
+    expect(textContent(completedMetric)).toContain("2");
+    expect(completedMetric.props.style).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ opacity: 0.68 })]),
+    );
   });
 });
 
-function asset(): PublicAssetSummary {
+function asset(overrides: Partial<PublicAssetSummary> = {}): PublicAssetSummary {
   return {
     artistName: "Lin Wei",
     availableSharesText: "750",
@@ -72,5 +84,6 @@ function asset(): PublicAssetSummary {
     title: "Morning Mist",
     tokenCode: "ART-MIST",
     totalSupplyText: "2,000",
+    ...overrides,
   };
 }

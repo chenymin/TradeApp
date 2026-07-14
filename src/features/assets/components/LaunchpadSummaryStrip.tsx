@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { AppText, colors, spacing } from "../../../shared/ui";
+import type { PublicAssetSummary } from "../domain/assetModels";
 
 type LaunchpadMetric = {
   emphasis: "primary" | "neutral" | "muted";
@@ -10,14 +11,9 @@ type LaunchpadMetric = {
   value: string;
 };
 
-const METRICS: LaunchpadMetric[] = [
-  { emphasis: "primary", helper: "+23.4% 本月", id: "totalValueLocked", label: "总锁仓价值", value: "$12.5M" },
-  { emphasis: "neutral", helper: "3 个即将开始", id: "activeProjects", label: "活跃项目", value: "1" },
-  { emphasis: "neutral", helper: "来自 45 个国家", id: "participants", label: "总参与者", value: "8" },
-  { emphasis: "muted", helper: "100% 成功率", id: "completedSales", label: "完成发售", value: "0" },
-];
+export function LaunchpadSummaryStrip({ assets }: { assets: PublicAssetSummary[] }) {
+  const metrics = buildMetrics(assets);
 
-export function LaunchpadSummaryStrip() {
   return (
     <ScrollView
       accessibilityLabel="Launchpad summary"
@@ -25,7 +21,7 @@ export function LaunchpadSummaryStrip() {
       horizontal
       showsHorizontalScrollIndicator={false}
     >
-      {METRICS.map((metric) => (
+      {metrics.map((metric) => (
         <View
           accessibilityLabel={`Metric ${metric.label}`}
           key={metric.id}
@@ -42,6 +38,27 @@ export function LaunchpadSummaryStrip() {
       ))}
     </ScrollView>
   );
+}
+
+function buildMetrics(assets: PublicAssetSummary[]): LaunchpadMetric[] {
+  let active = 0;
+  let upcoming = 0;
+  let completed = 0;
+  let participants = 0;
+
+  for (const asset of assets) {
+    if (asset.saleStatus === "active") active += 1;
+    if (asset.saleStatus === "upcoming") upcoming += 1;
+    if (asset.saleStatus === "completed" || asset.saleStatus === "sold_out") completed += 1;
+    participants += asset.participantsCount;
+  }
+
+  return [
+    { emphasis: "primary", helper: "+23.4% 本月", id: "totalValueLocked", label: "总锁仓价值", value: "$12.5M" },
+    { emphasis: "neutral", helper: `${upcoming} 个即将开始`, id: "activeProjects", label: "活跃项目", value: String(active) },
+    { emphasis: "neutral", helper: "来自 45 个国家", id: "participants", label: "总参与者", value: participants.toLocaleString("en-US") },
+    { emphasis: completed > 0 ? "neutral" : "muted", helper: "100% 成功率", id: "completedSales", label: "完成发售", value: String(completed) },
+  ];
 }
 
 const styles = StyleSheet.create({
