@@ -1,4 +1,5 @@
 import type { AuthExchangeSession } from "./authExchangeClient";
+import { parseAuthViewer } from "../domain/authViewer";
 
 export const SUPABASE_SESSION_STORAGE_KEY = "mytradeapp.supabase.session";
 
@@ -83,6 +84,18 @@ export async function restoreStoredSession({
     return null;
   }
 
+  if (!session.viewer) {
+    try {
+      await supabase.auth.signOut();
+      await secureStorage.deleteItemAsync(SUPABASE_SESSION_STORAGE_KEY);
+    } catch {
+      throw new SessionStorageError("session_storage_failed", {
+        operation: "restore_session",
+      });
+    }
+    return null;
+  }
+
   try {
     await setSupabaseSession(supabase, session);
   } catch {
@@ -135,12 +148,15 @@ function parseStoredSession(rawSession: string | null): AuthExchangeSession | nu
       return null;
     }
 
+    const viewer = parseAuthViewer(parsed.viewer);
+
     return {
       accessToken: parsed.accessToken,
       expiresAt:
         typeof parsed.expiresAt === "number" ? parsed.expiresAt : undefined,
       refreshToken:
         typeof parsed.refreshToken === "string" ? parsed.refreshToken : undefined,
+      ...(viewer ? { viewer } : {}),
     };
   } catch {
     return null;

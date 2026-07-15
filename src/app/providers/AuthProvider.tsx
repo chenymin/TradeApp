@@ -13,11 +13,16 @@ import type {
   createAuthWorkflow,
 } from "../../features/auth/workflow/authWorkflow";
 import type { AuthStatus } from "../../features/auth/workflow/authStateMachine";
+import type { AuthViewer } from "../../features/auth/domain/authViewer";
 
 export type AuthProviderState = {
   error?: AuthWorkflowResult["error"];
+  isSessionReady: boolean;
   status: AuthStatus;
+  viewer: AuthViewer | null;
 };
+
+export type AuthDisplayState = Pick<AuthProviderState, "error" | "status">;
 
 export type AuthProviderActions = {
   login: () => Promise<void>;
@@ -38,33 +43,49 @@ export function AuthProvider({
   workflow: AuthWorkflowInstance;
 }>) {
   const [state, setState] = useState<AuthProviderState>({
+    isSessionReady: false,
     status: "restoring_session",
+    viewer: null,
   });
 
   const applyResult = useCallback((result: AuthWorkflowResult) => {
     setState({
-      error: result.error,
+      ...(result.error ? { error: result.error } : {}),
+      isSessionReady: result.status === "authenticated",
       status: result.status,
+      viewer: result.viewer ?? null,
     });
   }, []);
 
   const restoreSession = useCallback(async () => {
-    setState({ status: "restoring_session" });
+    setState({
+      isSessionReady: false,
+      status: "restoring_session",
+      viewer: null,
+    });
     applyResult(await workflow.restoreSession());
   }, [applyResult, workflow]);
 
   const login = useCallback(async () => {
-    setState({ status: "privy_authenticating" });
+    setState({
+      isSessionReady: false,
+      status: "privy_authenticating",
+      viewer: null,
+    });
     applyResult(await workflow.login());
   }, [applyResult, workflow]);
 
   const logout = useCallback(async () => {
-    setState({ status: "logging_out" });
+    setState({ isSessionReady: false, status: "logging_out", viewer: null });
     applyResult(await workflow.logout());
   }, [applyResult, workflow]);
 
   const recoverAsInvestor = useCallback(async () => {
-    setState({ status: "exchanging_session" });
+    setState({
+      isSessionReady: false,
+      status: "exchanging_session",
+      viewer: null,
+    });
     applyResult(await workflow.recoverAsInvestor());
   }, [applyResult, workflow]);
 

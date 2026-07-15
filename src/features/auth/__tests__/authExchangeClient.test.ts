@@ -11,7 +11,11 @@ describe("exchangePrivyTokenForSession", () => {
   it("posts only the Privy token in the deployed wallet-login contract", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(200, {
-        user: { id: "app-user-1" },
+        user: {
+          email: "viewer@example.com",
+          id: "app-user-1",
+          walletAddress: "0xabc",
+        },
         session: {
           access_token: "supabase-access-token",
           refresh_token: "supabase-refresh-token",
@@ -27,7 +31,11 @@ describe("exchangePrivyTokenForSession", () => {
     });
 
     expect(result).toEqual({
-      user: { id: "app-user-1" },
+      viewer: {
+        email: "viewer@example.com",
+        id: "app-user-1",
+        walletAddress: "0xabc",
+      },
       session: {
         accessToken: "supabase-access-token",
         refreshToken: "supabase-refresh-token",
@@ -72,7 +80,11 @@ describe("exchangePrivyTokenForSession", () => {
         access_token: "supabase-access-token",
         expires_in: 1_800,
         user_status: "new",
-        user: { id: "app-user-1" },
+        user: {
+          email: null,
+          id: "app-user-1",
+          walletAddress: null,
+        },
       }),
     );
 
@@ -84,7 +96,11 @@ describe("exchangePrivyTokenForSession", () => {
     });
 
     expect(result).toEqual({
-      user: { id: "app-user-1" },
+      viewer: {
+        email: null,
+        id: "app-user-1",
+        walletAddress: null,
+      },
       userStatus: "new",
       session: {
         accessToken: "supabase-access-token",
@@ -145,6 +161,23 @@ describe("exchangePrivyTokenForSession", () => {
 
   it("rejects malformed success responses", async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(200, { session: {} }));
+
+    await expect(
+      exchangePrivyTokenForSession({
+        endpoint,
+        fetch: fetchMock,
+        privyAccessToken: "privy-token",
+      }),
+    ).rejects.toEqual(new AuthExchangeError("invalid_response", { retryable: false }));
+  });
+
+  it("rejects a success response with an invalid viewer", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(200, {
+        access_token: "supabase-access-token",
+        user: { email: "viewer@example.com" },
+      }),
+    );
 
     await expect(
       exchangePrivyTokenForSession({

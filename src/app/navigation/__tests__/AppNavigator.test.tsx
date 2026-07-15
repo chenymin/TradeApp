@@ -203,13 +203,14 @@ describe("AppNavigator", () => {
     expect(renderer.root.findByProps({ accessibilityLabel: "Tab Market" }).props.accessibilityState).toEqual({ selected: true });
   });
 
-  it("renders authenticated users into global tabs with Dashboard active", () => {
+  it("renders authenticated users into global tabs with Dashboard active", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
-    act(() => {
+    await act(async () => {
       testRenderer = TestRenderer.create(
-        <AppNavigator actions={createActions()} state={{ status: "authenticated" }} />,
+        <AppNavigator actions={createActions()} state={authenticatedState()} />,
       );
+      await Promise.resolve();
     });
 
     if (!testRenderer) {
@@ -224,7 +225,7 @@ describe("AppNavigator", () => {
     expect(treeText).toContain("Dashboard");
     expect(treeText).not.toContain("Tab Wallet");
     expect(treeText).toContain("My");
-    expect(treeText).not.toContain("Portfolio");
+    expect(treeText).toContain("Portfolio value");
     expect(testRenderer.root.findByProps({ accessibilityLabel: "Header title Home" })).toBeTruthy();
     expect(testRenderer.root.findByProps({ accessibilityLabel: "Wallet status" })).toBeTruthy();
     expect(testRenderer.root.findByProps({ accessibilityLabel: "Tab Dashboard" }).props.accessibilityState).toEqual({
@@ -232,12 +233,66 @@ describe("AppNavigator", () => {
     });
   });
 
+  it("renders the real authenticated dashboard instead of the feature placeholder", async () => {
+    let testRenderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      testRenderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          dashboardDependencies={createDashboardDependencies()}
+          state={{
+            isSessionReady: true,
+            status: "authenticated",
+            viewer: {
+              email: "viewer@example.com",
+              id: "viewer-1",
+              walletAddress: "0x0000000000000000000000000000000000000008",
+            },
+          }}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    const output = JSON.stringify(testRenderer?.toJSON());
+    expect(output).toContain("Alice");
+    expect(output).toContain("No holdings yet");
+    expect(output).not.toContain("Feature placeholder");
+  });
+
+  it("offers a working re-login action for an upgraded legacy session", async () => {
+    const actions = createActions();
+    let testRenderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      testRenderer = TestRenderer.create(
+        <AppNavigator
+          actions={actions}
+          state={{ isSessionReady: true, status: "authenticated", viewer: null }}
+        />,
+      );
+    });
+
+    expect(JSON.stringify(testRenderer?.toJSON())).toContain("Session needs to be refreshed");
+
+    await act(async () => {
+      await testRenderer!.root.findByProps({ accessibilityLabel: "Sign in again" })
+        .props.onPress();
+    });
+
+    expect(actions.logout).toHaveBeenCalledOnce();
+    expect(actions.login).toHaveBeenCalledOnce();
+    expect(actions.logout.mock.invocationCallOrder[0])
+      .toBeLessThan(actions.login.mock.invocationCallOrder[0]);
+  });
+
   it("switches protected tabs to My when the profile tab is pressed", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
     await act(async () => {
       testRenderer = TestRenderer.create(
-        <AppNavigator actions={createActions()} state={{ status: "authenticated" }} />,
+        <AppNavigator actions={createActions()} state={authenticatedState()} />,
       );
     });
 
@@ -269,7 +324,7 @@ describe("AppNavigator", () => {
         <AppNavigator
           actions={actions}
           initialRouteName="profile"
-          state={{ status: "authenticated" }}
+          state={authenticatedState()}
         />,
       );
     });
@@ -321,7 +376,7 @@ describe("AppNavigator", () => {
         <AppNavigator
           actions={createActions()}
           initialRouteName="profile"
-          state={{ status: "authenticated" }}
+          state={authenticatedState()}
         />,
       );
     });
@@ -386,6 +441,18 @@ function createActions() {
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
     restoreSession: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function authenticatedState() {
+  return {
+    isSessionReady: true,
+    status: "authenticated" as const,
+    viewer: {
+      email: "viewer@example.com",
+      id: "viewer-1",
+      walletAddress: "0x0000000000000000000000000000000000000008",
+    },
   };
 }
 
@@ -454,4 +521,43 @@ function createAssetDetailLoader(): ReturnType<typeof vi.fn<AssetDetailLoader>> 
     }),
     warnings: ["chain_unavailable"],
   });
+}
+
+function createDashboardDependencies() {
+  return {
+    commissionLoader: vi.fn().mockResolvedValue({ status: "unavailable" as const }),
+    holdingsLoader: vi.fn().mockResolvedValue({
+      holdings: [],
+      summary: {
+        holdingsCount: 0,
+        pnlPercent: "0",
+        totalInvestedUsdt: "0",
+        totalPnlUsdt: "0",
+        totalValueUsdt: "0",
+      },
+      transactions: [],
+      warnings: [],
+    }),
+    kycLoader: vi.fn().mockResolvedValue({
+      approved: false,
+      notes: null,
+      reasonCode: null,
+      reviewedAt: null,
+      status: null,
+    }),
+    nicknameRepository: { updateNickname: vi.fn() },
+    pointsLoader: vi.fn().mockResolvedValue([]),
+    profileLoader: vi.fn().mockResolvedValue({
+      id: "viewer-1",
+      inviteCode: "INVITE",
+      nickname: "Alice",
+      referralPoints: 0,
+      reputationPoints: 0,
+      taskPoints: 0,
+      tier: "A",
+      totalPoints: 0,
+      tradingPoints: 0,
+      userType: "investor",
+    }),
+  };
 }

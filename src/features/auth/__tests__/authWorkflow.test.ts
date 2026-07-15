@@ -7,12 +7,16 @@ describe("authWorkflow", () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);
 
-    await expect(workflow.login()).resolves.toEqual({ status: "authenticated" });
+    await expect(workflow.login()).resolves.toEqual({
+      status: "authenticated",
+      viewer: viewer(),
+    });
 
     expect(adapters.privy.login).toHaveBeenCalledOnce();
     expect(adapters.exchange.exchange).toHaveBeenCalledWith("privy-token");
     expect(adapters.session.setSession).toHaveBeenCalledWith({
       accessToken: "supabase-token",
+      viewer: viewer(),
     });
   });
 
@@ -21,6 +25,7 @@ describe("authWorkflow", () => {
     adapters.exchange.exchange.mockResolvedValue({
       session: { accessToken: "supabase-token" },
       userStatus: "new",
+      viewer: viewer(),
     });
     adapters.registration.getPayload.mockResolvedValue({
       referrerCode: "A3K9M2",
@@ -28,7 +33,10 @@ describe("authWorkflow", () => {
     });
     const workflow = createAuthWorkflow(adapters);
 
-    await expect(workflow.login()).resolves.toEqual({ status: "authenticated" });
+    await expect(workflow.login()).resolves.toEqual({
+      status: "authenticated",
+      viewer: viewer(),
+    });
 
     expect(adapters.registration.register).toHaveBeenCalledWith({
       accessToken: "supabase-token",
@@ -37,6 +45,7 @@ describe("authWorkflow", () => {
     expect(adapters.registration.clearPayload).toHaveBeenCalledOnce();
     expect(adapters.session.setSession).toHaveBeenCalledWith({
       accessToken: "supabase-token",
+      viewer: viewer(),
     });
   });
 
@@ -45,11 +54,15 @@ describe("authWorkflow", () => {
     adapters.exchange.exchange.mockResolvedValue({
       session: { accessToken: "supabase-token" },
       userStatus: "new",
+      viewer: viewer(),
     });
     adapters.registration.getPayload.mockResolvedValue(null);
     const workflow = createAuthWorkflow(adapters);
 
-    await expect(workflow.login()).resolves.toEqual({ status: "authenticated" });
+    await expect(workflow.login()).resolves.toEqual({
+      status: "authenticated",
+      viewer: viewer(),
+    });
 
     expect(adapters.registration.register).toHaveBeenCalledWith({
       accessToken: "supabase-token",
@@ -62,6 +75,7 @@ describe("authWorkflow", () => {
     adapters.exchange.exchange.mockResolvedValue({
       session: { accessToken: "supabase-token" },
       userStatus: "existing",
+      viewer: viewer(),
     });
     adapters.registration.getPayload.mockResolvedValue({
       invitationToken: "token-abc",
@@ -72,6 +86,7 @@ describe("authWorkflow", () => {
     await expect(workflow.login()).resolves.toEqual({
       notice: "existing_user_with_invite",
       status: "authenticated",
+      viewer: viewer(),
     });
 
     expect(adapters.registration.register).not.toHaveBeenCalled();
@@ -84,6 +99,7 @@ describe("authWorkflow", () => {
     adapters.exchange.exchange.mockResolvedValue({
       session: { accessToken: "supabase-token" },
       userStatus: "orphaned",
+      viewer: viewer(),
     });
     adapters.registration.getPayload.mockResolvedValue(null);
     const workflow = createAuthWorkflow(adapters);
@@ -101,6 +117,7 @@ describe("authWorkflow", () => {
     adapters.exchange.exchange.mockResolvedValue({
       session: { accessToken: "supabase-token" },
       userStatus: "orphaned",
+      viewer: viewer(),
     });
     adapters.registration.getPayload.mockResolvedValue(null);
     const workflow = createAuthWorkflow(adapters);
@@ -108,6 +125,7 @@ describe("authWorkflow", () => {
     await workflow.login();
     await expect(workflow.recoverAsInvestor()).resolves.toEqual({
       status: "authenticated",
+      viewer: viewer(),
     });
 
     expect(adapters.registration.register).toHaveBeenCalledWith({
@@ -116,6 +134,7 @@ describe("authWorkflow", () => {
     });
     expect(adapters.session.setSession).toHaveBeenCalledWith({
       accessToken: "supabase-token",
+      viewer: viewer(),
     });
   });
 
@@ -178,6 +197,7 @@ describe("authWorkflow", () => {
 
     await expect(workflow.restoreSession()).resolves.toEqual({
       status: "authenticated",
+      viewer: viewer(),
     });
     await expect(workflow.logout()).resolves.toEqual({ status: "logged_out" });
 
@@ -193,6 +213,7 @@ function fakeAdapters() {
       exchange: vi.fn().mockResolvedValue({
         session: { accessToken: "supabase-token" },
         userStatus: "existing",
+        viewer: viewer(),
       }),
     },
     privy: {
@@ -201,7 +222,10 @@ function fakeAdapters() {
     },
     session: {
       clearSession: vi.fn().mockResolvedValue(undefined),
-      restoreSession: vi.fn().mockResolvedValue({ accessToken: "supabase-token" }),
+      restoreSession: vi.fn().mockResolvedValue({
+        accessToken: "supabase-token",
+        viewer: viewer(),
+      }),
       setSession: vi.fn().mockResolvedValue(undefined),
     },
     registration: {
@@ -210,5 +234,13 @@ function fakeAdapters() {
       register: vi.fn().mockResolvedValue(undefined),
       setExistingUserInviteIgnored: vi.fn().mockResolvedValue(undefined),
     },
+  };
+}
+
+function viewer() {
+  return {
+    email: "viewer@example.com",
+    id: "viewer-1",
+    walletAddress: "0xabc",
   };
 }

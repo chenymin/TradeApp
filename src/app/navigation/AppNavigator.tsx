@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 
 import type {
+  AuthDisplayState,
   AuthProviderActions,
   AuthProviderState,
 } from "../providers/AuthProvider";
@@ -20,6 +21,10 @@ import { AppText, Button, Screen, colors, spacing } from "../../shared/ui";
 import { AppShell } from "./components/AppShell";
 import { RoutePlaceholder } from "./components/RoutePlaceholder";
 import {
+  DashboardScreen,
+  type DashboardDataDependencies,
+} from "../../features/dashboard/screens/DashboardScreen";
+import {
   getHeaderConfig,
   getInitialRoute,
   getTabRoutes,
@@ -31,6 +36,7 @@ export function AppNavigator({
   actions,
   assetDetailLoader,
   assetPageLoader,
+  dashboardDependencies,
   externalLinkAdapter,
   initialRouteName,
   state,
@@ -38,9 +44,12 @@ export function AppNavigator({
   actions: AuthProviderActions;
   assetDetailLoader?: AssetDetailLoader;
   assetPageLoader?: PublicAssetPageLoader;
+  dashboardDependencies?: DashboardDataDependencies;
   externalLinkAdapter?: ExternalLinkAdapter;
   initialRouteName?: AppRouteName;
-  state: AuthProviderState;
+  state: AuthDisplayState & Partial<
+    Pick<AuthProviderState, "isSessionReady" | "viewer">
+  >;
 }) {
   if (state.status === "restoring_session") {
     return (
@@ -58,6 +67,28 @@ export function AppNavigator({
     return <LoginScreen actions={actions} state={state} />;
   }
 
+  if (
+    state.status === "authenticated" &&
+    (state.isSessionReady !== true || !state.viewer)
+  ) {
+    return (
+      <Screen centered style={styles.sessionRecovery}>
+        <AppText variant="title">Session needs to be refreshed</AppText>
+        <AppText variant="subtitle">
+          Sign in again to finish upgrading your secure session.
+        </AppText>
+        <Button
+          accessibilityLabel="Sign in again"
+          label="Sign in again"
+          onPress={async () => {
+            await actions.logout();
+            await actions.login();
+          }}
+        />
+      </Screen>
+    );
+  }
+
   if (state.status === "authenticated") {
     return (
       <MainTabs
@@ -68,8 +99,13 @@ export function AppNavigator({
         assetDetailLoader={assetDetailLoader ?? EMPTY_ASSET_DETAIL_LOADER}
         assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
         authStatus="authenticated"
+        dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
         externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
         onLogout={actions.logout}
+        viewerState={{
+          isSessionReady: state.isSessionReady === true,
+          viewer: state.viewer ?? null,
+        }}
       />
     );
   }
@@ -83,9 +119,11 @@ export function AppNavigator({
       assetDetailLoader={assetDetailLoader ?? EMPTY_ASSET_DETAIL_LOADER}
       assetPageLoader={assetPageLoader ?? EMPTY_ASSET_PAGE_LOADER}
       authStatus="logged_out"
+      dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
       externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
       onLogin={actions.login}
       onLogout={actions.logout}
+      viewerState={{ isSessionReady: false, viewer: null }}
     />
   );
 }
@@ -95,17 +133,21 @@ function MainTabs({
   assetDetailLoader,
   assetPageLoader,
   authStatus,
+  dashboardDependencies,
   externalLinkAdapter,
   onLogin,
   onLogout,
+  viewerState,
 }: {
   activeRouteName: MainTabRouteName;
   assetDetailLoader: AssetDetailLoader;
   assetPageLoader: PublicAssetPageLoader;
   authStatus: "authenticated" | "logged_out";
+  dashboardDependencies: DashboardDataDependencies;
   externalLinkAdapter: ExternalLinkAdapter;
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
+  viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
 }) {
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
@@ -171,6 +213,9 @@ function MainTabs({
         currentRouteName,
         authStatus,
         assetPageLoader,
+        dashboardDependencies,
+        viewerState,
+        externalLinkAdapter,
         onLogout,
         () => setInviteSheetOpen(true),
         (asset) => setDetailRoute({
@@ -187,6 +232,9 @@ function renderRoute(
   routeName: MainTabRouteName,
   authStatus: "authenticated" | "logged_out",
   assetPageLoader: PublicAssetPageLoader,
+  dashboardDependencies: DashboardDataDependencies,
+  viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">,
+  externalLinkAdapter: ExternalLinkAdapter,
   onLogout: () => Promise<void>,
   onInvitePress: () => void,
   onAssetPress: (asset: PublicAssetSummary) => void,
@@ -211,10 +259,10 @@ function renderRoute(
 
   if (routeName === "dashboard") {
     return (
-      <RoutePlaceholder
-        description={protectedDescription(routeName)}
-        label="MainTabs"
-        title={mainTitle(routeName)}
+      <DashboardScreen
+        {...dashboardDependencies}
+        externalLinkAdapter={externalLinkAdapter}
+        viewerState={viewerState}
       />
     );
   }
@@ -352,6 +400,15 @@ const EMPTY_ASSET_PAGE_LOADER: PublicAssetPageLoader = async () => ({
   nextCursor: null,
 });
 
+const EMPTY_DASHBOARD_DEPENDENCIES: DashboardDataDependencies = {
+  commissionLoader: async () => null,
+  holdingsLoader: async () => null,
+  kycLoader: async () => null,
+  nicknameRepository: { updateNickname: async () => undefined },
+  pointsLoader: async () => null,
+  profileLoader: async () => null,
+};
+
 const EMPTY_ASSET_DETAIL_LOADER: AssetDetailLoader = async () => {
   throw new Error("Asset detail loader is unavailable");
 };
@@ -399,5 +456,9 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minHeight: 56,
     position: "relative",
+  },
+  sessionRecovery: {
+    alignItems: "center",
+    gap: spacing.md,
   },
 });

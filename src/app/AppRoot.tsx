@@ -17,6 +17,14 @@ import { handleRegistrationLink } from "../features/registration/workflow/regist
 import { createDefaultPublicAssetLoader } from "../features/assets/services/createDefaultPublicAssetLoader";
 import { createDefaultPublicAssetDetailLoader } from "../features/assets/services/createDefaultPublicAssetDetailLoader";
 import { createDefaultExternalLinkAdapter } from "../shared/platform/createDefaultExternalLinkAdapter";
+import { createDefaultDashboardHoldingsLoader } from "../features/dashboard/services/createDefaultDashboardHoldingsLoader";
+import {
+  createDefaultDashboardCommissionLoader,
+  createDefaultDashboardKycLoader,
+  createDefaultDashboardPointsLoader,
+  createDefaultDashboardProfileLoader,
+  createDefaultNicknameRepository,
+} from "../features/dashboard/services/createDefaultDashboardServices";
 
 export function AppRoot() {
   const publicConfig = readPublicConfig();
@@ -53,6 +61,14 @@ function AuthGateRuntime() {
   const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
   const assetPageLoader = useMemo(() => createDefaultPublicAssetLoader(), []);
   const externalLinkAdapter = useMemo(() => createDefaultExternalLinkAdapter(), []);
+  const dashboardDependencies = useMemo(() => ({
+    commissionLoader: createDefaultDashboardCommissionLoader(),
+    holdingsLoader: createDefaultDashboardHoldingsLoader(),
+    kycLoader: createDefaultDashboardKycLoader(),
+    nicknameRepository: createDefaultNicknameRepository(),
+    pointsLoader: createDefaultDashboardPointsLoader(),
+    profileLoader: createDefaultDashboardProfileLoader(),
+  }), []);
 
   useEffect(() => {
     const adapter = createLinkingAdapter({
@@ -77,6 +93,7 @@ function AuthGateRuntime() {
       actions={actions}
       assetDetailLoader={assetDetailLoader}
       assetPageLoader={assetPageLoader}
+      dashboardDependencies={dashboardDependencies}
       externalLinkAdapter={externalLinkAdapter}
       state={state}
     />

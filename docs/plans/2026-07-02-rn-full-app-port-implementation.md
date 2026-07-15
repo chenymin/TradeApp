@@ -358,25 +358,37 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
 
 ### Task 6：Referral、invite links、leaderboard、share flow
 
-- 业务场景：用户查看推荐规则、排行榜、个人邀请链接、推荐记录和佣金详情，并通过系统分享。
-- 范围内：迁移 referral rules、leaderboard、invite link builder、my referrals Edge Function、share / clipboard adapter。
-- 范围外：不新增推荐后端；不处理佣金确认支付。
+- 详细业务契约：[Task 6/7 Rewards 与 Whitelist](rn-full-app-port/tasks/2026-07-15-task-06-07-rewards-whitelist-business-logic.md)
+- 业务场景：未登录用户查看推荐规则 / 排行榜；已登录用户查看四类积分、个人邀请链接、推荐记录、积分流水、佣金摘要和明细，并通过系统复制 / 分享。
+- 范围内：
+  - Task 6A：Rewards read models、invite link builder、`get-my-referrals`、point ledger、commission summary/details。
+  - Task 6B：My Rewards UI、三类虚拟化列表、tier benefits、share / clipboard adapter。
+  - Task 6C：`confirm-payout` 独立受控写，含显式确认、幂等、刷新、feature flag 和资金边界 review。
+  - 原计划的 public referral rules / leaderboard 仍保留在公开 `referralPublic` route，不与私有 Rewards 授权混用。
+- 范围外：不新增推荐后端；不由客户端计算或授予积分 / 返佣；不执行实际链上付款。
 - 预计影响文件：
-  - `src/features/referral/screens/ReferralScreen.tsx`
-  - `src/features/referral/domain/referralLinks.ts`
+  - `src/features/referral/screens/ReferralPublicScreen.tsx`
+  - `src/features/referral/screens/RewardsScreen.tsx`
+  - `src/features/referral/domain/inviteLinks.ts`
+  - `src/features/referral/domain/commissionAmounts.ts`
   - `src/features/referral/services/referralRepository.ts`
+  - `src/features/referral/services/commissionPayoutClient.ts`
   - `src/shared/platform/shareAdapter.ts`
+  - `src/shared/platform/clipboardAdapter.ts`
   - 对应 tests。
 - 结构验收：分享能力在 platform adapter；链接 builder 纯函数；token 不进入分享内容。
-- 可测试性验收：deep link / web fallback link、clipboard/share error 使用 fake adapter。
-- 验收标准：有 invite code 时可复制/分享；无数据时显示空态；未登录只看公开规则和 leaderboard。
+- 可测试性验收：deep link / web fallback link、clipboard/share error、commission decimal mapping 和 payout 状态机使用 fake adapter/client。
+- 验收标准：有 invite code 且 KYC approved 时可复制/分享；三类私有列表有独立 loading / empty / error；确认 payout 后进入待付款而非已付款；未登录只看公开规则和 leaderboard。
 - 测试：`npm test -- src/features/referral src/shared/platform`。
 - 可追溯关系：Referral、邀请注册。
 
 ### Task 7：KYC status、KYC launcher、post-return refresh
 
-- 业务场景：用户从 Dashboard / KYC screen 查看状态并进入 KYC 流程，返回后刷新状态。
-- 范围内：KYC status repository、KYC screen、WebView / WebBrowser launcher adapter、AppState return refresh、状态文案。
+- 详细业务契约：[Task 6/7 Rewards 与 Whitelist](rn-full-app-port/tasks/2026-07-15-task-06-07-rewards-whitelist-business-logic.md)
+- 业务场景：用户从 Dashboard 进入完整 Whitelist 页面，查看状态、审核时间、有效期和 approved-only identity details；可在允许状态启动 / 恢复 KYC，返回后刷新服务端状态。
+- 范围内：
+  - Task 7A：完整只读 Whitelist、六种状态、approved-only identity details、敏感数据清理。
+  - Task 7B：`kyc-init` / `kyc-mark-submitted`、确认过的 WebView / hosted bridge launcher adapter、AppState / deep-link return refresh。
 - 范围外：不集成 Sumsub 原生 SDK；不处理 webhook。
 - 预计影响文件：
   - `src/features/kyc/screens/KycScreen.tsx`
@@ -385,8 +397,8 @@ Task 1 的首版 foundation shell 已完成，但导航 UI 只满足结构可运
   - `src/features/kyc/domain/kycStatus.ts`
   - 对应 tests。
 - 结构验收：KYC URL 获取和打开在 service / adapter；screen 不直接打开 WebView URL；返回后重新查询 Supabase。
-- 可测试性验收：KYC 状态映射、launcher success/failure、AppState refresh 使用 fake adapter。
-- 验收标准：未开始、pending、under_review、awaiting_resubmission、rejected、approved 都有状态；返回 App 后刷新。
+- 可测试性验收：KYC 状态映射、approved details gate、launcher success/failure、AppState refresh 使用 fake adapter。
+- 验收标准：未开始、pending、under_review、awaiting_resubmission、rejected、approved 都有状态；under_review / rejected 不重复启动；未 approved 不请求 identity details；返回 App 后只从服务端刷新。
 - 测试：`npm test -- src/features/kyc`。
 - 可追溯关系：KYC 未开始、KYC 需补件、购买成功前置条件。
 

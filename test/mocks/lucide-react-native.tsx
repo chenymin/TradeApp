@@ -16,9 +16,14 @@ function createIcon(testID: string): LucideIcon {
 
 export const Home = createIcon("lucide-home");
 export const LayoutDashboard = createIcon("lucide-layout-dashboard");
+export const LayoutGrid = createIcon("lucide-layout-grid");
 export const LogIn = createIcon("lucide-log-in");
+export const RefreshCw = createIcon("lucide-refresh-cw");
 export const Share2 = createIcon("lucide-share-2");
+export const ShieldCheck = createIcon("lucide-shield-check");
 export const Store = createIcon("lucide-store");
+export const TrendingUp = createIcon("lucide-trending-up");
 export const User = createIcon("lucide-user");
+export const Wallet = createIcon("lucide-wallet");
 export const ArrowLeft = createIcon("lucide-arrow-left");
 export const ExternalLink = createIcon("lucide-external-link");

@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type {
+  AuthDisplayState,
   AuthProviderActions,
-  AuthProviderState,
 } from "../../../app/providers/AuthProvider";
 
 const inFlightStatuses = new Set([
@@ -18,7 +18,7 @@ export function LoginScreen({
   state,
 }: {
   actions: AuthProviderActions;
-  state: AuthProviderState;
+  state: AuthDisplayState;
 }) {
   const disabled = inFlightStatuses.has(state.status);
   const isRecovery = state.status === "orphaned_recovery";

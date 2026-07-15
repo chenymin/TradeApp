@@ -15,6 +15,11 @@ describe("sessionStorage", () => {
       accessToken: "access-token",
       refreshToken: "refresh-token",
       expiresAt: 1_800_000_000,
+      viewer: {
+        email: "viewer@example.com",
+        id: "viewer-1",
+        walletAddress: "0xabc",
+      },
     };
 
     await setStoredSession({ secureStorage, session, supabase });
@@ -52,6 +57,11 @@ describe("sessionStorage", () => {
       accessToken: "access-token",
       refreshToken: "refresh-token",
       expiresAt: Math.floor(Date.now() / 1000) + 60,
+      viewer: {
+        email: null,
+        id: "viewer-1",
+        walletAddress: null,
+      },
     };
     const secureStorage = fakeSecureStorage(JSON.stringify(session));
 
@@ -64,7 +74,7 @@ describe("sessionStorage", () => {
     });
   });
 
-  it("restores an access-token-only session using the compatibility token", async () => {
+  it("invalidates a stored session that has no verified viewer", async () => {
     const supabase = fakeSupabaseClient();
     const session = {
       accessToken: "access-token",
@@ -72,13 +82,12 @@ describe("sessionStorage", () => {
     };
     const secureStorage = fakeSecureStorage(JSON.stringify(session));
 
-    await expect(restoreStoredSession({ secureStorage, supabase })).resolves.toEqual(
-      session,
+    await expect(restoreStoredSession({ secureStorage, supabase })).resolves.toBeNull();
+    expect(supabase.auth.setSession).not.toHaveBeenCalled();
+    expect(supabase.auth.signOut).toHaveBeenCalledOnce();
+    expect(secureStorage.deleteItemAsync).toHaveBeenCalledWith(
+      "mytradeapp.supabase.session",
     );
-    expect(supabase.auth.setSession).toHaveBeenCalledWith({
-      access_token: "access-token",
-      refresh_token: "access-token",
-    });
   });
 
   it("treats missing, expired, or invalid stored sessions as logged out", async () => {

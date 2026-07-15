@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type {
+  AuthDisplayState,
   AuthProviderActions,
-  AuthProviderState,
 } from "../../../app/providers/AuthProvider";
 import { AccountDisabledScreen } from "./AccountDisabledScreen";
 import { LoginScreen } from "./LoginScreen";
@@ -12,7 +12,7 @@ export function AuthGate({
   state,
 }: {
   actions: AuthProviderActions;
-  state: AuthProviderState;
+  state: AuthDisplayState;
 }) {
   if (state.status === "restoring_session") {
     return <CenteredLabel label="Restoring session" />;

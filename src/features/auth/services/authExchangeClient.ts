@@ -1,13 +1,16 @@
+import { parseAuthViewer, type AuthViewer } from "../domain/authViewer";
+
 export type AuthExchangeSession = {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: number;
+  viewer?: AuthViewer;
 };
 
 export type AuthExchangeResult = {
-  user?: unknown;
   userStatus?: AuthExchangeUserStatus;
   session: AuthExchangeSession;
+  viewer: AuthViewer;
 };
 
 export type AuthExchangeUserStatus = "existing" | "new" | "orphaned";
@@ -135,14 +138,19 @@ function parseExchangeResponse(
   const parsedBody = body as ExchangeResponseBody;
   const session = parsedBody.session;
   const userStatus = parseUserStatus(parsedBody.user_status);
+  const viewer = parseAuthViewer(parsedBody.user);
+
+  if (!viewer) {
+    throw new AuthExchangeError("invalid_response", { retryable: false });
+  }
 
   if (typeof parsedBody.access_token === "string") {
     const result: AuthExchangeResult = {
-      user: parsedBody.user,
       ...(userStatus ? { userStatus } : {}),
       session: {
         accessToken: parsedBody.access_token,
       },
+      viewer,
     };
 
     if (typeof parsedBody.expires_in === "number") {
@@ -157,11 +165,11 @@ function parseExchangeResponse(
   }
 
   const result: AuthExchangeResult = {
-    user: parsedBody.user,
     ...(userStatus ? { userStatus } : {}),
     session: {
       accessToken: session.access_token,
     },
+    viewer,
   };
 
   if (typeof session.refresh_token === "string") {

@@ -72,6 +72,10 @@ export const Share = {
   share: async () => ({ action: "sharedAction" }),
 };
 
+export const Keyboard = {
+  dismiss() {},
+};
+
 function renderListComponent(
   component: React.ReactNode | (() => React.ReactNode) | undefined,
 ) {

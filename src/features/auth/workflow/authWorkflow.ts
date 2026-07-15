@@ -2,6 +2,7 @@ import type {
   AuthExchangeSession,
   AuthExchangeUserStatus,
 } from "../services/authExchangeClient";
+import type { AuthViewer } from "../domain/authViewer";
 import type { RegistrationPayload } from "../../registration/domain/registrationPayload";
 import type { AuthState } from "./authStateMachine";
 
@@ -14,6 +15,7 @@ export type AuthWorkflowError = {
 export type AuthWorkflowResult = AuthState & {
   error?: AuthWorkflowError;
   notice?: "existing_user_with_invite";
+  viewer?: AuthViewer;
 };
 
 export type AuthWorkflowAdapters = {
@@ -21,6 +23,7 @@ export type AuthWorkflowAdapters = {
     exchange: (privyAccessToken: string) => Promise<{
       session: AuthExchangeSession;
       userStatus?: AuthExchangeUserStatus;
+      viewer?: AuthViewer;
     }>;
   };
   privy: {
@@ -90,7 +93,11 @@ async function login(
   }
 
   try {
-    const exchanged = await exchangeWithRetry(adapters, privyLogin.accessToken);
+    const rawExchange = await exchangeWithRetry(adapters, privyLogin.accessToken);
+    const exchanged = {
+      ...rawExchange,
+      session: attachViewer(rawExchange.session, rawExchange.viewer),
+    };
     const registrationResult = await resolveRegistration(adapters, exchanged);
 
     if (registrationResult.status === "orphaned_recovery") {
@@ -103,6 +110,7 @@ async function login(
     return {
       ...(registrationResult.notice ? { notice: registrationResult.notice } : {}),
       status: "authenticated",
+      ...(exchanged.session.viewer ? { viewer: exchanged.session.viewer } : {}),
     };
   } catch (error) {
     const authError = normalizeWorkflowError(error);
@@ -182,7 +190,12 @@ async function recoverAsInvestor(
     });
     await adapters.session.setSession(pendingRecoverySession);
     recovery.clearPendingRecoverySession();
-    return { status: "authenticated" };
+    return {
+      status: "authenticated",
+      ...(pendingRecoverySession.viewer
+        ? { viewer: pendingRecoverySession.viewer }
+        : {}),
+    };
   } catch (error) {
     await clearSessionBestEffort(adapters);
     return {
@@ -197,7 +210,14 @@ async function restoreSession(
 ): Promise<AuthWorkflowResult> {
   try {
     const session = await adapters.session.restoreSession();
-    return { status: session ? "authenticated" : "logged_out" };
+    if (!session) {
+      return { status: "logged_out" };
+    }
+
+    return {
+      status: "authenticated",
+      ...(session.viewer ? { viewer: session.viewer } : {}),
+    };
   } catch (error) {
     return {
       error: normalizeWorkflowError(error),
@@ -222,7 +242,11 @@ async function logout(adapters: AuthWorkflowAdapters): Promise<AuthWorkflowResul
 async function exchangeWithRetry(
   adapters: AuthWorkflowAdapters,
   privyAccessToken: string,
-): Promise<{ session: AuthExchangeSession }> {
+): Promise<{
+  session: AuthExchangeSession;
+  userStatus?: AuthExchangeUserStatus;
+  viewer?: AuthViewer;
+}> {
   try {
     return await adapters.exchange.exchange(privyAccessToken);
   } catch (error) {
@@ -234,6 +258,13 @@ async function exchangeWithRetry(
 
     return adapters.exchange.exchange(privyAccessToken);
   }
+}
+
+function attachViewer(
+  session: AuthExchangeSession,
+  viewer: AuthViewer | undefined,
+): AuthExchangeSession {
+  return viewer ? { ...session, viewer } : session;
 }
 
 async function clearSessionBestEffort(adapters: AuthWorkflowAdapters): Promise<void> {

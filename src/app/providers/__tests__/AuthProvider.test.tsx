@@ -8,7 +8,10 @@ import { useAuthState } from "../../../features/auth/hooks/useAuthState";
 describe("AuthProvider", () => {
   it("restores session on startup and exposes auth state", async () => {
     const workflow = fakeWorkflow();
-    workflow.restoreSession.mockResolvedValue({ status: "authenticated" });
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
     const snapshots: Array<unknown> = [];
 
     await act(async () => {
@@ -19,14 +22,22 @@ describe("AuthProvider", () => {
       );
     });
 
-    expect(snapshots).toContainEqual({ status: "restoring_session" });
-    expect(snapshots).toContainEqual({ status: "authenticated" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: false,
+      status: "restoring_session",
+      viewer: null,
+    });
+    expect(snapshots).toContainEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: viewer(),
+    });
   });
 
   it("runs login and logout actions through the workflow", async () => {
     const workflow = fakeWorkflow();
     workflow.restoreSession.mockResolvedValue({ status: "logged_out" });
-    workflow.login.mockResolvedValue({ status: "authenticated" });
+    workflow.login.mockResolvedValue({ status: "authenticated", viewer: viewer() });
     workflow.logout.mockResolvedValue({ status: "logged_out" });
     const snapshots: Array<unknown> = [];
     const actions: Partial<ReturnType<typeof useAuthActions>> = {};
@@ -40,17 +51,29 @@ describe("AuthProvider", () => {
       );
     });
 
-    expect(snapshots).toContainEqual({ status: "logged_out" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: false,
+      status: "logged_out",
+      viewer: null,
+    });
 
     await act(async () => {
       await actions.login?.();
     });
-    expect(snapshots).toContainEqual({ status: "authenticated" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: viewer(),
+    });
 
     await act(async () => {
       await actions.logout?.();
     });
-    expect(snapshots.at(-1)).toEqual({ status: "logged_out" });
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: false,
+      status: "logged_out",
+      viewer: null,
+    });
   });
 
   it("exposes account disabled and error states", async () => {
@@ -72,14 +95,20 @@ describe("AuthProvider", () => {
       );
     });
 
-    expect(snapshots).toContainEqual({ status: "logged_out" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: false,
+      status: "logged_out",
+      viewer: null,
+    });
     await act(async () => {
       await actions.login?.();
     });
 
     expect(snapshots).toContainEqual({
       error: { code: "account_disabled", retryable: false },
+      isSessionReady: false,
       status: "account_disabled",
+      viewer: null,
     });
   });
 
@@ -87,7 +116,10 @@ describe("AuthProvider", () => {
     const workflow = fakeWorkflow();
     workflow.restoreSession.mockResolvedValue({ status: "logged_out" });
     workflow.login.mockResolvedValue({ status: "orphaned_recovery" });
-    workflow.recoverAsInvestor.mockResolvedValue({ status: "authenticated" });
+    workflow.recoverAsInvestor.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
     const snapshots: Array<unknown> = [];
     const actions: Partial<ReturnType<typeof useAuthActions>> = {};
 
@@ -104,14 +136,22 @@ describe("AuthProvider", () => {
       await actions.login?.();
     });
 
-    expect(snapshots).toContainEqual({ status: "orphaned_recovery" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: false,
+      status: "orphaned_recovery",
+      viewer: null,
+    });
 
     await act(async () => {
       await actions.recoverAsInvestor?.();
     });
 
     expect(workflow.recoverAsInvestor).toHaveBeenCalledOnce();
-    expect(snapshots).toContainEqual({ status: "authenticated" });
+    expect(snapshots).toContainEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: viewer(),
+    });
   });
 });
 
@@ -139,5 +179,13 @@ function fakeWorkflow() {
     logout: vi.fn().mockResolvedValue({ status: "logged_out" }),
     recoverAsInvestor: vi.fn().mockResolvedValue({ status: "authenticated" }),
     restoreSession: vi.fn().mockResolvedValue({ status: "logged_out" }),
+  };
+}
+
+function viewer() {
+  return {
+    email: "viewer@example.com",
+    id: "viewer-1",
+    walletAddress: "0xabc",
   };
 }
