@@ -50,4 +50,41 @@ describe("parsePublicConfig", () => {
       expect(result.config.walletLoginPath).toBe("/custom-wallet-login");
     }
   });
+
+  it("normalizes an optional secure public web origin", () => {
+    const result = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_WEB_ORIGIN: "  https://test.artstarex.com/  ",
+    }));
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.publicWebOrigin).toBe("https://test.artstarex.com");
+    }
+  });
+
+  it.each([
+    "http://localhost:5173",
+    "not a url",
+    "https://user:password@example.com",
+    "https://example.com/register",
+    "https://example.com/?ref=value",
+  ])("ignores unsafe or non-origin public web value %s", (publicWebOrigin) => {
+    const result = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_WEB_ORIGIN: publicWebOrigin,
+    }));
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.publicWebOrigin).toBeUndefined();
+    }
+  });
 });
+
+function validEnv(overrides: Record<string, string> = {}) {
+  return {
+    EXPO_PUBLIC_PRIVY_APP_ID: "privy-app-id",
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: "anon-key",
+    EXPO_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+    ...overrides,
+  };
+}

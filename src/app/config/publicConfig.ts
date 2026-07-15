@@ -7,6 +7,7 @@ const REQUIRED_PUBLIC_KEYS = [
 export type PublicConfigEnv = Partial<
   Record<
     | (typeof REQUIRED_PUBLIC_KEYS)[number]
+    | "EXPO_PUBLIC_WEB_ORIGIN"
     | "EXPO_PUBLIC_PRIVY_CLIENT_ID"
     | "EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH",
     string
@@ -16,6 +17,7 @@ export type PublicConfigEnv = Partial<
 export type PublicConfig = {
   privyAppId: string;
   privyClientId?: string;
+  publicWebOrigin?: string;
   supabaseAnonKey: string;
   supabaseUrl: string;
   walletLoginPath: string;
@@ -30,6 +32,9 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
   const privyAppId = normalized.EXPO_PUBLIC_PRIVY_APP_ID;
   const supabaseAnonKey = normalized.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const supabaseUrl = normalized.EXPO_PUBLIC_SUPABASE_URL;
+  const publicWebOrigin = normalizePublicWebOrigin(
+    normalized.EXPO_PUBLIC_WEB_ORIGIN,
+  );
   const missingKeys = REQUIRED_PUBLIC_KEYS.filter((key) => !normalized[key]);
 
   if (missingKeys.length > 0 || !privyAppId || !supabaseAnonKey || !supabaseUrl) {
@@ -43,6 +48,7 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
     config: {
       privyAppId,
       privyClientId: normalized.EXPO_PUBLIC_PRIVY_CLIENT_ID,
+      ...(publicWebOrigin ? { publicWebOrigin } : {}),
       supabaseAnonKey,
       supabaseUrl,
       walletLoginPath:
@@ -57,11 +63,33 @@ export function readPublicConfig(): PublicConfigResult {
   return parsePublicConfig({
     EXPO_PUBLIC_PRIVY_APP_ID: process.env.EXPO_PUBLIC_PRIVY_APP_ID,
     EXPO_PUBLIC_PRIVY_CLIENT_ID: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID,
+    EXPO_PUBLIC_WEB_ORIGIN: process.env.EXPO_PUBLIC_WEB_ORIGIN,
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH:
       process.env.EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH,
   });
+}
+
+function normalizePublicWebOrigin(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+
+  try {
+    const url = new URL(value);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.pathname !== "/" ||
+      url.search ||
+      url.hash
+    ) {
+      return undefined;
+    }
+    return url.origin;
+  } catch {
+    return undefined;
+  }
 }
 
 function normalizeEnv(env: PublicConfigEnv): Record<string, string | undefined> {
