@@ -120,7 +120,7 @@ describe("AppNavigator", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("Wallet");
   });
 
-  it("requires login before opening My Rewards from the public profile", async () => {
+  it("requires login before creating an invite from the public profile", async () => {
     const actions = createActions();
     const rewardsDependencies = createRewardsDependencies();
     let testRenderer: ReactTestRenderer | undefined;
@@ -144,6 +144,7 @@ describe("AppNavigator", () => {
     expect(actions.login).toHaveBeenCalledOnce();
     expect(rewardsDependencies.rewardsProfileRepository.fetchProfile)
       .not.toHaveBeenCalled();
+    expect(rewardsDependencies.kycLoader).not.toHaveBeenCalled();
     expect(JSON.stringify(testRenderer?.toJSON())).not.toContain("My Rewards");
   });
 
@@ -289,7 +290,7 @@ describe("AppNavigator", () => {
     expect(output).not.toContain("Feature placeholder");
   });
 
-  it("renders the protected My Rewards route with real reward dependencies", async () => {
+  it("aliases referral to the Dashboard Rewards tab", async () => {
     const rewardsDependencies = createRewardsDependencies();
     let testRenderer: ReactTestRenderer | undefined;
 
@@ -297,6 +298,7 @@ describe("AppNavigator", () => {
       testRenderer = TestRenderer.create(
         <AppNavigator
           actions={createActions()}
+          dashboardDependencies={createDashboardDependencies()}
           initialRouteName="referral"
           publicWebOrigin="https://test.artstarex.com"
           rewardsDependencies={rewardsDependencies}
@@ -307,11 +309,35 @@ describe("AppNavigator", () => {
     });
 
     const output = JSON.stringify(testRenderer?.toJSON());
-    expect(output).toContain("My Rewards");
+    expect(output).toContain("Dashboard");
+    expect(output).not.toContain("My Rewards");
     expect(output).toContain("150");
     expect(output).not.toContain("Feature placeholder");
+    expect(testRenderer!.root.findByProps({ accessibilityLabel: "Rewards" })
+      .props.accessibilityState).toEqual({ selected: true });
     expect(rewardsDependencies.rewardsProfileRepository.fetchProfile)
       .toHaveBeenCalledWith("viewer-1");
+  });
+
+  it("aliases KYC to the Dashboard Whitelist tab", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          dashboardDependencies={createDashboardDependencies()}
+          initialRouteName="kyc"
+          rewardsDependencies={createRewardsDependencies()}
+          state={authenticatedState()}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    expect(JSON.stringify(renderer!.toJSON())).toContain("Whitelist not started");
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Whitelist" })
+      .props.accessibilityState).toEqual({ selected: true });
   });
 
   it("offers a working re-login action for an upgraded legacy session", async () => {
@@ -421,7 +447,7 @@ describe("AppNavigator", () => {
     expect(actions.logout).toHaveBeenCalledOnce();
   });
 
-  it("opens My Rewards from profile and uses only the real invite values", async () => {
+  it("opens the invite sheet directly from Profile with real values", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -446,12 +472,6 @@ describe("AppNavigator", () => {
       await Promise.resolve();
     });
 
-    expect(JSON.stringify(renderer.toJSON())).toContain("My Rewards");
-
-    await act(async () => {
-      renderer.root.findByProps({ accessibilityLabel: "Open invite options" }).props.onPress();
-    });
-
     expect(renderer.root.findByProps({ accessibilityLabel: "Invite friends overlay" }).props.style).toMatchObject({
       bottom: 0,
       left: 0,
@@ -464,6 +484,106 @@ describe("AppNavigator", () => {
     );
     expect(JSON.stringify(renderer.toJSON())).not.toContain("DEMO-CODE");
     expect(JSON.stringify(renderer.toJSON())).not.toContain("app.mytrade.local");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("My Rewards");
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Open invite options" }))
+      .toHaveLength(0);
+  });
+
+  it("routes an unapproved invite attempt to Dashboard Whitelist", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    const kycLoader = vi.fn().mockResolvedValue({
+      approved: false,
+      notes: null,
+      reasonCode: null,
+      reviewedAt: null,
+      status: "pending",
+    });
+    rewardsDependencies.kycLoader = kycLoader;
+    const dashboardDependencies = createDashboardDependencies();
+    dashboardDependencies.kycLoader = kycLoader;
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          dashboardDependencies={dashboardDependencies}
+          initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={authenticatedState()}
+        />,
+      );
+    });
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item 邀请好友" })
+        .props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(JSON.stringify(renderer!.toJSON())).toContain("Complete KYC steps");
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Whitelist" })
+      .props.accessibilityState).toEqual({ selected: true });
+  });
+
+  it("shows closed invite gates for missing code and origin", async () => {
+    const missingCode = createRewardsDependencies();
+    missingCode.rewardsProfileRepository.fetchProfile = vi.fn().mockResolvedValue({
+      id: "viewer-1",
+      inviteCode: null,
+      referralPoints: 0,
+      reputationPoints: 0,
+      taskPoints: 0,
+      tier: "D",
+      totalPoints: 0,
+      tradingPoints: 0,
+      userType: "investor",
+    });
+    const codeRenderer = await renderProfile({
+      publicWebOrigin: "https://test.artstarex.com",
+      rewardsDependencies: missingCode,
+    });
+    await pressProfileInvite(codeRenderer);
+    expect(JSON.stringify(codeRenderer.toJSON())).toContain("Invite code unavailable");
+
+    const originRenderer = await renderProfile({
+      rewardsDependencies: createRewardsDependencies(),
+    });
+    await pressProfileInvite(originRenderer);
+    expect(JSON.stringify(originRenderer.toJSON())).toContain(
+      "Invite sharing is not configured",
+    );
+  });
+
+  it("retries invite repository failures without exposing errors", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    rewardsDependencies.rewardsProfileRepository.fetchProfile = vi.fn()
+      .mockRejectedValueOnce(new Error("secret backend detail"))
+      .mockResolvedValueOnce({
+        id: "viewer-1",
+        inviteCode: "REAL-CODE",
+        referralPoints: 0,
+        reputationPoints: 0,
+        taskPoints: 0,
+        tier: "D",
+        totalPoints: 0,
+        tradingPoints: 0,
+        userType: "investor",
+      });
+    const renderer = await renderProfile({
+      publicWebOrigin: "https://test.artstarex.com",
+      rewardsDependencies,
+    });
+
+    await pressProfileInvite(renderer);
+    expect(JSON.stringify(renderer.toJSON())).toContain("Unable to load invite details");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("secret backend detail");
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Retry invite" }).props.onPress();
+      await Promise.resolve();
+    });
+    expect(renderer.root.findByProps({ accessibilityLabel: "Invite friends overlay" }))
+      .toBeTruthy();
   });
 
   it("renders the account disabled screen for disabled accounts", () => {
@@ -498,6 +618,37 @@ describe("AppNavigator", () => {
     expect(actions.recoverAsInvestor).toHaveBeenCalledOnce();
   });
 });
+
+async function renderProfile({
+  publicWebOrigin,
+  rewardsDependencies,
+}: {
+  publicWebOrigin?: string;
+  rewardsDependencies: RewardsDataDependencies;
+}): Promise<ReactTestRenderer> {
+  let renderer: ReactTestRenderer | undefined;
+  await act(async () => {
+    renderer = TestRenderer.create(
+      <AppNavigator
+        actions={createActions()}
+        initialRouteName="profile"
+        publicWebOrigin={publicWebOrigin}
+        rewardsDependencies={rewardsDependencies}
+        state={authenticatedState()}
+      />,
+    );
+  });
+  if (!renderer) throw new Error("Expected Profile to mount");
+  return renderer;
+}
+
+async function pressProfileInvite(renderer: ReactTestRenderer) {
+  await act(async () => {
+    renderer.root.findByProps({ accessibilityLabel: "Profile item 邀请好友" })
+      .props.onPress();
+    await Promise.resolve();
+  });
+}
 
 function createActions() {
   return {
@@ -618,6 +769,7 @@ function createAssetDetailLoader(): ReturnType<typeof vi.fn<AssetDetailLoader>> 
 function createDashboardDependencies() {
   return {
     commissionLoader: vi.fn().mockResolvedValue({ status: "unavailable" as const }),
+    fetchAccessToken: vi.fn().mockResolvedValue("access-token"),
     holdingsLoader: vi.fn().mockResolvedValue({
       holdings: [],
       summary: {
@@ -630,6 +782,15 @@ function createDashboardDependencies() {
       transactions: [],
       warnings: [],
     }),
+    identityClient: {
+      fetchDetails: vi.fn().mockResolvedValue({
+        country: "China",
+        dateOfBirth: "2002-12-30",
+        docNumber: "430181200212308817",
+        docType: "Identity card",
+        fullName: "Test User",
+      }),
+    },
     kycLoader: vi.fn().mockResolvedValue({
       approved: false,
       notes: null,
@@ -638,7 +799,6 @@ function createDashboardDependencies() {
       status: null,
     }),
     nicknameRepository: { updateNickname: vi.fn() },
-    pointsLoader: vi.fn().mockResolvedValue([]),
     profileLoader: vi.fn().mockResolvedValue({
       id: "viewer-1",
       inviteCode: "INVITE",

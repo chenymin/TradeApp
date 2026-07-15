@@ -9,10 +9,8 @@ import type {
 import { AccountDisabledScreen } from "../../features/auth/components/AccountDisabledScreen";
 import { LoginScreen } from "../../features/auth/components/LoginScreen";
 import { InviteFriendSheet } from "../../features/referral/components/InviteFriendSheet";
-import {
-  RewardsScreen,
-  type RewardsDataDependencies,
-} from "../../features/referral/screens/RewardsScreen";
+import type { RewardsDataDependencies } from "../../features/referral/screens/RewardsScreen";
+import { runInviteFriendCommand } from "../../features/referral/workflow/inviteFriendCommand";
 import { LaunchpadScreen } from "../../features/assets/screens/LaunchpadScreen";
 import { MarketScreen } from "../../features/assets/screens/MarketScreen";
 import { AssetDetailScreen } from "../../features/assets/screens/AssetDetailScreen";
@@ -28,6 +26,7 @@ import {
   DashboardScreen,
   type DashboardDataDependencies,
 } from "../../features/dashboard/screens/DashboardScreen";
+import type { DashboardTab } from "../../features/dashboard/components/DashboardHeader";
 import {
   getHeaderConfig,
   getInitialRoute,
@@ -35,6 +34,14 @@ import {
   type AppRouteName,
   type MainTabRouteName,
 } from "./navigationState";
+
+type InviteFeedback =
+  | "idle"
+  | "loading"
+  | "session_unavailable"
+  | "invite_code_unavailable"
+  | "origin_unavailable"
+  | "unavailable";
 
 export function AppNavigator({
   actions,
@@ -109,7 +116,7 @@ export function AppNavigator({
         authStatus="authenticated"
         dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
         externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
-        initialProtectedRoute={initialRouteName === "referral" ? "referral" : null}
+        initialDashboardTab={dashboardTabForRoute(initialRouteName ?? "dashboard")}
         onLogout={actions.logout}
         publicWebOrigin={publicWebOrigin}
         rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
@@ -132,7 +139,7 @@ export function AppNavigator({
       authStatus="logged_out"
       dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
       externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
-      initialProtectedRoute={null}
+      initialDashboardTab="holdings"
       onLogin={actions.login}
       onLogout={actions.logout}
       publicWebOrigin={publicWebOrigin}
@@ -149,7 +156,7 @@ function MainTabs({
   authStatus,
   dashboardDependencies,
   externalLinkAdapter,
-  initialProtectedRoute,
+  initialDashboardTab,
   onLogin,
   onLogout,
   publicWebOrigin,
@@ -162,7 +169,7 @@ function MainTabs({
   authStatus: "authenticated" | "logged_out";
   dashboardDependencies: DashboardDataDependencies;
   externalLinkAdapter: ExternalLinkAdapter;
-  initialProtectedRoute: "referral" | null;
+  initialDashboardTab: DashboardTab;
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
   publicWebOrigin?: string;
@@ -171,9 +178,7 @@ function MainTabs({
 }) {
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
-  const [protectedRoute, setProtectedRoute] = useState<"kyc" | "referral" | null>(
-    initialProtectedRoute,
-  );
+  const [dashboardTab, setDashboardTab] = useState<DashboardTab>(initialDashboardTab);
   const [inviteSheet, setInviteSheet] = useState<{
     inviteCode: string;
     webOrigin: string;
@@ -183,6 +188,7 @@ function MainTabs({
     placeholder: PublicAssetSummary;
     returnTo: MainTabRouteName;
   } | null>(null);
+  const [inviteFeedback, setInviteFeedback] = useState<InviteFeedback>("idle");
 
   const handleTabSelect = (routeName: MainTabRouteName) => {
     const tab = getTabRoutes().find((candidate) => candidate.routeName === routeName);
@@ -194,21 +200,55 @@ function MainTabs({
 
     setCurrentRouteName(routeName);
     setDetailRoute(null);
-    setProtectedRoute(null);
+    setInviteFeedback("idle");
+    if (routeName === "dashboard") setDashboardTab("holdings");
+  };
+
+  const openDashboardTab = (tab: DashboardTab) => {
+    setCurrentRouteName("dashboard");
+    setDashboardTab(tab);
+    setDetailRoute(null);
+    setInviteFeedback("idle");
+  };
+
+  const handleInvitePress = async () => {
+    if (authStatus !== "authenticated") {
+      await onLogin?.();
+      return;
+    }
+
+    setInviteFeedback("loading");
+    const result = await runInviteFriendCommand({
+      dependencies: rewardsDependencies,
+      publicWebOrigin,
+      viewerState,
+    });
+
+    if (result.status === "ready") {
+      setInviteFeedback("idle");
+      setInviteSheet({
+        inviteCode: result.inviteCode,
+        webOrigin: result.webOrigin,
+      });
+      return;
+    }
+    if (result.status === "kyc_required") {
+      openDashboardTab("whitelist");
+      return;
+    }
+    setInviteFeedback(result.status);
   };
 
   return (
     <AppShell
-      activeRouteName={detailRoute || protectedRoute ? undefined : currentRouteName}
+      activeRouteName={detailRoute ? undefined : currentRouteName}
       header={getHeaderConfig(
-        detailRoute ? "assetDetail" : protectedRoute ?? currentRouteName,
+        detailRoute ? "assetDetail" : currentRouteName,
         authStatus,
       )}
       onBack={detailRoute
         ? () => setDetailRoute(null)
-        : protectedRoute
-          ? () => setProtectedRoute(null)
-          : undefined}
+        : undefined}
       onLogin={onLogin}
       onTabSelect={handleTabSelect}
       overlay={
@@ -222,7 +262,7 @@ function MainTabs({
           />
         ) : null
       }
-      tabs={detailRoute || protectedRoute ? undefined : getTabRoutes()}
+      tabs={detailRoute ? undefined : getTabRoutes()}
     >
       {detailRoute ? (
         <AssetDetailScreen
@@ -243,20 +283,6 @@ function MainTabs({
             whitelisted: "unknown",
           }}
         />
-      ) : protectedRoute === "referral" ? (
-        <RewardsScreen
-          dependencies={rewardsDependencies}
-          onOpenInvite={setInviteSheet}
-          onOpenKyc={() => setProtectedRoute("kyc")}
-          publicWebOrigin={publicWebOrigin}
-          viewerState={viewerState}
-        />
-      ) : protectedRoute === "kyc" ? (
-        <RoutePlaceholder
-          description="Whitelist status and identity details land in Task 7."
-          label="Protected"
-          title="KYC"
-        />
       ) : renderRoute(
         currentRouteName,
         authStatus,
@@ -265,13 +291,11 @@ function MainTabs({
         viewerState,
         externalLinkAdapter,
         onLogout,
-        () => {
-          if (authStatus === "authenticated") {
-            setProtectedRoute("referral");
-          } else {
-            void onLogin?.();
-          }
-        },
+        dashboardTab,
+        inviteFeedback,
+        () => { void handleInvitePress(); },
+        () => openDashboardTab("whitelist"),
+        rewardsDependencies,
         (asset) => setDetailRoute({
           assetId: asset.id,
           placeholder: asset,
@@ -290,7 +314,11 @@ function renderRoute(
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">,
   externalLinkAdapter: ExternalLinkAdapter,
   onLogout: () => Promise<void>,
+  dashboardTab: DashboardTab,
+  inviteFeedback: InviteFeedback,
   onInvitePress: () => void,
+  onKycPress: () => void,
+  rewardsDependencies: RewardsDataDependencies,
   onAssetPress: (asset: PublicAssetSummary) => void,
 ) {
   if (routeName === "launchpad") {
@@ -305,7 +333,9 @@ function renderRoute(
     return (
       <ProfileRoute
         authStatus={authStatus}
+        inviteFeedback={inviteFeedback}
         onInvitePress={onInvitePress}
+        onKycPress={onKycPress}
         onLogout={onLogout}
       />
     );
@@ -316,6 +346,8 @@ function renderRoute(
       <DashboardScreen
         {...dashboardDependencies}
         externalLinkAdapter={externalLinkAdapter}
+        initialTab={dashboardTab}
+        rewardsDependencies={rewardsDependencies}
         viewerState={viewerState}
       />
     );
@@ -332,11 +364,15 @@ function renderRoute(
 
 function ProfileRoute({
   authStatus,
+  inviteFeedback,
   onInvitePress,
+  onKycPress,
   onLogout,
 }: {
   authStatus: "authenticated" | "logged_out";
+  inviteFeedback: InviteFeedback;
   onInvitePress: () => void;
+  onKycPress: () => void;
   onLogout: () => Promise<void>;
 }) {
   return (
@@ -348,10 +384,27 @@ function ProfileRoute({
       />
       <View accessibilityLabel="Profile menu section" style={styles.profileLinks}>
         <ProfileMenuItem label="Wallet" />
-        <ProfileMenuItem label="KYC" />
+        <ProfileMenuItem label="KYC" onPress={onKycPress} />
         <ProfileMenuItem label="邀请好友" onPress={onInvitePress} />
         <ProfileMenuItem label="Settings" />
       </View>
+      {inviteFeedback !== "idle" ? (
+        <View accessibilityLabel="Invite command status" style={styles.inviteFeedback}>
+          <AppText style={styles.inviteFeedbackText} variant="body">
+            {inviteFeedbackLabel(inviteFeedback)}
+          </AppText>
+          {inviteFeedback === "unavailable" ? (
+            <Pressable
+              accessibilityLabel="Retry invite"
+              accessibilityRole="button"
+              onPress={onInvitePress}
+              style={styles.inviteRetry}
+            >
+              <AppText style={styles.inviteRetryText} variant="caption">Retry</AppText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
       {authStatus === "authenticated" ? (
         <View accessibilityLabel="Profile action section" style={styles.profileActions}>
           <Button accessibilityLabel="Sign out" label="Sign out" onPress={onLogout} />
@@ -359,6 +412,16 @@ function ProfileRoute({
       ) : null}
     </View>
   );
+}
+
+function inviteFeedbackLabel(feedback: Exclude<InviteFeedback, "idle">): string {
+  if (feedback === "loading") return "Loading invite details";
+  if (feedback === "session_unavailable") {
+    return "Sign in again to create an invite";
+  }
+  if (feedback === "invite_code_unavailable") return "Invite code unavailable";
+  if (feedback === "origin_unavailable") return "Invite sharing is not configured";
+  return "Unable to load invite details";
 }
 
 function ProfileMenuItem({ label, onPress }: { label: string; onPress?: () => void }) {
@@ -406,11 +469,17 @@ function toMainTab(
     return "dashboard";
   }
 
-  if (routeName === "referral") {
-    return "profile";
+  if (routeName === "referral" || routeName === "kyc") {
+    return "dashboard";
   }
 
   return "launchpad";
+}
+
+function dashboardTabForRoute(routeName: AppRouteName): DashboardTab {
+  if (routeName === "referral") return "rewards";
+  if (routeName === "kyc") return "whitelist";
+  return "holdings";
 }
 
 function mainTitle(routeName: MainTabRouteName): string {
@@ -456,7 +525,13 @@ const EMPTY_ASSET_PAGE_LOADER: PublicAssetPageLoader = async () => ({
 
 const EMPTY_DASHBOARD_DEPENDENCIES: DashboardDataDependencies = {
   commissionLoader: async () => null,
+  fetchAccessToken: async () => null,
   holdingsLoader: async () => null,
+  identityClient: {
+    async fetchDetails() {
+      throw new Error("KYC identity details are unavailable");
+    },
+  },
   kycLoader: async () => null,
   nicknameRepository: { updateNickname: async () => undefined },
   profileLoader: async () => null,
@@ -485,6 +560,25 @@ const NOOP_EXTERNAL_LINK_ADAPTER: ExternalLinkAdapter = {
 };
 
 const styles = StyleSheet.create({
+  inviteFeedback: {
+    alignItems: "flex-start",
+    backgroundColor: colors.surface,
+    gap: spacing.sm,
+    marginHorizontal: spacing.lg,
+    padding: spacing.lg,
+  },
+  inviteFeedbackText: {
+    fontWeight: "700",
+  },
+  inviteRetry: {
+    justifyContent: "center",
+    minHeight: 40,
+    paddingRight: spacing.lg,
+  },
+  inviteRetryText: {
+    color: colors.primary,
+    fontWeight: "800",
+  },
   profile: {
     gap: spacing.md,
   },
