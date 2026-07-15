@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import TestRenderer, { act, type ReactTestRenderer } from "react-test-renderer";
 
@@ -146,6 +147,45 @@ describe("RewardsScreen", () => {
       "Basic registration benefits",
     );
   });
+
+  it("retries failed profile and point sections independently", async () => {
+    const dependencies = createDependencies();
+    dependencies.rewardsProfileRepository.fetchProfile = vi.fn()
+      .mockRejectedValueOnce(new Error("profile unavailable"))
+      .mockResolvedValueOnce(profile);
+    dependencies.pointLedgerRepository.fetchRecent = vi.fn()
+      .mockRejectedValueOnce(new Error("points unavailable"))
+      .mockResolvedValueOnce([]);
+    const renderer = await renderRewards({ dependencies });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain("Rewards summary unavailable");
+    await act(async () => {
+      await renderer.root.findByProps({ accessibilityLabel: "Retry rewards summary" })
+        .props.onPress();
+    });
+    expect(JSON.stringify(renderer.toJSON())).toContain("Total points");
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Rewards tab Points" })
+        .props.onPress();
+    });
+    expect(JSON.stringify(renderer.toJSON())).toContain("Point activity unavailable");
+    await act(async () => {
+      await renderer.root.findByProps({ accessibilityLabel: "Retry point activity" })
+        .props.onPress();
+    });
+    expect(JSON.stringify(renderer.toJSON())).toContain("No point activity yet");
+  });
+
+  it("loads reward data under React StrictMode", async () => {
+    const renderer = await renderRewards({
+      dependencies: createDependencies(),
+      strict: true,
+    });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain("Total points");
+    expect(JSON.stringify(renderer.toJSON())).toContain("friend@example.com");
+  });
 });
 
 async function renderRewards({
@@ -153,23 +193,26 @@ async function renderRewards({
   onOpenInvite = vi.fn(),
   onOpenKyc = vi.fn(),
   publicWebOrigin,
+  strict = false,
 }: {
   dependencies: RewardsDataDependencies;
   onOpenInvite?: (value: { inviteCode: string; webOrigin: string }) => void;
   onOpenKyc?: () => void;
   publicWebOrigin?: string;
+  strict?: boolean;
 }): Promise<ReactTestRenderer> {
   let renderer: ReactTestRenderer | undefined;
   await act(async () => {
-    renderer = TestRenderer.create(
+    const screen = (
       <RewardsScreen
         dependencies={dependencies}
         onOpenInvite={onOpenInvite}
         onOpenKyc={onOpenKyc}
         publicWebOrigin={publicWebOrigin}
         viewerState={viewerState}
-      />,
+      />
     );
+    renderer = TestRenderer.create(strict ? <StrictMode>{screen}</StrictMode> : screen);
     await Promise.resolve();
   });
   if (!renderer) throw new Error("Expected RewardsScreen to mount");

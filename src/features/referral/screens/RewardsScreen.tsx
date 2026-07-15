@@ -70,8 +70,11 @@ export function RewardsScreen({
   const mounted = useRef(true);
   const viewerId = viewerState.viewer?.id ?? null;
 
-  useEffect(() => () => {
-    mounted.current = false;
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
   }, []);
 
   const loadProfile = useCallback(async () => {
@@ -162,7 +165,13 @@ export function RewardsScreen({
     );
   }
 
-  const empty = renderListState({ points, referrals, retryReferrals: loadReferrals, tab });
+  const empty = renderListState({
+    points,
+    referrals,
+    retryPoints: loadPoints,
+    retryReferrals: loadReferrals,
+    tab,
+  });
 
   return (
     <FlatList
@@ -177,7 +186,10 @@ export function RewardsScreen({
           {profile.status === "ready" ? (
             <PointsSummary profile={profile.data} />
           ) : profile.status === "error" ? (
-            <InlineState title="Rewards summary unavailable" />
+            <InlineState
+              action={{ label: "Retry rewards summary", onPress: loadProfile }}
+              title="Rewards summary unavailable"
+            />
           ) : (
             <InlineState title="Loading rewards summary..." />
           )}
@@ -206,11 +218,13 @@ export function RewardsScreen({
 function renderListState({
   points,
   referrals,
+  retryPoints,
   retryReferrals,
   tab,
 }: {
   points: AsyncState<PointLedgerEntry[]>;
   referrals: AsyncState<ReferralRecord[]>;
+  retryPoints: () => Promise<void>;
   retryReferrals: () => Promise<void>;
   tab: RewardsTab;
 }) {
@@ -228,7 +242,12 @@ function renderListState({
         />
       );
     }
-    return <InlineState title="Point activity unavailable" />;
+    return (
+      <InlineState
+        action={{ label: "Retry point activity", onPress: retryPoints }}
+        title="Point activity unavailable"
+      />
+    );
   }
   return <InlineState title={tab === "referrals" ? "No referral records yet" : "No point activity yet"} />;
 }
