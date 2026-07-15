@@ -512,6 +512,81 @@ describe("AppNavigator", () => {
       .toHaveLength(0);
   });
 
+  it("clears the invite sheet when the viewer logs out", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={authenticatedState()}
+        />,
+      );
+    });
+    await pressProfileInvite(renderer!);
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Invite friends overlay" }))
+      .toBeTruthy();
+
+    await act(async () => {
+      renderer!.update(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={{ status: "logged_out" }}
+        />,
+      );
+    });
+
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Invite friends overlay" }))
+      .toHaveLength(0);
+  });
+
+  it("clears the invite sheet when the authenticated viewer changes", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={authenticatedState()}
+        />,
+      );
+    });
+    await pressProfileInvite(renderer!);
+
+    await act(async () => {
+      renderer!.update(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={{
+            ...authenticatedState(),
+            viewer: {
+              ...authenticatedState().viewer,
+              email: "second@example.com",
+              id: "viewer-2",
+            },
+          }}
+        />,
+      );
+    });
+
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Invite friends overlay" }))
+      .toHaveLength(0);
+  });
+
   it("routes an unapproved invite attempt to Dashboard Whitelist", async () => {
     const rewardsDependencies = createRewardsDependencies();
     const kycLoader = vi.fn().mockResolvedValue({

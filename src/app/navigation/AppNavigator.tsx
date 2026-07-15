@@ -117,6 +117,7 @@ export function AppNavigator({
         dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
         externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
         initialDashboardTab={dashboardTabForRoute(initialRouteName ?? "dashboard")}
+        key={`authenticated:${state.viewer!.id}`}
         onLogout={actions.logout}
         publicWebOrigin={publicWebOrigin}
         rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
@@ -140,6 +141,7 @@ export function AppNavigator({
       dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
       externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
       initialDashboardTab="holdings"
+      key="logged_out"
       onLogin={actions.login}
       onLogout={actions.logout}
       publicWebOrigin={publicWebOrigin}
