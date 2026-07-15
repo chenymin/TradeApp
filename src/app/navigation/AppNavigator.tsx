@@ -9,6 +9,10 @@ import type {
 import { AccountDisabledScreen } from "../../features/auth/components/AccountDisabledScreen";
 import { LoginScreen } from "../../features/auth/components/LoginScreen";
 import { InviteFriendSheet } from "../../features/referral/components/InviteFriendSheet";
+import {
+  RewardsScreen,
+  type RewardsDataDependencies,
+} from "../../features/referral/screens/RewardsScreen";
 import { LaunchpadScreen } from "../../features/assets/screens/LaunchpadScreen";
 import { MarketScreen } from "../../features/assets/screens/MarketScreen";
 import { AssetDetailScreen } from "../../features/assets/screens/AssetDetailScreen";
@@ -39,6 +43,8 @@ export function AppNavigator({
   dashboardDependencies,
   externalLinkAdapter,
   initialRouteName,
+  publicWebOrigin,
+  rewardsDependencies,
   state,
 }: {
   actions: AuthProviderActions;
@@ -47,6 +53,8 @@ export function AppNavigator({
   dashboardDependencies?: DashboardDataDependencies;
   externalLinkAdapter?: ExternalLinkAdapter;
   initialRouteName?: AppRouteName;
+  publicWebOrigin?: string;
+  rewardsDependencies?: RewardsDataDependencies;
   state: AuthDisplayState & Partial<
     Pick<AuthProviderState, "isSessionReady" | "viewer">
   >;
@@ -101,7 +109,10 @@ export function AppNavigator({
         authStatus="authenticated"
         dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
         externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
+        initialProtectedRoute={initialRouteName === "referral" ? "referral" : null}
         onLogout={actions.logout}
+        publicWebOrigin={publicWebOrigin}
+        rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
         viewerState={{
           isSessionReady: state.isSessionReady === true,
           viewer: state.viewer ?? null,
@@ -121,8 +132,11 @@ export function AppNavigator({
       authStatus="logged_out"
       dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
       externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
+      initialProtectedRoute={null}
       onLogin={actions.login}
       onLogout={actions.logout}
+      publicWebOrigin={publicWebOrigin}
+      rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
       viewerState={{ isSessionReady: false, viewer: null }}
     />
   );
@@ -135,8 +149,11 @@ function MainTabs({
   authStatus,
   dashboardDependencies,
   externalLinkAdapter,
+  initialProtectedRoute,
   onLogin,
   onLogout,
+  publicWebOrigin,
+  rewardsDependencies,
   viewerState,
 }: {
   activeRouteName: MainTabRouteName;
@@ -145,13 +162,22 @@ function MainTabs({
   authStatus: "authenticated" | "logged_out";
   dashboardDependencies: DashboardDataDependencies;
   externalLinkAdapter: ExternalLinkAdapter;
+  initialProtectedRoute: "referral" | null;
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
+  publicWebOrigin?: string;
+  rewardsDependencies: RewardsDataDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
 }) {
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
-  const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
+  const [protectedRoute, setProtectedRoute] = useState<"kyc" | "referral" | null>(
+    initialProtectedRoute,
+  );
+  const [inviteSheet, setInviteSheet] = useState<{
+    inviteCode: string;
+    webOrigin: string;
+  } | null>(null);
   const [detailRoute, setDetailRoute] = useState<{
     assetId: string;
     placeholder: PublicAssetSummary;
@@ -168,27 +194,35 @@ function MainTabs({
 
     setCurrentRouteName(routeName);
     setDetailRoute(null);
+    setProtectedRoute(null);
   };
 
   return (
     <AppShell
-      activeRouteName={detailRoute ? undefined : currentRouteName}
-      header={getHeaderConfig(detailRoute ? "assetDetail" : currentRouteName, authStatus)}
-      onBack={detailRoute ? () => setDetailRoute(null) : undefined}
+      activeRouteName={detailRoute || protectedRoute ? undefined : currentRouteName}
+      header={getHeaderConfig(
+        detailRoute ? "assetDetail" : protectedRoute ?? currentRouteName,
+        authStatus,
+      )}
+      onBack={detailRoute
+        ? () => setDetailRoute(null)
+        : protectedRoute
+          ? () => setProtectedRoute(null)
+          : undefined}
       onLogin={onLogin}
       onTabSelect={handleTabSelect}
       overlay={
-        inviteSheetOpen ? (
+        inviteSheet ? (
           <InviteFriendSheet
             clipboard={expoClipboardAdapter}
-            inviteCode="DEMO-CODE"
-            onClose={() => setInviteSheetOpen(false)}
+            inviteCode={inviteSheet.inviteCode}
+            onClose={() => setInviteSheet(null)}
             share={reactNativeShareAdapter}
-            webOrigin="https://app.mytrade.local"
+            webOrigin={inviteSheet.webOrigin}
           />
         ) : null
       }
-      tabs={detailRoute ? undefined : getTabRoutes()}
+      tabs={detailRoute || protectedRoute ? undefined : getTabRoutes()}
     >
       {detailRoute ? (
         <AssetDetailScreen
@@ -209,6 +243,20 @@ function MainTabs({
             whitelisted: "unknown",
           }}
         />
+      ) : protectedRoute === "referral" ? (
+        <RewardsScreen
+          dependencies={rewardsDependencies}
+          onOpenInvite={setInviteSheet}
+          onOpenKyc={() => setProtectedRoute("kyc")}
+          publicWebOrigin={publicWebOrigin}
+          viewerState={viewerState}
+        />
+      ) : protectedRoute === "kyc" ? (
+        <RoutePlaceholder
+          description="Whitelist status and identity details land in Task 7."
+          label="Protected"
+          title="KYC"
+        />
       ) : renderRoute(
         currentRouteName,
         authStatus,
@@ -217,7 +265,13 @@ function MainTabs({
         viewerState,
         externalLinkAdapter,
         onLogout,
-        () => setInviteSheetOpen(true),
+        () => {
+          if (authStatus === "authenticated") {
+            setProtectedRoute("referral");
+          } else {
+            void onLogin?.();
+          }
+        },
         (asset) => setDetailRoute({
           assetId: asset.id,
           placeholder: asset,
@@ -405,8 +459,19 @@ const EMPTY_DASHBOARD_DEPENDENCIES: DashboardDataDependencies = {
   holdingsLoader: async () => null,
   kycLoader: async () => null,
   nicknameRepository: { updateNickname: async () => undefined },
-  pointsLoader: async () => null,
   profileLoader: async () => null,
+};
+
+const EMPTY_REWARDS_DEPENDENCIES: RewardsDataDependencies = {
+  fetchAccessToken: async () => null,
+  kycLoader: async () => null,
+  pointLedgerRepository: { fetchRecent: async () => [] },
+  referralRecordsClient: { fetchRecords: async () => [] },
+  rewardsProfileRepository: {
+    fetchProfile: async () => {
+      throw new Error("Rewards profile loader is unavailable");
+    },
+  },
 };
 
 const EMPTY_ASSET_DETAIL_LOADER: AssetDetailLoader = async () => {

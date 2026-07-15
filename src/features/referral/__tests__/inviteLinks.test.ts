@@ -26,4 +26,18 @@ describe("buildInviteLinks", () => {
       }).creator,
     ).toBe("mytradeapp://register?ref=INVITE-7&type=creator");
   });
+
+  it("rejects an empty invite code", () => {
+    expect(() => buildInviteLinks({
+      inviteCode: "   ",
+      webOrigin: "https://artstar.example",
+    })).toThrow("Invite code is required");
+  });
+
+  it("rejects an unsafe public web origin", () => {
+    expect(() => buildInviteLinks({
+      inviteCode: "INVITE-7",
+      webOrigin: "javascript:alert(1)",
+    })).toThrow("Invite web origin must use HTTPS");
+  });
 });

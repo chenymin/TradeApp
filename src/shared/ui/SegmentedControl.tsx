@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "./theme";
 
 export type SegmentedControlOption<TValue extends string> = {
+  accessibilityLabel?: string;
   label: string;
   value: TValue;
 };
@@ -22,7 +23,9 @@ export function SegmentedControl<TValue extends string>({
         const selected = option.value === value;
         return (
           <Pressable
-            accessibilityLabel={option.label}
+            accessibilityLabel={option.accessibilityLabel ?? option.label}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
             key={option.value}
             onPress={() => onChange(option.value)}
             style={[styles.option, selected ? styles.selected : null]}

@@ -18,11 +18,6 @@ import {
   createDashboardPointsRepository,
   type DashboardPointsClient,
 } from "./dashboardPointsRepository";
-import {
-  createDashboardCommissionLoader,
-  createDashboardCommissionRepository,
-  type DashboardCommissionClient,
-} from "./dashboardCommissionRepository";
 
 export function createDefaultDashboardProfileLoader() {
   const repository = createDashboardProfileRepository(
@@ -48,7 +43,11 @@ export function createDefaultDashboardPointsLoader() {
 }
 
 export function createDefaultDashboardCommissionLoader() {
-  return createDashboardCommissionLoader(createDashboardCommissionRepository(
-    supabase as unknown as DashboardCommissionClient,
-  ));
+  return async function loadCommission(state: {
+    isSessionReady: boolean;
+    viewer: unknown | null;
+  }) {
+    if (!state.isSessionReady || !state.viewer) return null;
+    return { status: "unavailable" as const };
+  };
 }
