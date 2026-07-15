@@ -143,6 +143,7 @@ export function DashboardHeader({
       ) : null}
 
       <SegmentedControl
+        compact
         onChange={onTabChange}
         options={DASHBOARD_TABS}
         value={tab}

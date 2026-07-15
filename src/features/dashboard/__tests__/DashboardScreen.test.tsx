@@ -22,6 +22,22 @@ describe("DashboardScreen", () => {
     ]);
   });
 
+  it("keeps four-tab touch targets and labels usable at phone width", async () => {
+    const renderer = await renderDashboard();
+    const transactionsTab = renderer.root.findAll(
+      (node) => typeof node.type === "string" &&
+        node.props.accessibilityLabel === "Transactions",
+    )[0];
+    const label = transactionsTab.findAll(
+      (node) => typeof node.type === "string" &&
+        node.children.includes("Transactions"),
+    )[0];
+
+    expect(flattenStyle(transactionsTab.props.style).minHeight)
+      .toBeGreaterThanOrEqual(40);
+    expect(flattenStyle(label.props.style).fontSize).toBeLessThanOrEqual(12);
+  });
+
   it("embeds Whitelist and Rewards under the common Dashboard header", async () => {
     const dependencies = createDependencies();
     const renderer = await renderDashboard(dependencies);
@@ -305,6 +321,13 @@ async function press(renderer: ReactTestRenderer, accessibilityLabel: string) {
 
 function initialTabLabel(tab: "holdings" | "transactions" | "whitelist" | "rewards") {
   return tab[0].toUpperCase() + tab.slice(1);
+}
+
+function flattenStyle(style: unknown): Record<string, unknown> {
+  if (!Array.isArray(style)) {
+    return style && typeof style === "object" ? style as Record<string, unknown> : {};
+  }
+  return Object.assign({}, ...style.map(flattenStyle));
 }
 
 function createDependencies() {
