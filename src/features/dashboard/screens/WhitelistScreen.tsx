@@ -120,7 +120,7 @@ export function WhitelistScreen({
         <View style={styles.header}>
           {renderHeader(refresh)}
           <View accessibilityLabel="Whitelist status summary" style={styles.statusHeader}>
-            <View style={[styles.icon, { backgroundColor: presentation.iconBackground }]}> 
+            <View style={[styles.icon, { backgroundColor: presentation.iconBackground }]}>
               <ShieldCheck
                 accessibilityLabel="Whitelist status shield"
                 color={presentation.iconColor}
