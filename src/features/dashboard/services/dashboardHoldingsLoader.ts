@@ -17,6 +17,10 @@ export type DashboardHoldingsLoader = ReturnType<
   typeof createDashboardHoldingsLoader
 >;
 
+export type DashboardHoldingsResult = NonNullable<
+  Awaited<ReturnType<DashboardHoldingsLoader>>
+>;
+
 export function createDashboardHoldingsLoader({
   chainAdapter,
   repository,
