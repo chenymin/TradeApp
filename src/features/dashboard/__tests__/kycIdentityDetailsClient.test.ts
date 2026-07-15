@@ -122,7 +122,7 @@ describe("KYC identity details client", () => {
         json: async () => { throw new SyntaxError("invalid JSON"); },
         ok: true,
         status: 200,
-      } as Response),
+      } as unknown as Response),
     });
 
     await expect(client.fetchDetails("secret-token")).rejects.toEqual(
