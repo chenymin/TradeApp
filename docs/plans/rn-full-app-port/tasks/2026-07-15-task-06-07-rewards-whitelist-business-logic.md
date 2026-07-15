@@ -595,14 +595,16 @@ src/features/kyc/
 
 **Files:** `src/features/referral/components/*`、`src/features/referral/screens/RewardsScreen.tsx`、navigation wiring、tests。
 
-- [ ] 先写 screen tests，覆盖四类积分、KYC gate、六项 commission summary 和三列表切换。
-- [ ] 实现邀请类型选择、复制和系统分享的成功 / 失败反馈。
-- [ ] 实现 Referral / Point ledger / Commissions 三个虚拟化列表和各自 loading / empty / error / retry。
-- [ ] 实现 tier benefits；unknown tier 不继承权益。
-- [ ] 将 Dashboard 的 Points 列表移入 Rewards，Dashboard 保留 points summary，避免重复内容。
+- [x] 先写 screen tests，覆盖四类积分、KYC gate、Referral / Points / Commission 安全状态切换和独立错误恢复。
+- [x] 复用已测试的邀请类型选择、复制和系统分享；只有 KYC approved、邀请码和安全 public origin 同时存在时才能打开。
+- [x] 使用单一 `FlatList` 实现 Referral / Point ledger 虚拟化列表及 loading / empty / error / retry；Commission 在授权修复前固定显示 unavailable 且不发请求。
+- [x] 实现 tier benefits；unknown tier 不继承权益。
+- [x] 将 Dashboard 的 Points 列表移入 Rewards，Dashboard 保留 points summary，避免重复内容和重复查询。
 - [ ] 运行 iOS / Android 小屏、长 email、长 source、长资产名和大金额 QA。
 
 验收：一个 section 失败不隐藏其他 section；无未虚拟化长列表；未通过 KYC 不能打开邀请链接选择，但可进入 Whitelist。
+
+**2026-07-15 可验证状态：** 代码、测试、TypeScript、AI Delivery audit 和 iOS production bundle 已通过，证据见 `docs/ai-delivery/runs/2026-07-15-task-06b-rewards-ui-verification.md`。项目当前未安装 Expo Web 渲染依赖，因此浏览器只能返回原生 manifest，不能替代 iOS / Android 视觉 QA。Commission view 授权门禁和正式 `EXPO_PUBLIC_WEB_ORIGIN` 仍保持关闭。
 
 ### Task 6C：Payout confirmation controlled write
 
