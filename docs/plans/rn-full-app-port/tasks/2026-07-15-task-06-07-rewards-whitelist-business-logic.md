@@ -581,11 +581,13 @@ src/features/kyc/
 
 **Files:** `src/features/referral/domain/*`、`src/features/referral/services/*`、对应 tests。
 
-- [ ] 用失败测试固定四类积分、invite link、推荐记录、积分流水和 commission decimal 映射。
-- [ ] 实现 `get-my-referrals` authenticated client，并区分 401、403、5xx、网络错误和 empty。
-- [ ] 实现 commission summary/details view repository；view 缺失返回明确 unavailable，不静默伪造完整数据。
+**2026-07-15 状态：** 本地 read models 已实现，目标环境授权门禁未通过。Anon probe 可从 `my_commission_summary` 读取 1 行；证据见 `docs/ai-delivery/runs/2026-07-15-task-06a-supabase-contract-check.md`。在 view grant / `security_invoker` / 两用户隔离修复前，不进入 Task 6B commission UI。
+
+- [x] 用失败测试固定四类积分、invite link、推荐记录、积分流水和 commission decimal 映射。
+- [x] 实现 `get-my-referrals` authenticated client，并区分 401、403、5xx、网络错误和 empty。
+- [x] 实现 commission summary/details view repository；view 缺失返回明确 unavailable，不静默伪造完整数据。
 - [ ] 在目标 Supabase 环境核对 view 字段、Data API GRANT、`security_invoker` / ownership isolation 和 RPC 契约。
-- [ ] 运行 `npm test -- src/features/referral` 和 `npx tsc --noEmit`。
+- [x] 运行 `npm test -- src/features/referral` 和 `npx tsc --noEmit`。
 
 验收：fake clients 可验证所有映射；没有真实 token / network 依赖；跨用户参数不存在于 client API。
 
