@@ -9,10 +9,12 @@ export type SegmentedControlOption<TValue extends string> = {
 };
 
 export function SegmentedControl<TValue extends string>({
+  compact = false,
   onChange,
   options,
   value,
 }: {
+  compact?: boolean;
   onChange: (value: TValue) => void;
   options: SegmentedControlOption<TValue>[];
   value: TValue;
@@ -28,9 +30,20 @@ export function SegmentedControl<TValue extends string>({
             accessibilityState={{ selected }}
             key={option.value}
             onPress={() => onChange(option.value)}
-            style={[styles.option, selected ? styles.selected : null]}
+            style={[
+              styles.option,
+              compact ? styles.compactOption : null,
+              selected ? styles.selected : null,
+            ]}
           >
-            <Text style={[styles.label, selected ? styles.selectedLabel : null]}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.label,
+                compact ? styles.compactLabel : null,
+                selected ? styles.selectedLabel : null,
+              ]}
+            >
               {option.label}
             </Text>
           </Pressable>
@@ -41,6 +54,12 @@ export function SegmentedControl<TValue extends string>({
 }
 
 const styles = StyleSheet.create({
+  compactLabel: {
+    fontSize: 11,
+  },
+  compactOption: {
+    minHeight: 40,
+  },
   label: {
     color: colors.muted,
     fontSize: 14,

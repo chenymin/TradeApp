@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw } from "lucide-react-native";
 import {
   FlatList,
   Keyboard,
@@ -9,16 +8,15 @@ import {
 } from "react-native";
 
 import type { ExternalLinkAdapter } from "../../../shared/platform/linkingAdapter";
+import { AppText, colors, spacing } from "../../../shared/ui";
 import {
-  AppText,
-  Input,
-  SegmentedControl,
-  colors,
-  radii,
-  spacing,
-} from "../../../shared/ui";
-import { DashboardSummary } from "../components/DashboardSummary";
-import { formatPoints, formatTier } from "../domain/dashboardFormatting";
+  RewardsScreen,
+  type RewardsDataDependencies,
+} from "../../referral/screens/RewardsScreen";
+import {
+  DashboardHeader,
+  type DashboardTab,
+} from "../components/DashboardHeader";
 import type {
   DashboardHolding,
   DashboardTransaction,
@@ -26,6 +24,7 @@ import type {
 import type { DashboardProfile } from "../domain/dashboardModels";
 import type {
   DashboardHoldingsLoader,
+  DashboardHoldingsResult,
 } from "../services/dashboardHoldingsLoader";
 import type {
   DashboardKycSummary,
@@ -37,43 +36,48 @@ import type {
 import type { NicknameRepository } from "../services/nicknameRepository";
 import { createNicknameUpdater } from "../services/nicknameUpdater";
 import type { DashboardCommissionResult } from "../services/dashboardCommissionRepository";
+import type { KycIdentityDetailsClient } from "../services/kycIdentityDetailsClient";
+import {
+  WhitelistScreen,
+  type WhitelistStatusState,
+} from "./WhitelistScreen";
 
-type DashboardTab = "holdings" | "transactions";
 type DashboardRow =
   | { id: string; kind: "holding"; value: DashboardHolding }
   | { id: string; kind: "transaction"; value: DashboardTransaction };
 
-type HoldingsResult = NonNullable<Awaited<ReturnType<DashboardHoldingsLoader>>>;
-
 export type DashboardDataDependencies = {
   commissionLoader(state: DashboardViewerState): Promise<DashboardCommissionResult | null>;
+  fetchAccessToken(): Promise<string | null>;
   holdingsLoader: DashboardHoldingsLoader;
+  identityClient: KycIdentityDetailsClient;
   kycLoader(state: DashboardViewerState): Promise<DashboardKycSummary | null>;
   nicknameRepository: NicknameRepository;
   profileLoader: DashboardProfileLoader;
 };
 
-const TABS = [
-  { label: "Holdings", value: "holdings" },
-  { label: "Transactions", value: "transactions" },
-] satisfies Array<{ label: string; value: DashboardTab }>;
-
 export function DashboardScreen({
   commissionLoader,
   externalLinkAdapter,
+  fetchAccessToken,
   holdingsLoader,
+  identityClient,
+  initialTab = "holdings",
   kycLoader,
   nicknameRepository,
   profileLoader,
+  rewardsDependencies,
   viewerState,
 }: DashboardDataDependencies & {
   externalLinkAdapter: ExternalLinkAdapter;
+  initialTab?: DashboardTab;
+  rewardsDependencies: RewardsDataDependencies;
   viewerState: DashboardViewerState;
 }) {
-  const [tab, setTab] = useState<DashboardTab>("holdings");
+  const [tab, setTab] = useState<DashboardTab>(initialTab);
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
-  const [holdings, setHoldings] = useState<HoldingsResult | null>(null);
-  const [kyc, setKyc] = useState<DashboardKycSummary | null>(null);
+  const [holdings, setHoldings] = useState<DashboardHoldingsResult | null>(null);
+  const [kycState, setKycState] = useState<WhitelistStatusState>({ status: "loading" });
   const [commission, setCommission] = useState<DashboardCommissionResult | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [errors, setErrors] = useState<string[]>([]);
@@ -87,12 +91,13 @@ export function DashboardScreen({
       setStatus("idle");
       setProfile(null);
       setHoldings(null);
-      setKyc(null);
+      setKycState({ status: "loading" });
       setCommission(null);
       return;
     }
 
     setStatus("loading");
+    setKycState({ status: "loading" });
     const [
       profileResult,
       holdingsResult,
@@ -121,9 +126,14 @@ export function DashboardScreen({
     }
 
     if (kycResult.status === "fulfilled") {
-      setKyc(kycResult.value);
+      if (kycResult.value) {
+        setKycState({ data: kycResult.value, status: "ready" });
+      } else {
+        setKycState({ status: "error" });
+        nextErrors.push("KYC status unavailable");
+      }
     } else {
-      setKyc(null);
+      setKycState({ status: "error" });
       nextErrors.push("KYC status unavailable");
     }
 
@@ -147,6 +157,10 @@ export function DashboardScreen({
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    setTab(initialTab);
+  }, [initialTab]);
 
   const nicknameUpdater = useMemo(() => createNicknameUpdater({
     refreshProfile: async () => {
@@ -202,24 +216,69 @@ export function DashboardScreen({
     );
   }
 
-  const rows: DashboardRow[] = tab === "holdings"
-    ? (holdings?.holdings ?? []).map((value) => ({
-      id: value.assetId,
-      kind: "holding" as const,
-      value,
-    }))
-    : (holdings?.transactions ?? []).map((value) => ({
-      id: value.id,
-      kind: "transaction" as const,
-      value,
-    }));
+  const viewer = viewerState.viewer;
 
-  return (
-    <View
-      onTouchStart={dismissNicknameEditor}
-      style={styles.screen}
-      testID="dashboard-dismiss-surface"
-    >
+  const kyc = kycState.status === "ready" ? kycState.data : null;
+  const renderHeader = (onRefresh: () => Promise<void>) => (
+    <DashboardHeader
+      commission={commission}
+      editingNickname={editingNickname}
+      errors={errors}
+      holdings={holdings}
+      kyc={kyc}
+      kycUnavailable={kycState.status === "error"}
+      nicknameDraft={nicknameDraft}
+      nicknameError={nicknameError}
+      onBeginNicknameEdit={() => {
+        setNicknameDraft(profile?.nickname ?? "");
+        setNicknameError(null);
+        setEditingNickname(true);
+      }}
+      onChangeNickname={setNicknameDraft}
+      onFinishNicknameEdit={() => { void saveNickname(); }}
+      onRefresh={() => { void onRefresh(); }}
+      onTabChange={setTab}
+      profile={profile}
+      tab={tab}
+      viewerEmail={viewer.email}
+    />
+  );
+
+  let body;
+  if (tab === "whitelist") {
+    body = (
+      <WhitelistScreen
+        fetchAccessToken={fetchAccessToken}
+        identityClient={identityClient}
+        onRefreshCommon={load}
+        renderHeader={renderHeader}
+        statusState={kycState}
+        viewerId={viewer.id}
+      />
+    );
+  } else if (tab === "rewards") {
+    body = (
+      <RewardsScreen
+        dependencies={rewardsDependencies}
+        onRefreshCommon={load}
+        renderHeader={renderHeader}
+        viewerState={viewerState}
+      />
+    );
+  } else {
+    const rows: DashboardRow[] = tab === "holdings"
+      ? (holdings?.holdings ?? []).map((value) => ({
+        id: value.assetId,
+        kind: "holding" as const,
+        value,
+      }))
+      : (holdings?.transactions ?? []).map((value) => ({
+        id: value.id,
+        kind: "transaction" as const,
+        value,
+      }));
+
+    body = (
       <FlatList
         contentContainerStyle={styles.content}
         data={rows}
@@ -243,88 +302,7 @@ export function DashboardScreen({
             ) : null}
           </View>
         )}
-        ListHeaderComponent={(
-          <View style={styles.header}>
-            <View style={styles.titleRow}>
-              <View style={styles.titleGroup}>
-                <AppText style={styles.title}>Dashboard</AppText>
-                {editingNickname ? (
-                  <View
-                    onTouchStart={(event) => event.stopPropagation()}
-                    style={styles.nicknameEditor}
-                  >
-                    <Input
-                      accessibilityLabel="Nickname"
-                      autoFocus
-                      onBlur={() => { void saveNickname(); }}
-                      onChangeText={setNicknameDraft}
-                      onSubmitEditing={() => { void saveNickname(); }}
-                      placeholder="Set nickname"
-                      returnKeyType="done"
-                      selectTextOnFocus
-                      style={styles.nicknameInput}
-                      submitBehavior="blurAndSubmit"
-                      value={nicknameDraft}
-                    />
-                    {nicknameError ? (
-                      <AppText style={styles.errorText}>{nicknameError}</AppText>
-                    ) : null}
-                  </View>
-                ) : (
-                  <Pressable
-                    accessibilityLabel="Edit nickname"
-                    onPress={() => {
-                      setNicknameDraft(profile?.nickname ?? "");
-                      setNicknameError(null);
-                      setEditingNickname(true);
-                    }}
-                  >
-                    <AppText style={styles.nickname}>
-                      {profile?.nickname ?? viewerState.viewer.email ?? "Set nickname"}
-                    </AppText>
-                  </Pressable>
-                )}
-              </View>
-              <Pressable
-                accessibilityLabel="Refresh dashboard"
-                accessibilityRole="button"
-                onPress={() => { void load(); }}
-                style={({ pressed }) => [
-                  styles.refreshButton,
-                  pressed && styles.refreshButtonPressed,
-                ]}
-              >
-                <RefreshCw color={colors.primary} size={19} strokeWidth={2.4} />
-              </Pressable>
-            </View>
-
-            {errors.length ? (
-              <View style={styles.warning}>
-                <AppText style={styles.warningText}>{errors.join(" · ")}</AppText>
-              </View>
-            ) : null}
-
-            <DashboardSummary
-              commissionValue={commissionLabel(commission)}
-              kycTone={kyc?.approved ? "positive" : "default"}
-              kycValue={kycLabel(kyc)}
-              pnlAmount={signedMoney(holdings?.summary.totalPnlUsdt ?? "0")}
-              pnlPercent={signedPercent(holdings?.summary.pnlPercent ?? "0")}
-              pnlTone={isNegative(holdings?.summary.totalPnlUsdt) ? "negative" : "positive"}
-              pointsValue={`${formatPoints(profile?.totalPoints)} points`}
-              portfolioValue={money(holdings?.summary.totalValueUsdt ?? "0")}
-              tierValue={`Tier ${formatTier(profile?.tier)}`}
-            />
-
-            {holdings?.warnings.length ? (
-              <AppText variant="caption">
-                Some chain balances are temporarily unavailable.
-              </AppText>
-            ) : null}
-
-            <SegmentedControl onChange={setTab} options={TABS} value={tab} />
-          </View>
-        )}
+        ListHeaderComponent={renderHeader(load)}
         onRefresh={() => { void load(); }}
         refreshing={status === "loading"}
         renderItem={({ item }) => item.kind === "holding"
@@ -337,6 +315,16 @@ export function DashboardScreen({
           )}
         style={styles.list}
       />
+    );
+  }
+
+  return (
+    <View
+      onTouchStart={dismissNicknameEditor}
+      style={styles.screen}
+      testID="dashboard-dismiss-surface"
+    >
+      {body}
     </View>
   );
 }
@@ -406,10 +394,6 @@ function money(value: string): string {
   return `$${displayNumber(value, 2)}`;
 }
 
-function signedMoney(value: string): string {
-  return `${isNegative(value) ? "-" : "+"}$${displayNumber(value.replace(/^-/, ""), 2)}`;
-}
-
 function signedPercent(value: string): string {
   return `${isNegative(value) ? "" : "+"}${displayNumber(value, 2)}%`;
 }
@@ -428,20 +412,6 @@ function displayNumber(value: string, maximumFractionDigits: number): string {
 
 function isNegative(value: string | null | undefined): boolean {
   return Boolean(value?.startsWith("-"));
-}
-
-function kycLabel(summary: DashboardKycSummary | null): string {
-  if (summary?.status === "approved") return "Verified";
-  if (summary?.status === "under_review") return "Under review";
-  if (summary?.status === "awaiting_resubmission") return "Action required";
-  if (summary?.status === "rejected") return "Not approved";
-  if (summary?.status === "pending") return "Pending";
-  return "Not started";
-}
-
-function commissionLabel(result: DashboardCommissionResult | null): string {
-  if (!result || result.status === "unavailable") return "Unavailable";
-  return `${money(result.summary.lifetimeTotalUsdt)} lifetime`;
 }
 
 function dateLabel(value: string | null): string {
@@ -489,15 +459,6 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontWeight: "700",
   },
-  errorText: {
-    color: colors.danger,
-    fontSize: 12,
-  },
-  header: {
-    gap: spacing.lg,
-    paddingBottom: spacing.md,
-    paddingTop: spacing.md,
-  },
   list: {
     flex: 1,
   },
@@ -506,40 +467,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
   },
-  nickname: {
-    color: colors.muted,
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  nicknameEditor: {
-    gap: spacing.xs,
-    width: 220,
-  },
-  nicknameInput: {
-    borderColor: colors.primary,
-    borderRadius: 0,
-    borderWidth: 0,
-    borderBottomWidth: 1,
-    fontSize: 14,
-    minHeight: 36,
-    paddingHorizontal: 0,
-    paddingVertical: spacing.xs,
-  },
   positiveSmall: {
     color: colors.primary,
     fontSize: 12,
     fontWeight: "700",
-  },
-  refreshButton: {
-    alignItems: "center",
-    backgroundColor: colors.primarySoft,
-    borderRadius: radii.lg,
-    height: 40,
-    justifyContent: "center",
-    width: 40,
-  },
-  refreshButtonPressed: {
-    opacity: 0.72,
   },
   row: {
     alignItems: "center",
@@ -570,28 +501,5 @@ const styles = StyleSheet.create({
   screen: {
     backgroundColor: colors.background,
     flex: 1,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  titleGroup: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  titleRow: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  warning: {
-    backgroundColor: colors.dangerMuted,
-    borderRadius: 6,
-    padding: spacing.sm,
-  },
-  warningText: {
-    color: colors.danger,
-    fontSize: 12,
-    fontWeight: "600",
   },
 });

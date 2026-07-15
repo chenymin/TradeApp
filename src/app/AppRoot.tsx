@@ -20,6 +20,7 @@ import { createDefaultExternalLinkAdapter } from "../shared/platform/createDefau
 import { createDefaultDashboardHoldingsLoader } from "../features/dashboard/services/createDefaultDashboardHoldingsLoader";
 import {
   createDefaultDashboardCommissionLoader,
+  createDefaultDashboardIdentityClient,
   createDefaultDashboardKycLoader,
   createDefaultDashboardProfileLoader,
   createDefaultNicknameRepository,
@@ -61,14 +62,16 @@ function AuthGateRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
   const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
   const assetPageLoader = useMemo(() => createDefaultPublicAssetLoader(), []);
   const externalLinkAdapter = useMemo(() => createDefaultExternalLinkAdapter(), []);
+  const rewardsDependencies = useMemo(() => createDefaultRewardsServices(), []);
   const dashboardDependencies = useMemo(() => ({
     commissionLoader: createDefaultDashboardCommissionLoader(),
+    fetchAccessToken: rewardsDependencies.fetchAccessToken,
     holdingsLoader: createDefaultDashboardHoldingsLoader(),
+    identityClient: createDefaultDashboardIdentityClient(),
     kycLoader: createDefaultDashboardKycLoader(),
     nicknameRepository: createDefaultNicknameRepository(),
     profileLoader: createDefaultDashboardProfileLoader(),
-  }), []);
-  const rewardsDependencies = useMemo(() => createDefaultRewardsServices(), []);
+  }), [rewardsDependencies]);
 
   useEffect(() => {
     const adapter = createLinkingAdapter({

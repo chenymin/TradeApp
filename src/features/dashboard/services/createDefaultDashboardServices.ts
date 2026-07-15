@@ -18,6 +18,52 @@ import {
   createDashboardPointsRepository,
   type DashboardPointsClient,
 } from "./dashboardPointsRepository";
+import { createKycIdentityDetailsClient } from "./kycIdentityDetailsClient";
+
+export function createDashboardIdentityClient({
+  fetch: fetchImpl,
+  supabaseUrl,
+}: {
+  fetch: typeof fetch;
+  supabaseUrl: string;
+}) {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(supabaseUrl);
+  } catch {
+    throw new Error("Invalid Supabase URL for KYC identity services");
+  }
+
+  if (
+    parsedUrl.protocol !== "https:" ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.pathname !== "/" ||
+    parsedUrl.search ||
+    parsedUrl.hash
+  ) {
+    throw new Error("Invalid Supabase URL for KYC identity services");
+  }
+
+  return createKycIdentityDetailsClient({
+    endpoint: new URL(
+      "/functions/v1/kyc-applicant-details",
+      parsedUrl,
+    ).toString(),
+    fetch: fetchImpl,
+  });
+}
+
+export function createDefaultDashboardIdentityClient() {
+  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL?.trim();
+  if (!supabaseUrl) {
+    throw new Error("Missing Supabase URL for KYC identity services");
+  }
+  return createDashboardIdentityClient({
+    fetch: globalThis.fetch,
+    supabaseUrl,
+  });
+}
 
 export function createDefaultDashboardProfileLoader() {
   const repository = createDashboardProfileRepository(

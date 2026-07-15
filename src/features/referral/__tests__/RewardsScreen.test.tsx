@@ -1,8 +1,10 @@
 import { StrictMode } from "react";
+import { FlatList } from "react-native";
 import { describe, expect, it, vi } from "vitest";
 import TestRenderer, { act, type ReactTestRenderer } from "react-test-renderer";
 
 import type { RewardsProfile } from "../domain/rewardModels";
+import { AppText } from "../../../shared/ui";
 import {
   RewardsScreen,
   type RewardsDataDependencies,
@@ -20,16 +22,19 @@ const viewerState = {
 };
 
 describe("RewardsScreen", () => {
-  it("renders real reward data and switches virtualized lists", async () => {
-    const onOpenInvite = vi.fn();
+  it("renders real reward data under the shared Dashboard header", async () => {
+    const dependencies = createDependencies();
+    const onRefreshCommon = vi.fn().mockResolvedValue(undefined);
     const renderer = await renderRewards({
-      dependencies: createDependencies(),
-      onOpenInvite,
-      publicWebOrigin: "https://test.artstarex.com",
+      dependencies,
+      onRefreshCommon,
     });
 
     let treeText = JSON.stringify(renderer.toJSON());
-    expect(treeText).toContain("My Rewards");
+    expect(treeText).toContain("Dashboard shared header");
+    expect(treeText).not.toContain("My Rewards");
+    expect(treeText).not.toContain("Invite friends");
+    expect(treeText).not.toContain("Open invite options");
     expect(treeText).toContain("Total points");
     expect(treeText).toContain("150");
     expect(treeText).toContain("Referral points");
@@ -55,15 +60,17 @@ describe("RewardsScreen", () => {
     treeText = JSON.stringify(renderer.toJSON());
     expect(treeText).toContain("Commission data is temporarily unavailable");
     expect(treeText).toContain("Access controls are under security review");
+    expect(renderer.root.findAllByType(FlatList)).toHaveLength(1);
+    expect(dependencies.kycLoader).not.toHaveBeenCalled();
 
     await act(async () => {
-      renderer.root.findByProps({ accessibilityLabel: "Open invite options" })
+      await renderer.root.findByProps({ accessibilityLabel: "Refresh dashboard" })
         .props.onPress();
     });
-    expect(onOpenInvite).toHaveBeenCalledWith({
-      inviteCode: "INVITE-1",
-      webOrigin: "https://test.artstarex.com",
-    });
+    expect(onRefreshCommon).toHaveBeenCalledOnce();
+    expect(dependencies.rewardsProfileRepository.fetchProfile).toHaveBeenCalledTimes(2);
+    expect(dependencies.referralRecordsClient.fetchRecords).toHaveBeenCalledTimes(2);
+    expect(dependencies.pointLedgerRepository.fetchRecent).toHaveBeenCalledTimes(2);
   });
 
   it("keeps successful sections visible when the profile fails", async () => {
@@ -99,39 +106,6 @@ describe("RewardsScreen", () => {
         .props.onPress();
     });
     expect(JSON.stringify(renderer.toJSON())).toContain("No point activity yet");
-  });
-
-  it("gates invitations when KYC or public origin is unavailable", async () => {
-    const missingOrigin = await renderRewards({
-      dependencies: createDependencies(),
-      publicWebOrigin: undefined,
-    });
-    expect(JSON.stringify(missingOrigin.toJSON())).toContain(
-      "Invite sharing is not configured",
-    );
-
-    const dependencies = createDependencies();
-    dependencies.kycLoader = vi.fn().mockResolvedValue({
-      approved: false,
-      notes: null,
-      reasonCode: null,
-      reviewedAt: null,
-      status: "pending",
-    });
-    const onOpenKyc = vi.fn();
-    const unapproved = await renderRewards({
-      dependencies,
-      onOpenKyc,
-      publicWebOrigin: "https://test.artstarex.com",
-    });
-    expect(JSON.stringify(unapproved.toJSON())).toContain(
-      "Complete KYC to unlock invitations",
-    );
-
-    await act(async () => {
-      unapproved.root.findByProps({ accessibilityLabel: "Open KYC" }).props.onPress();
-    });
-    expect(onOpenKyc).toHaveBeenCalledOnce();
   });
 
   it("does not inherit tier benefits for an unknown tier", async () => {
@@ -190,15 +164,11 @@ describe("RewardsScreen", () => {
 
 async function renderRewards({
   dependencies,
-  onOpenInvite = vi.fn(),
-  onOpenKyc = vi.fn(),
-  publicWebOrigin,
+  onRefreshCommon = vi.fn().mockResolvedValue(undefined),
   strict = false,
 }: {
   dependencies: RewardsDataDependencies;
-  onOpenInvite?: (value: { inviteCode: string; webOrigin: string }) => void;
-  onOpenKyc?: () => void;
-  publicWebOrigin?: string;
+  onRefreshCommon?: () => Promise<void>;
   strict?: boolean;
 }): Promise<ReactTestRenderer> {
   let renderer: ReactTestRenderer | undefined;
@@ -206,9 +176,15 @@ async function renderRewards({
     const screen = (
       <RewardsScreen
         dependencies={dependencies}
-        onOpenInvite={onOpenInvite}
-        onOpenKyc={onOpenKyc}
-        publicWebOrigin={publicWebOrigin}
+        onRefreshCommon={onRefreshCommon}
+        renderHeader={(refresh) => (
+          <AppText
+            accessibilityLabel="Refresh dashboard"
+            onPress={refresh}
+          >
+            Dashboard shared header
+          </AppText>
+        )}
         viewerState={viewerState}
       />
     );
