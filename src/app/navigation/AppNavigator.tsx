@@ -294,7 +294,13 @@ function MainTabs({
         dashboardTab,
         inviteFeedback,
         () => { void handleInvitePress(); },
-        () => openDashboardTab("whitelist"),
+        () => {
+          if (authStatus === "authenticated") {
+            openDashboardTab("whitelist");
+          } else {
+            void onLogin?.();
+          }
+        },
         rewardsDependencies,
         (asset) => setDetailRoute({
           assetId: asset.id,

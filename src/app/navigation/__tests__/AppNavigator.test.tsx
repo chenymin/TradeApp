@@ -148,6 +148,29 @@ describe("AppNavigator", () => {
     expect(JSON.stringify(testRenderer?.toJSON())).not.toContain("My Rewards");
   });
 
+  it("requires login before opening Whitelist from the public profile", async () => {
+    const actions = createActions();
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={actions}
+          initialRouteName="profile"
+          state={{ status: "logged_out" }}
+        />,
+      );
+    });
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item KYC" })
+        .props.onPress();
+    });
+
+    expect(actions.login).toHaveBeenCalledOnce();
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Tab My" })
+      .props.accessibilityState).toEqual({ selected: true });
+  });
+
   it("falls back to Launchpad when logged out users start on a protected tab", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
