@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 
 import type { AuthViewer } from "../../auth/domain/authViewer";
@@ -6,7 +13,6 @@ import type { DashboardKycSummary } from "../../dashboard/services/dashboardKycR
 import type { DashboardViewerState } from "../../dashboard/services/dashboardProfileLoader";
 import { AppText, SegmentedControl, colors, spacing } from "../../../shared/ui";
 import { CommissionUnavailableState } from "../components/CommissionUnavailableState";
-import { InviteSection } from "../components/InviteSection";
 import { PointLedgerRow } from "../components/PointLedgerRow";
 import { PointsSummary } from "../components/PointsSummary";
 import { ReferralRecordRow } from "../components/ReferralRecordRow";
@@ -50,19 +56,16 @@ const TABS = [
 
 export function RewardsScreen({
   dependencies,
-  onOpenInvite,
-  onOpenKyc,
-  publicWebOrigin,
+  onRefreshCommon,
+  renderHeader,
   viewerState,
 }: {
   dependencies: RewardsDataDependencies;
-  onOpenInvite: (value: { inviteCode: string; webOrigin: string }) => void;
-  onOpenKyc: () => void;
-  publicWebOrigin?: string;
+  onRefreshCommon(): Promise<void>;
+  renderHeader(onRefresh: () => Promise<void>): ReactNode;
   viewerState: { isSessionReady: boolean; viewer: AuthViewer | null };
 }) {
   const [profile, setProfile] = useState<AsyncState<RewardsProfile>>({ status: "idle" });
-  const [kyc, setKyc] = useState<AsyncState<DashboardKycSummary | null>>({ status: "idle" });
   const [points, setPoints] = useState<AsyncState<PointLedgerEntry[]>>({ status: "idle" });
   const [referrals, setReferrals] = useState<AsyncState<ReferralRecord[]>>({ status: "idle" });
   const [tab, setTab] = useState<RewardsTab>("referrals");
@@ -87,17 +90,6 @@ export function RewardsScreen({
       if (mounted.current) setProfile({ error: "unavailable", status: "error" });
     }
   }, [dependencies.rewardsProfileRepository, viewerId]);
-
-  const loadKyc = useCallback(async () => {
-    if (!viewerId) return;
-    setKyc({ status: "loading" });
-    try {
-      const data = await dependencies.kycLoader(viewerState);
-      if (mounted.current) setKyc({ data, status: "ready" });
-    } catch {
-      if (mounted.current) setKyc({ error: "unavailable", status: "error" });
-    }
-  }, [dependencies, viewerId, viewerState]);
 
   const loadPoints = useCallback(async () => {
     if (!viewerId) return;
@@ -133,8 +125,8 @@ export function RewardsScreen({
 
   const loadAll = useCallback(async () => {
     if (!viewerState.isSessionReady || !viewerId) return;
-    await Promise.all([loadProfile(), loadKyc(), loadPoints(), loadReferrals()]);
-  }, [loadKyc, loadPoints, loadProfile, loadReferrals, viewerId, viewerState.isSessionReady]);
+    await Promise.all([loadProfile(), loadPoints(), loadReferrals()]);
+  }, [loadPoints, loadProfile, loadReferrals, viewerId, viewerState.isSessionReady]);
 
   useEffect(() => {
     void loadAll();
@@ -142,9 +134,9 @@ export function RewardsScreen({
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    await loadAll();
+    await Promise.allSettled([onRefreshCommon(), loadAll()]);
     if (mounted.current) setRefreshing(false);
-  }, [loadAll]);
+  }, [loadAll, onRefreshCommon]);
 
   const rows = useMemo<RewardsListRow[]>(() => {
     if (tab === "referrals" && referrals.status === "ready") {
@@ -182,7 +174,7 @@ export function RewardsScreen({
       ListEmptyComponent={empty}
       ListHeaderComponent={(
         <View style={styles.header}>
-          <AppText style={styles.screenTitle} variant="title">My Rewards</AppText>
+          {renderHeader(refresh)}
           {profile.status === "ready" ? (
             <PointsSummary profile={profile.data} />
           ) : profile.status === "error" ? (
@@ -193,13 +185,6 @@ export function RewardsScreen({
           ) : (
             <InlineState title="Loading rewards summary..." />
           )}
-          <InviteSection
-            inviteCode={profile.status === "ready" ? profile.data.inviteCode : null}
-            kycApproved={kyc.status === "ready" ? (kyc.data?.approved ?? false) : null}
-            onOpenInvite={onOpenInvite}
-            onOpenKyc={onOpenKyc}
-            publicWebOrigin={publicWebOrigin}
-          />
           {profile.status === "ready" ? (
             <TierBenefitsSection tier={profile.data.tier} />
           ) : null}
@@ -283,11 +268,6 @@ const styles = StyleSheet.create({
   retry: {
     color: colors.primary,
     fontWeight: "800",
-  },
-  screenTitle: {
-    fontSize: 28,
-    paddingTop: spacing.md,
-    textAlign: "left",
   },
   state: {
     alignItems: "center",
