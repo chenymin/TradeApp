@@ -21,10 +21,10 @@ import { createDefaultDashboardHoldingsLoader } from "../features/dashboard/serv
 import {
   createDefaultDashboardCommissionLoader,
   createDefaultDashboardKycLoader,
-  createDefaultDashboardPointsLoader,
   createDefaultDashboardProfileLoader,
   createDefaultNicknameRepository,
 } from "../features/dashboard/services/createDefaultDashboardServices";
+import { createDefaultRewardsServices } from "../features/referral/services/createDefaultRewardsServices";
 
 export function AppRoot() {
   const publicConfig = readPublicConfig();
@@ -35,12 +35,12 @@ export function AppRoot() {
 
   return (
     <PrivyProviderBoundary config={publicConfig.config}>
-      <AuthRuntime />
+      <AuthRuntime publicWebOrigin={publicConfig.config.publicWebOrigin} />
     </PrivyProviderBoundary>
   );
 }
 
-function AuthRuntime() {
+function AuthRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
   const { getAccessToken, logout } = usePrivy();
   const { login } = useLogin();
   const workflow = useMemo(
@@ -50,12 +50,12 @@ function AuthRuntime() {
 
   return (
     <AuthProvider workflow={workflow}>
-      <AuthGateRuntime />
+      <AuthGateRuntime publicWebOrigin={publicWebOrigin} />
     </AuthProvider>
   );
 }
 
-function AuthGateRuntime() {
+function AuthGateRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
   const state = useAuthState();
   const actions = useAuthActions();
   const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
@@ -66,9 +66,9 @@ function AuthGateRuntime() {
     holdingsLoader: createDefaultDashboardHoldingsLoader(),
     kycLoader: createDefaultDashboardKycLoader(),
     nicknameRepository: createDefaultNicknameRepository(),
-    pointsLoader: createDefaultDashboardPointsLoader(),
     profileLoader: createDefaultDashboardProfileLoader(),
   }), []);
+  const rewardsDependencies = useMemo(() => createDefaultRewardsServices(), []);
 
   useEffect(() => {
     const adapter = createLinkingAdapter({
@@ -95,6 +95,8 @@ function AuthGateRuntime() {
       assetPageLoader={assetPageLoader}
       dashboardDependencies={dashboardDependencies}
       externalLinkAdapter={externalLinkAdapter}
+      publicWebOrigin={publicWebOrigin}
+      rewardsDependencies={rewardsDependencies}
       state={state}
     />
   );

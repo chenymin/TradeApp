@@ -37,12 +37,10 @@ import type {
 import type { NicknameRepository } from "../services/nicknameRepository";
 import { createNicknameUpdater } from "../services/nicknameUpdater";
 import type { DashboardCommissionResult } from "../services/dashboardCommissionRepository";
-import type { DashboardPointTransaction } from "../services/dashboardPointsRepository";
 
-type DashboardTab = "holdings" | "points" | "transactions";
+type DashboardTab = "holdings" | "transactions";
 type DashboardRow =
   | { id: string; kind: "holding"; value: DashboardHolding }
-  | { id: string; kind: "point"; value: DashboardPointTransaction }
   | { id: string; kind: "transaction"; value: DashboardTransaction };
 
 type HoldingsResult = NonNullable<Awaited<ReturnType<DashboardHoldingsLoader>>>;
@@ -52,14 +50,12 @@ export type DashboardDataDependencies = {
   holdingsLoader: DashboardHoldingsLoader;
   kycLoader(state: DashboardViewerState): Promise<DashboardKycSummary | null>;
   nicknameRepository: NicknameRepository;
-  pointsLoader(state: DashboardViewerState): Promise<DashboardPointTransaction[] | null>;
   profileLoader: DashboardProfileLoader;
 };
 
 const TABS = [
   { label: "Holdings", value: "holdings" },
   { label: "Transactions", value: "transactions" },
-  { label: "Points", value: "points" },
 ] satisfies Array<{ label: string; value: DashboardTab }>;
 
 export function DashboardScreen({
@@ -68,7 +64,6 @@ export function DashboardScreen({
   holdingsLoader,
   kycLoader,
   nicknameRepository,
-  pointsLoader,
   profileLoader,
   viewerState,
 }: DashboardDataDependencies & {
@@ -79,7 +74,6 @@ export function DashboardScreen({
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [holdings, setHoldings] = useState<HoldingsResult | null>(null);
   const [kyc, setKyc] = useState<DashboardKycSummary | null>(null);
-  const [points, setPoints] = useState<DashboardPointTransaction[] | null>(null);
   const [commission, setCommission] = useState<DashboardCommissionResult | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [errors, setErrors] = useState<string[]>([]);
@@ -94,7 +88,6 @@ export function DashboardScreen({
       setProfile(null);
       setHoldings(null);
       setKyc(null);
-      setPoints(null);
       setCommission(null);
       return;
     }
@@ -104,13 +97,11 @@ export function DashboardScreen({
       profileResult,
       holdingsResult,
       kycResult,
-      pointsResult,
       commissionResult,
     ] = await Promise.allSettled([
       profileLoader(viewerState),
       holdingsLoader(viewerState),
       kycLoader(viewerState),
-      pointsLoader(viewerState),
       commissionLoader(viewerState),
     ]);
     const nextErrors: string[] = [];
@@ -136,13 +127,6 @@ export function DashboardScreen({
       nextErrors.push("KYC status unavailable");
     }
 
-    if (pointsResult.status === "fulfilled") {
-      setPoints(pointsResult.value);
-    } else {
-      setPoints(null);
-      nextErrors.push("Points history unavailable");
-    }
-
     if (commissionResult.status === "fulfilled") {
       setCommission(commissionResult.value);
     } else {
@@ -156,7 +140,6 @@ export function DashboardScreen({
     commissionLoader,
     holdingsLoader,
     kycLoader,
-    pointsLoader,
     profileLoader,
     viewerState,
   ]);
@@ -225,17 +208,11 @@ export function DashboardScreen({
       kind: "holding" as const,
       value,
     }))
-    : tab === "transactions"
-      ? (holdings?.transactions ?? []).map((value) => ({
-        id: value.id,
-        kind: "transaction" as const,
-        value,
-      }))
-      : (points ?? []).map((value) => ({
-        id: value.id,
-        kind: "point" as const,
-        value,
-      }));
+    : (holdings?.transactions ?? []).map((value) => ({
+      id: value.id,
+      kind: "transaction" as const,
+      value,
+    }));
 
   return (
     <View
@@ -255,17 +232,13 @@ export function DashboardScreen({
                 ? "Loading dashboard..."
                 : tab === "holdings"
                   ? "No holdings yet"
-                  : tab === "transactions"
-                    ? "No transactions yet"
-                    : "No point activity yet"}
+                  : "No transactions yet"}
             </AppText>
             {status !== "loading" ? (
               <AppText variant="caption">
                 {tab === "holdings"
                   ? "Assets appear after an indexed purchase and a positive chain balance."
-                  : tab === "transactions"
-                    ? "Indexed purchases will appear here."
-                    : "Point awards and adjustments will appear here."}
+                  : "Indexed purchases will appear here."}
               </AppText>
             ) : null}
           </View>
@@ -356,12 +329,12 @@ export function DashboardScreen({
         refreshing={status === "loading"}
         renderItem={({ item }) => item.kind === "holding"
           ? <HoldingRow holding={item.value} />
-          : item.kind === "transaction" ? (
+          : (
             <TransactionRow
               externalLinkAdapter={externalLinkAdapter}
               transaction={item.value}
             />
-          ) : <PointRow transaction={item.value} />}
+          )}
         style={styles.list}
       />
     </View>
@@ -429,29 +402,6 @@ function TransactionRow({
   );
 }
 
-function PointRow({ transaction }: { transaction: DashboardPointTransaction }) {
-  return (
-    <View accessibilityLabel={`Point transaction ${transaction.id}`} style={styles.row}>
-      <View style={styles.rowIdentity}>
-        <AppText style={styles.rowTitle}>{pointTypeLabel(transaction.pointType)}</AppText>
-        <AppText variant="caption">{transaction.source ?? "Activity"}</AppText>
-        <AppText variant="caption">{dateLabel(transaction.createdAt)}</AppText>
-      </View>
-      <View style={styles.rowNumbers}>
-        <AppText style={isNegative(transaction.amount)
-          ? styles.negative
-          : styles.positive}
-        >
-          {signedPoints(transaction.amount)}
-        </AppText>
-        <AppText variant="caption">
-          Balance {displayNumber(transaction.balanceAfter, 2)}
-        </AppText>
-      </View>
-    </View>
-  );
-}
-
 function money(value: string): string {
   return `$${displayNumber(value, 2)}`;
 }
@@ -462,10 +412,6 @@ function signedMoney(value: string): string {
 
 function signedPercent(value: string): string {
   return `${isNegative(value) ? "" : "+"}${displayNumber(value, 2)}%`;
-}
-
-function signedPoints(value: string): string {
-  return `${isNegative(value) ? "" : "+"}${displayNumber(value, 2)}`;
 }
 
 function quantity(value: string): string {
@@ -496,14 +442,6 @@ function kycLabel(summary: DashboardKycSummary | null): string {
 function commissionLabel(result: DashboardCommissionResult | null): string {
   if (!result || result.status === "unavailable") return "Unavailable";
   return `${money(result.summary.lifetimeTotalUsdt)} lifetime`;
-}
-
-function pointTypeLabel(value: string): string {
-  if (value === "trading") return "Trading points";
-  if (value === "referral") return "Referral points";
-  if (value === "reputation") return "Reputation points";
-  if (value === "task") return "Task points";
-  return "Points";
 }
 
 function dateLabel(value: string | null): string {
@@ -563,11 +501,6 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
   },
-  negative: {
-    color: colors.danger,
-    fontSize: 17,
-    fontWeight: "800",
-  },
   negativeSmall: {
     color: colors.danger,
     fontSize: 12,
@@ -591,11 +524,6 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: 0,
     paddingVertical: spacing.xs,
-  },
-  positive: {
-    color: colors.primary,
-    fontSize: 17,
-    fontWeight: "800",
   },
   positiveSmall: {
     color: colors.primary,

@@ -58,7 +58,7 @@ describe("DashboardScreen", () => {
     );
   });
 
-  it("shows commission summary and recent point transactions", async () => {
+  it("keeps the commission summary without duplicating reward point history", async () => {
     const dependencies = createDependencies();
     let renderer: ReactTestRenderer | undefined;
 
@@ -70,15 +70,8 @@ describe("DashboardScreen", () => {
     });
 
     expect(JSON.stringify(renderer?.toJSON())).toContain("$12.50 lifetime");
-
-    await act(async () => {
-      renderer!.root.findByProps({ accessibilityLabel: "Points" }).props.onPress();
-    });
-    const output = JSON.stringify(renderer?.toJSON());
-    expect(output).toContain("Trading points");
-    expect(output).toContain("-2.50");
-    expect(output).toContain("Balance ");
-    expect(output).toContain("10.25");
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Points" })).toHaveLength(0);
+    expect(JSON.stringify(renderer?.toJSON())).not.toContain("Trading points");
   });
 
   it("edits the nickname without action buttons and saves once", async () => {

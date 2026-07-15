@@ -10,6 +10,7 @@ import {
 import type { PublicAssetPageLoader, PublicAssetSummary } from "../../../features/assets/domain/assetModels";
 import type { AssetDetailLoader } from "../../../features/assets/domain/assetDetailModels";
 import { toAssetDetailReadModel } from "../../../features/assets/domain/assetDetailMappers";
+import type { RewardsDataDependencies } from "../../../features/referral/screens/RewardsScreen";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -117,6 +118,33 @@ describe("AppNavigator", () => {
       selected: true,
     });
     expect(JSON.stringify(renderer.toJSON())).toContain("Wallet");
+  });
+
+  it("requires login before opening My Rewards from the public profile", async () => {
+    const actions = createActions();
+    const rewardsDependencies = createRewardsDependencies();
+    let testRenderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      testRenderer = TestRenderer.create(
+        <AppNavigator
+          actions={actions}
+          initialRouteName="profile"
+          rewardsDependencies={rewardsDependencies}
+          state={{ status: "logged_out" }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      testRenderer!.root.findByProps({ accessibilityLabel: "Profile item 邀请好友" })
+        .props.onPress();
+    });
+
+    expect(actions.login).toHaveBeenCalledOnce();
+    expect(rewardsDependencies.rewardsProfileRepository.fetchProfile)
+      .not.toHaveBeenCalled();
+    expect(JSON.stringify(testRenderer?.toJSON())).not.toContain("My Rewards");
   });
 
   it("falls back to Launchpad when logged out users start on a protected tab", async () => {
@@ -261,6 +289,31 @@ describe("AppNavigator", () => {
     expect(output).not.toContain("Feature placeholder");
   });
 
+  it("renders the protected My Rewards route with real reward dependencies", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    let testRenderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      testRenderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="referral"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={rewardsDependencies}
+          state={authenticatedState()}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    const output = JSON.stringify(testRenderer?.toJSON());
+    expect(output).toContain("My Rewards");
+    expect(output).toContain("150");
+    expect(output).not.toContain("Feature placeholder");
+    expect(rewardsDependencies.rewardsProfileRepository.fetchProfile)
+      .toHaveBeenCalledWith("viewer-1");
+  });
+
   it("offers a working re-login action for an upgraded legacy session", async () => {
     const actions = createActions();
     let testRenderer: ReactTestRenderer | undefined;
@@ -368,7 +421,7 @@ describe("AppNavigator", () => {
     expect(actions.logout).toHaveBeenCalledOnce();
   });
 
-  it("opens an invite friend sheet from profile", async () => {
+  it("opens My Rewards from profile and uses only the real invite values", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -376,6 +429,8 @@ describe("AppNavigator", () => {
         <AppNavigator
           actions={createActions()}
           initialRouteName="profile"
+          publicWebOrigin="https://test.artstarex.com"
+          rewardsDependencies={createRewardsDependencies()}
           state={authenticatedState()}
         />,
       );
@@ -388,6 +443,13 @@ describe("AppNavigator", () => {
 
     await act(async () => {
       renderer.root.findByProps({ accessibilityLabel: "Profile item 邀请好友" }).props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(JSON.stringify(renderer.toJSON())).toContain("My Rewards");
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Open invite options" }).props.onPress();
     });
 
     expect(renderer.root.findByProps({ accessibilityLabel: "Invite friends overlay" }).props.style).toMatchObject({
@@ -398,8 +460,10 @@ describe("AppNavigator", () => {
     });
     expect(JSON.stringify(renderer.toJSON())).toContain("Invite friends");
     expect(JSON.stringify(renderer.toJSON())).toContain(
-      "https://app.mytrade.local/register?ref=DEMO-CODE&type=investor",
+      "https://test.artstarex.com/register?ref=REAL-CODE&type=investor",
     );
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("DEMO-CODE");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("app.mytrade.local");
   });
 
   it("renders the account disabled screen for disabled accounts", () => {
@@ -441,6 +505,34 @@ function createActions() {
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
     restoreSession: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createRewardsDependencies(): RewardsDataDependencies {
+  return {
+    fetchAccessToken: vi.fn().mockResolvedValue("access-token"),
+    kycLoader: vi.fn().mockResolvedValue({
+      approved: true,
+      notes: null,
+      reasonCode: null,
+      reviewedAt: null,
+      status: "approved",
+    }),
+    pointLedgerRepository: { fetchRecent: vi.fn().mockResolvedValue([]) },
+    referralRecordsClient: { fetchRecords: vi.fn().mockResolvedValue([]) },
+    rewardsProfileRepository: {
+      fetchProfile: vi.fn().mockResolvedValue({
+        id: "viewer-1",
+        inviteCode: "REAL-CODE",
+        referralPoints: 40,
+        reputationPoints: 30,
+        taskPoints: 20,
+        tier: "D",
+        totalPoints: 150,
+        tradingPoints: 60,
+        userType: "investor",
+      }),
+    },
   };
 }
 
