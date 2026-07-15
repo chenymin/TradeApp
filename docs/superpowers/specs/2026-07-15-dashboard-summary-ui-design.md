@@ -26,6 +26,19 @@ The five current summary values are reorganized as follows:
 
 Each metric includes a Lucide icon, concise label, and value. Tiles use the existing 8 px maximum radius, theme colors, and stable minimum heights. The grid remains two columns on supported phone widths and allows long values to wrap without overlapping adjacent content.
 
+## Nickname Editing
+
+Nickname editing uses a compact inline input without visible Save or Cancel buttons.
+
+- Tapping the nickname opens the input with the current nickname selected.
+- Pressing the keyboard Done action or moving focus outside the input attempts one save.
+- Submitting an unchanged value exits editing without calling the nickname RPC.
+- A changed valid value continues through the existing `update_my_nickname` repository and profile refresh workflow.
+- Validation or repository failure keeps the input visible and shows the existing inline error below it.
+- Concurrent blur and submit events must not issue duplicate nickname writes.
+
+This change affects only the editor interaction. Nickname validation, the RPC boundary, profile refresh, and viewer authorization remain unchanged.
+
 ## Components
 
 - `DashboardScreen` continues to own loading and tab state.
@@ -47,6 +60,7 @@ The UI consumes the same `profile`, `holdings`, `kyc`, and `commission` state al
 ## Verification
 
 - Add a failing component test for the four primary metric tiles and separate commission summary.
+- Add a failing interaction test proving the nickname editor has no action buttons and saves once on blur or keyboard submission.
 - Preserve tests for loading, tabs, explorer URLs, session gating, points, and commission values.
 - Run the Dashboard and navigation test suites, full source tests, TypeScript typecheck, AI Delivery audit, and diff whitespace validation.
 - Inspect the rendered layout at narrow and standard phone widths to confirm no overlap, truncation, or layout shift.
@@ -57,4 +71,6 @@ The UI consumes the same `profile`, `holdings`, `kyc`, and `commission` state al
 - Portfolio value is the strongest first-viewport metric.
 - The four primary metrics are visible without horizontal scrolling.
 - Commission remains visible but visually secondary.
+- Nickname editing has no visible Save or Cancel buttons.
+- A changed nickname saves once on Done or focus loss; an unchanged nickname exits without a write.
 - Existing Dashboard business behavior and security boundaries are unchanged.
