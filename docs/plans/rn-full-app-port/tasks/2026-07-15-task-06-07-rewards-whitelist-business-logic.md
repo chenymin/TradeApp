@@ -596,7 +596,7 @@ src/features/kyc/
 **Files:** `src/features/referral/components/*`、`src/features/referral/screens/RewardsScreen.tsx`、navigation wiring、tests。
 
 - [x] 先写 screen tests，覆盖四类积分、KYC gate、Referral / Points / Commission 安全状态切换和独立错误恢复。
-- [x] 复用已测试的邀请类型选择、复制和系统分享；只有 KYC approved、邀请码和安全 public origin 同时存在时才能打开。
+- [x] 将 Rewards 作为 Dashboard sibling tab；邀请入口不放在 Rewards 内，Profile 的“邀请好友”命令只有在 KYC approved、邀请码和安全 public origin 同时存在时才打开原生邀请 sheet。
 - [x] 使用单一 `FlatList` 实现 Referral / Point ledger 虚拟化列表及 loading / empty / error / retry；Commission 在授权修复前固定显示 unavailable 且不发请求。
 - [x] 实现 tier benefits；unknown tier 不继承权益。
 - [x] 将 Dashboard 的 Points 列表移入 Rewards，Dashboard 保留 points summary，避免重复内容和重复查询。
@@ -604,7 +604,7 @@ src/features/kyc/
 
 验收：一个 section 失败不隐藏其他 section；无未虚拟化长列表；未通过 KYC 不能打开邀请链接选择，但可进入 Whitelist。
 
-**2026-07-15 可验证状态：** 代码、测试、TypeScript、AI Delivery audit 和 iOS production bundle 已通过，证据见 `docs/ai-delivery/runs/2026-07-15-task-06b-rewards-ui-verification.md`。项目当前未安装 Expo Web 渲染依赖，因此浏览器只能返回原生 manifest，不能替代 iOS / Android 视觉 QA。Commission view 授权门禁和正式 `EXPO_PUBLIC_WEB_ORIGIN` 仍保持关闭。
+**2026-07-15 可验证状态：** Rewards 已嵌入 Dashboard，Profile 邀请命令、路由 alias、测试、TypeScript 和 iOS production export 已通过。退出登录或切换 viewer 会重新建立导航私有状态，避免上一账号的邀请码弹层或异步数据残留。最新证据见 `docs/ai-delivery/runs/2026-07-15-task-06b-7a-dashboard-tabs-verification.md`。iOS Simulator Release 构建成功，但本机 Pods 的源码 / 预编译依赖图不一致导致安装后的 app 缺少 `ReactNativeDependencies.framework`，因此本轮不声明真机视觉 QA 通过。Commission view 授权门禁和正式 `EXPO_PUBLIC_WEB_ORIGIN` 仍保持关闭。
 
 ### Task 6C：Payout confirmation controlled write
 
@@ -622,13 +622,15 @@ src/features/kyc/
 
 **Files:** `src/features/kyc/domain/*`、`kycRepository.ts`、`kycApplicantDetailsClient.ts`、KYC screen/components、tests。
 
-- [ ] 用失败测试固定六种状态、动作可见性、review date 和 permanent 显示。
-- [ ] 实现最新状态读取，query error 不映射为 not started。
-- [ ] approved 时按需读取 identity details，局部错误不改变 approved。
-- [ ] 实现默认证件号掩码和 logout / blur cache cleanup。
-- [ ] 接入 Dashboard KYC summary 到 `kyc` route。
+- [x] 用失败测试固定六种状态、只读动作边界、review date 和 permanent 显示。
+- [x] 复用最新 KYC summary 读取，query error 映射为 unavailable，不映射为 not started。
+- [x] approved 时按需读取 identity details，局部错误不改变 approved。
+- [x] 实现默认证件号掩码，并在 tab unmount、viewer 切换和 session 退出时清除组件内身份状态。
+- [x] 将 Whitelist 接入 Dashboard sibling tab，并让 `kyc` route alias 直接选择该 tab。
 
 验收：未 approved 不调用 details；敏感字段无日志 / 持久化 / 复制；rejected 和 under_review 不显示 start。
+
+**2026-07-15 可验证状态：** Task 7A 只读能力已完成；`kyc-applicant-details` 只发送当前 bearer access token 和空 JSON body，不发送 user id。证件号只以掩码形式展示，原始 identity 仅保存在组件内存。Task 7B start / resume launcher 未实现，真机小屏视觉 QA 仍待完成。
 
 ### Task 7B：KYC launcher and return refresh
 
