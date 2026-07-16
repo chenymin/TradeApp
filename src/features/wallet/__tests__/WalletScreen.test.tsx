@@ -103,9 +103,9 @@ describe("WalletScreen", () => {
     const dependencies = walletDependencies();
     const renderer = await renderWallet({ dependencies });
 
-    expect(renderer.root.find((node) => (
+    expect(renderer.root.findAll((node) => (
       String(node.type) === "QRCodeStyled" && node.props.data === address(8)
-    ))).toBeTruthy();
+    ))).toHaveLength(2);
     expect(renderer.root.findByProps({ accessibilityLabel: `Receive address ${address(8)}` })
       .props.selectable).toBe(true);
 
@@ -125,6 +125,32 @@ describe("WalletScreen", () => {
       message: `Receive on ${CHAIN.name} only.\n${address(8)}`,
       title: "Receive BNB wallet assets",
     });
+  });
+
+  it("shares a branded receive card without financial or identity metadata", async () => {
+    const dependencies = walletDependencies({
+      artDiscoveryStatus: "ready",
+      rows: [ready("native:97", "native", "BNB", "12345", null)],
+    });
+    const renderer = await renderWallet({ dependencies });
+    const shareCard = renderer.root.findByProps({
+      accessibilityLabel: "Wallet receive share card",
+    });
+    const shareText = instanceText(shareCard);
+
+    expect(shareText).toContain("ArtStar");
+    expect(shareText).toContain(CHAIN.name);
+    expect(shareText).toContain(address(8));
+    expect(shareText).not.toContain("12345");
+    expect(shareText).not.toContain("viewer-1");
+    expect(shareText).not.toContain("viewer@example.com");
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Share wallet address as image" })
+        .props.onPress();
+      await Promise.resolve();
+    });
+    expect(dependencies.imageShare.share).toHaveBeenCalledOnce();
   });
 });
 
@@ -160,9 +186,16 @@ function walletDependencies(
 ): WalletDataDependencies {
   return {
     clipboard: { setString: vi.fn().mockResolvedValue(undefined) },
+    imageShare: { share: vi.fn().mockResolvedValue("shared") },
     loadBalances: vi.fn().mockResolvedValue(result),
     textShare: { share: vi.fn().mockResolvedValue("shared") },
   };
+}
+
+function instanceText(node: TestRenderer.ReactTestInstance): string {
+  return node.children.map((child) => (
+    typeof child === "string" ? child : instanceText(child)
+  )).join("");
 }
 
 function ready(

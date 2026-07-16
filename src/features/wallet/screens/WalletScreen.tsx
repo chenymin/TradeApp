@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -15,9 +15,11 @@ import {
 } from "../components/WalletBalanceSection";
 import { WalletIdentitySection } from "../components/WalletIdentitySection";
 import { WalletReceiveSection } from "../components/WalletReceiveSection";
+import { WalletReceiveShareCard } from "../components/WalletReceiveShareCard";
 import { mapWalletIdentity } from "../domain/walletIdentity";
 import type { PrivyWalletMetadata } from "../domain/walletModels";
 import type { WalletBalanceLoader } from "../services/walletBalanceLoader";
+import type { WalletImageShareAdapter } from "../services/walletImageShareAdapter";
 import type {
   WalletClipboardAdapter,
   WalletTextShareAdapter,
@@ -25,12 +27,14 @@ import type {
 
 export type WalletDataDependencies = {
   clipboard: WalletClipboardAdapter;
+  imageShare: WalletImageShareAdapter;
   loadBalances: WalletBalanceLoader;
   textShare: WalletTextShareAdapter;
 };
 
 const EMPTY_DEPENDENCIES: WalletDataDependencies = {
   clipboard: { async setString() {} },
+  imageShare: { async share() { return "unavailable"; } },
   async loadBalances() {
     return { artDiscoveryStatus: "ready", rows: [] };
   },
@@ -49,6 +53,7 @@ export function WalletScreen({
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
 }) {
   const { width } = useWindowDimensions();
+  const receiveShareRef = useRef<View>(null);
   const identity = useMemo(
     () => mapWalletIdentity(viewerState.viewer, privyWalletMetadata),
     [privyWalletMetadata, viewerState.viewer],
@@ -131,9 +136,21 @@ export function WalletScreen({
             address={identity.activeAddress}
             chain={chain}
             clipboard={dependencies.clipboard}
+            onShareImage={() => dependencies.imageShare.share(receiveShareRef)}
             textShare={dependencies.textShare}
           />
         </View>
+      </View>
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.captureHost}
+      >
+        <WalletReceiveShareCard
+          address={identity.activeAddress}
+          chain={chain}
+          ref={receiveShareRef}
+        />
       </View>
     </ScrollView>
   );
@@ -145,6 +162,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+  },
+  captureHost: {
+    left: -10000,
+    position: "absolute",
+    top: 0,
   },
   column: {
     flex: 1,

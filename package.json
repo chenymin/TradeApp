@@ -83,8 +83,10 @@
     "expo-clipboard": "~57.0.0",
     "expo-crypto": "~57.0.0",
     "expo-dev-client": "~57.0.4",
+    "expo-file-system": "~57.0.0",
     "expo-linking": "~57.0.1",
     "expo-secure-store": "~57.0.0",
+    "expo-sharing": "~57.0.1",
     "expo-status-bar": "~57.0.0",
     "expo-web-browser": "~57.0.0",
     "fast-text-encoding": "^1.0.6",
@@ -97,6 +99,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-svg": "15.15.4",
     "react-native-url-polyfill": "^3.0.0",
+    "react-native-view-shot": "5.1.0",
     "react-native-webview": "^14.0.1",
     "viem": "^2.52.0"
   },
