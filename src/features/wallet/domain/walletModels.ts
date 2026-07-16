@@ -21,3 +21,14 @@ export type WalletIdentity = {
     status: WalletLinkStatus;
   }>;
 };
+
+export type WalletAssetContract = {
+  address: `0x${string}`;
+  id: string;
+  imageUrl: string | null;
+  symbol: string;
+};
+
+export type WalletAssetContractRepository = {
+  fetchByChain(chainId: 56 | 97): Promise<WalletAssetContract[]>;
+};
