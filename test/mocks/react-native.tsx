@@ -77,6 +77,8 @@ export const StyleSheet = {
 };
 
 export const Share = {
+  dismissedAction: "dismissedAction",
+  sharedAction: "sharedAction",
   share: async () => ({ action: "sharedAction" }),
 };
 

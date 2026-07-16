@@ -98,6 +98,34 @@ describe("WalletScreen", () => {
       ]));
     vi.restoreAllMocks();
   });
+
+  it("renders the authoritative address in QR, copy, and text share actions", async () => {
+    const dependencies = walletDependencies();
+    const renderer = await renderWallet({ dependencies });
+
+    expect(renderer.root.find((node) => (
+      String(node.type) === "QRCodeStyled" && node.props.data === address(8)
+    ))).toBeTruthy();
+    expect(renderer.root.findByProps({ accessibilityLabel: `Receive address ${address(8)}` })
+      .props.selectable).toBe(true);
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Copy wallet address" })
+        .props.onPress();
+      await Promise.resolve();
+    });
+    expect(dependencies.clipboard.setString).toHaveBeenCalledWith(address(8));
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Share wallet address as text" })
+        .props.onPress();
+      await Promise.resolve();
+    });
+    expect(dependencies.textShare.share).toHaveBeenCalledWith({
+      message: `Receive on ${CHAIN.name} only.\n${address(8)}`,
+      title: "Receive BNB wallet assets",
+    });
+  });
 });
 
 async function renderWallet({
@@ -130,7 +158,11 @@ async function renderWallet({
 function walletDependencies(
   result: WalletBalanceLoadResult = { artDiscoveryStatus: "ready", rows: [] },
 ): WalletDataDependencies {
-  return { loadBalances: vi.fn().mockResolvedValue(result) };
+  return {
+    clipboard: { setString: vi.fn().mockResolvedValue(undefined) },
+    loadBalances: vi.fn().mockResolvedValue(result),
+    textShare: { share: vi.fn().mockResolvedValue("shared") },
+  };
 }
 
 function ready(

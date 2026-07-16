@@ -14,18 +14,27 @@ import {
   type WalletLoadState,
 } from "../components/WalletBalanceSection";
 import { WalletIdentitySection } from "../components/WalletIdentitySection";
+import { WalletReceiveSection } from "../components/WalletReceiveSection";
 import { mapWalletIdentity } from "../domain/walletIdentity";
 import type { PrivyWalletMetadata } from "../domain/walletModels";
 import type { WalletBalanceLoader } from "../services/walletBalanceLoader";
+import type {
+  WalletClipboardAdapter,
+  WalletTextShareAdapter,
+} from "../workflow/walletReceiveActions";
 
 export type WalletDataDependencies = {
+  clipboard: WalletClipboardAdapter;
   loadBalances: WalletBalanceLoader;
+  textShare: WalletTextShareAdapter;
 };
 
 const EMPTY_DEPENDENCIES: WalletDataDependencies = {
+  clipboard: { async setString() {} },
   async loadBalances() {
     return { artDiscoveryStatus: "ready", rows: [] };
   },
+  textShare: { async share() { return "cancelled"; } },
 };
 
 export function WalletScreen({
@@ -118,12 +127,12 @@ export function WalletScreen({
             onRefresh={() => setRequestVersion((value) => value + 1)}
             state={loadState}
           />
-          <View style={styles.receivePreview}>
-            <AppText style={styles.sectionHeading} variant="body">Receive</AppText>
-            <AppText numberOfLines={1} variant="caption">
-              {identity.activeAddress}
-            </AppText>
-          </View>
+          <WalletReceiveSection
+            address={identity.activeAddress}
+            chain={chain}
+            clipboard={dependencies.clipboard}
+            textShare={dependencies.textShare}
+          />
         </View>
       </View>
     </ScrollView>
@@ -153,17 +162,9 @@ const styles = StyleSheet.create({
   phoneLayout: {
     flexDirection: "column",
   },
-  receivePreview: {
-    backgroundColor: colors.surface,
-    gap: spacing.sm,
-    padding: spacing.md,
-  },
   scrollContent: {
     gap: spacing.lg,
     padding: spacing.lg,
-  },
-  sectionHeading: {
-    fontWeight: "800",
   },
   titleRow: {
     alignItems: "center",

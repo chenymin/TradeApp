@@ -15,6 +15,8 @@ function createIcon(testID: string): LucideIcon {
 }
 
 export const Home = createIcon("lucide-home");
+export const Copy = createIcon("lucide-copy");
+export const Image = createIcon("lucide-image");
 export const LayoutDashboard = createIcon("lucide-layout-dashboard");
 export const LayoutGrid = createIcon("lucide-layout-grid");
 export const LogIn = createIcon("lucide-log-in");
