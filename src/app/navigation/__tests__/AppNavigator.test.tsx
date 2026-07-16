@@ -470,6 +470,34 @@ describe("AppNavigator", () => {
     expect(actions.logout).toHaveBeenCalledOnce();
   });
 
+  it("shows a stable skeleton while invite details are loading", async () => {
+    const rewardsDependencies = createRewardsDependencies();
+    rewardsDependencies.rewardsProfileRepository.fetchProfile = vi.fn()
+      .mockReturnValue(new Promise<never>(() => undefined));
+    const renderer = await renderProfile({
+      publicWebOrigin: "https://test.artstarex.com",
+      rewardsDependencies,
+    });
+
+    await act(async () => {
+      renderer.root.findByProps({ accessibilityLabel: "Profile item 邀请好友" })
+        .props.onPress();
+      await Promise.resolve();
+    });
+
+    const skeleton = renderer.root.findByProps({
+      accessibilityLabel: "Loading invite details",
+    });
+    expect(skeleton.props.accessibilityRole).toBe("progressbar");
+    expect(skeleton.props.style).toMatchObject({ minHeight: 64 });
+    expect(renderer.root.findByProps({ testID: "invite-loading-primary" }))
+      .toBeTruthy();
+    expect(renderer.root.findByProps({ testID: "invite-loading-secondary" }))
+      .toBeTruthy();
+    expect(renderer.root.findAllByProps({ accessibilityLabel: "Invite command status" }))
+      .toHaveLength(0);
+  });
+
   it("opens the invite sheet directly from Profile with real values", async () => {
     let testRenderer: ReactTestRenderer | undefined;
 
