@@ -30,7 +30,10 @@ import type { DashboardTab } from "../../features/dashboard/components/Dashboard
 import {
   EMPTY_PRIVY_WALLET_METADATA,
 } from "../../features/wallet/domain/walletIdentity";
-import type { PrivyWalletMetadata } from "../../features/wallet/domain/walletModels";
+import type {
+  PrivyWalletMetadata,
+  WalletDataDependencies,
+} from "../../features/wallet/domain/walletModels";
 import { WalletScreen } from "../../features/wallet/screens/WalletScreen";
 import {
   getPublicChainConfig,
@@ -72,6 +75,7 @@ export function AppNavigator({
   publicWebOrigin,
   rewardsDependencies,
   state,
+  walletDependencies,
   walletChain = getPublicChainConfig(97),
 }: {
   actions: AuthProviderActions;
@@ -86,6 +90,7 @@ export function AppNavigator({
   state: AuthDisplayState & Partial<
     Pick<AuthProviderState, "isSessionReady" | "viewer">
   >;
+  walletDependencies?: WalletDataDependencies;
   walletChain?: PublicChainConfig;
 }) {
   if (state.status === "restoring_session") {
@@ -151,6 +156,7 @@ export function AppNavigator({
           isSessionReady: state.isSessionReady === true,
           viewer: state.viewer ?? null,
         }}
+        walletDependencies={walletDependencies}
         walletChain={walletChain}
       />
     );
@@ -176,6 +182,7 @@ export function AppNavigator({
       publicWebOrigin={publicWebOrigin}
       rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
       viewerState={{ isSessionReady: false, viewer: null }}
+      walletDependencies={undefined}
       walletChain={walletChain}
     />
   );
@@ -196,6 +203,7 @@ function MainTabs({
   publicWebOrigin,
   rewardsDependencies,
   viewerState,
+  walletDependencies,
   walletChain,
 }: {
   activeRouteName: MainTabRouteName;
@@ -212,6 +220,7 @@ function MainTabs({
   publicWebOrigin?: string;
   rewardsDependencies: RewardsDataDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
+  walletDependencies?: WalletDataDependencies;
   walletChain: PublicChainConfig;
 }) {
   const [currentRouteName, setCurrentRouteName] =
@@ -310,6 +319,7 @@ function MainTabs({
       {detailRoute?.kind === "wallet" ? (
         <WalletScreen
           chain={walletChain}
+          dependencies={walletDependencies}
           privyWalletMetadata={privyWalletMetadata}
           viewerState={viewerState}
         />

@@ -17,20 +17,12 @@ import { WalletIdentitySection } from "../components/WalletIdentitySection";
 import { WalletReceiveSection } from "../components/WalletReceiveSection";
 import { WalletReceiveShareCard } from "../components/WalletReceiveShareCard";
 import { mapWalletIdentity } from "../domain/walletIdentity";
-import type { PrivyWalletMetadata } from "../domain/walletModels";
-import type { WalletBalanceLoader } from "../services/walletBalanceLoader";
-import type { WalletImageShareAdapter } from "../services/walletImageShareAdapter";
 import type {
-  WalletClipboardAdapter,
-  WalletTextShareAdapter,
-} from "../workflow/walletReceiveActions";
+  PrivyWalletMetadata,
+  WalletDataDependencies,
+} from "../domain/walletModels";
 
-export type WalletDataDependencies = {
-  clipboard: WalletClipboardAdapter;
-  imageShare: WalletImageShareAdapter;
-  loadBalances: WalletBalanceLoader;
-  textShare: WalletTextShareAdapter;
-};
+export type { WalletDataDependencies } from "../domain/walletModels";
 
 const EMPTY_DEPENDENCIES: WalletDataDependencies = {
   clipboard: { async setString() {} },

@@ -47,3 +47,23 @@ export type WalletBalanceLoadResult = {
   artDiscoveryStatus: "ready" | "unavailable";
   rows: WalletBalanceRow[];
 };
+
+export type WalletDataDependencies = {
+  clipboard: {
+    setString(value: string): Promise<void>;
+  };
+  imageShare: {
+    share(target: { current: unknown }): Promise<"shared" | "unavailable">;
+  };
+  loadBalances(input: {
+    address: `0x${string}`;
+    chain: PublicChainConfig;
+  }): Promise<WalletBalanceLoadResult>;
+  textShare: {
+    share(input: {
+      message: string;
+      title: string;
+    }): Promise<"cancelled" | "shared">;
+  };
+};
+import type { PublicChainConfig } from "../../../lib/chain/publicChainRegistry";

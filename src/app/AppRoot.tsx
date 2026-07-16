@@ -27,6 +27,7 @@ import {
 } from "../features/dashboard/services/createDefaultDashboardServices";
 import { createDefaultRewardsServices } from "../features/referral/services/createDefaultRewardsServices";
 import { mapPrivyWalletMetadata } from "../features/wallet/domain/walletIdentity";
+import { createDefaultWalletServices } from "../features/wallet/services/createDefaultWalletServices";
 import {
   getPublicChainConfig,
   type PublicChainConfig,
@@ -69,6 +70,10 @@ function AuthRuntime({
     () => mapPrivyWalletMetadata(user),
     [user],
   );
+  const walletDependencies = useMemo(
+    () => createDefaultWalletServices(walletChain),
+    [walletChain],
+  );
   const workflow = useMemo(
     () => createRuntimeAuthWorkflow({ getAccessToken, login, logout }),
     [getAccessToken, login, logout],
@@ -79,6 +84,7 @@ function AuthRuntime({
       <AuthGateRuntime
         privyWalletMetadata={privyWalletMetadata}
         publicWebOrigin={publicWebOrigin}
+        walletDependencies={walletDependencies}
         walletChain={walletChain}
       />
     </AuthProvider>
@@ -88,10 +94,12 @@ function AuthRuntime({
 function AuthGateRuntime({
   privyWalletMetadata,
   publicWebOrigin,
+  walletDependencies,
   walletChain,
 }: {
   privyWalletMetadata: ReturnType<typeof mapPrivyWalletMetadata>;
   publicWebOrigin?: string;
+  walletDependencies: ReturnType<typeof createDefaultWalletServices>;
   walletChain: PublicChainConfig;
 }) {
   const state = useAuthState();
@@ -139,6 +147,7 @@ function AuthGateRuntime({
       publicWebOrigin={publicWebOrigin}
       rewardsDependencies={rewardsDependencies}
       state={state}
+      walletDependencies={walletDependencies}
       walletChain={walletChain}
     />
   );

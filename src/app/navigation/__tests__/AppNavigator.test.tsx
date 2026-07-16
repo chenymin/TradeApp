@@ -11,6 +11,7 @@ import type { PublicAssetPageLoader, PublicAssetSummary } from "../../../feature
 import type { AssetDetailLoader } from "../../../features/assets/domain/assetDetailModels";
 import { toAssetDetailReadModel } from "../../../features/assets/domain/assetDetailMappers";
 import type { RewardsDataDependencies } from "../../../features/referral/screens/RewardsScreen";
+import type { WalletDataDependencies } from "../../../features/wallet/domain/walletModels";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -418,6 +419,7 @@ describe("AppNavigator", () => {
   });
 
   it("opens Wallet from authenticated Profile as a protected detail route", async () => {
+    const walletDependencies = createWalletDependencies();
     let renderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -425,7 +427,16 @@ describe("AppNavigator", () => {
         <AppNavigator
           actions={createActions()}
           initialRouteName="profile"
+          privyWalletMetadata={{
+            passkeyMfaEnabled: false,
+            wallets: [{
+              address: "0x0000000000000000000000000000000000000009",
+              kind: "external",
+              providerLabel: "metamask",
+            }],
+          }}
           state={authenticatedState()}
+          walletDependencies={walletDependencies}
         />,
       );
     });
@@ -433,6 +444,7 @@ describe("AppNavigator", () => {
     await act(async () => {
       renderer!.root.findByProps({ accessibilityLabel: "Profile item Wallet" })
         .props.onPress();
+      await Promise.resolve();
     });
 
     expect(renderer!.root.findByProps({ accessibilityLabel: "Wallet screen" }))
@@ -441,6 +453,10 @@ describe("AppNavigator", () => {
       .toBeTruthy();
     expect(renderer!.root.findAllByProps({ accessibilityLabel: "Tab My" }))
       .toHaveLength(0);
+    expect(walletDependencies.loadBalances).toHaveBeenCalledWith({
+      address: "0x0000000000000000000000000000000000000008",
+      chain: expect.objectContaining({ chainId: 97 }),
+    });
 
     await act(async () => {
       renderer!.root.findByProps({ accessibilityLabel: "Back" }).props.onPress();
@@ -452,6 +468,7 @@ describe("AppNavigator", () => {
 
   it("starts login instead of opening Wallet from a logged-out Profile", async () => {
     const actions = createActions();
+    const walletDependencies = createWalletDependencies();
     let renderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -460,6 +477,7 @@ describe("AppNavigator", () => {
           actions={actions}
           initialRouteName="profile"
           state={{ status: "logged_out" }}
+          walletDependencies={walletDependencies}
         />,
       );
     });
@@ -470,6 +488,7 @@ describe("AppNavigator", () => {
     });
 
     expect(actions.login).toHaveBeenCalledOnce();
+    expect(walletDependencies.loadBalances).not.toHaveBeenCalled();
     expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
       .toHaveLength(0);
   });
@@ -938,6 +957,18 @@ function authenticatedState() {
       id: "viewer-1",
       walletAddress: "0x0000000000000000000000000000000000000008",
     },
+  };
+}
+
+function createWalletDependencies(): WalletDataDependencies {
+  return {
+    clipboard: { setString: vi.fn().mockResolvedValue(undefined) },
+    imageShare: { share: vi.fn().mockResolvedValue("shared") },
+    loadBalances: vi.fn().mockResolvedValue({
+      artDiscoveryStatus: "ready",
+      rows: [],
+    }),
+    textShare: { share: vi.fn().mockResolvedValue("shared") },
   };
 }
 
