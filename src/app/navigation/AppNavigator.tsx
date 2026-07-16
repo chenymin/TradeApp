@@ -28,6 +28,15 @@ import {
 } from "../../features/dashboard/screens/DashboardScreen";
 import type { DashboardTab } from "../../features/dashboard/components/DashboardHeader";
 import {
+  EMPTY_PRIVY_WALLET_METADATA,
+} from "../../features/wallet/domain/walletIdentity";
+import type { PrivyWalletMetadata } from "../../features/wallet/domain/walletModels";
+import { WalletScreen } from "../../features/wallet/screens/WalletScreen";
+import {
+  getPublicChainConfig,
+  type PublicChainConfig,
+} from "../../lib/chain/publicChainRegistry";
+import {
   getHeaderConfig,
   getInitialRoute,
   getTabRoutes,
@@ -43,6 +52,15 @@ type InviteFeedback =
   | "origin_unavailable"
   | "unavailable";
 
+type DetailRoute =
+  | {
+      assetId: string;
+      kind: "asset";
+      placeholder: PublicAssetSummary;
+      returnTo: MainTabRouteName;
+    }
+  | { kind: "wallet"; returnTo: "profile" };
+
 export function AppNavigator({
   actions,
   assetDetailLoader,
@@ -50,9 +68,11 @@ export function AppNavigator({
   dashboardDependencies,
   externalLinkAdapter,
   initialRouteName,
+  privyWalletMetadata = EMPTY_PRIVY_WALLET_METADATA,
   publicWebOrigin,
   rewardsDependencies,
   state,
+  walletChain = getPublicChainConfig(97),
 }: {
   actions: AuthProviderActions;
   assetDetailLoader?: AssetDetailLoader;
@@ -60,11 +80,13 @@ export function AppNavigator({
   dashboardDependencies?: DashboardDataDependencies;
   externalLinkAdapter?: ExternalLinkAdapter;
   initialRouteName?: AppRouteName;
+  privyWalletMetadata?: PrivyWalletMetadata;
   publicWebOrigin?: string;
   rewardsDependencies?: RewardsDataDependencies;
   state: AuthDisplayState & Partial<
     Pick<AuthProviderState, "isSessionReady" | "viewer">
   >;
+  walletChain?: PublicChainConfig;
 }) {
   if (state.status === "restoring_session") {
     return (
@@ -117,14 +139,19 @@ export function AppNavigator({
         dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
         externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
         initialDashboardTab={dashboardTabForRoute(initialRouteName ?? "dashboard")}
+        initialDetailRoute={initialRouteName === "wallet"
+          ? { kind: "wallet", returnTo: "profile" }
+          : null}
         key={`authenticated:${state.viewer!.id}`}
         onLogout={actions.logout}
+        privyWalletMetadata={privyWalletMetadata}
         publicWebOrigin={publicWebOrigin}
         rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
         viewerState={{
           isSessionReady: state.isSessionReady === true,
           viewer: state.viewer ?? null,
         }}
+        walletChain={walletChain}
       />
     );
   }
@@ -141,12 +168,15 @@ export function AppNavigator({
       dashboardDependencies={dashboardDependencies ?? EMPTY_DASHBOARD_DEPENDENCIES}
       externalLinkAdapter={externalLinkAdapter ?? NOOP_EXTERNAL_LINK_ADAPTER}
       initialDashboardTab="holdings"
+      initialDetailRoute={null}
       key="logged_out"
       onLogin={actions.login}
       onLogout={actions.logout}
+      privyWalletMetadata={EMPTY_PRIVY_WALLET_METADATA}
       publicWebOrigin={publicWebOrigin}
       rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
       viewerState={{ isSessionReady: false, viewer: null }}
+      walletChain={walletChain}
     />
   );
 }
@@ -159,11 +189,14 @@ function MainTabs({
   dashboardDependencies,
   externalLinkAdapter,
   initialDashboardTab,
+  initialDetailRoute,
   onLogin,
   onLogout,
+  privyWalletMetadata,
   publicWebOrigin,
   rewardsDependencies,
   viewerState,
+  walletChain,
 }: {
   activeRouteName: MainTabRouteName;
   assetDetailLoader: AssetDetailLoader;
@@ -172,11 +205,14 @@ function MainTabs({
   dashboardDependencies: DashboardDataDependencies;
   externalLinkAdapter: ExternalLinkAdapter;
   initialDashboardTab: DashboardTab;
+  initialDetailRoute: DetailRoute | null;
   onLogin?: () => Promise<void>;
   onLogout: () => Promise<void>;
+  privyWalletMetadata: PrivyWalletMetadata;
   publicWebOrigin?: string;
   rewardsDependencies: RewardsDataDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
+  walletChain: PublicChainConfig;
 }) {
   const [currentRouteName, setCurrentRouteName] =
     useState<MainTabRouteName>(activeRouteName);
@@ -185,11 +221,9 @@ function MainTabs({
     inviteCode: string;
     webOrigin: string;
   } | null>(null);
-  const [detailRoute, setDetailRoute] = useState<{
-    assetId: string;
-    placeholder: PublicAssetSummary;
-    returnTo: MainTabRouteName;
-  } | null>(null);
+  const [detailRoute, setDetailRoute] = useState<DetailRoute | null>(
+    initialDetailRoute,
+  );
   const [inviteFeedback, setInviteFeedback] = useState<InviteFeedback>("idle");
 
   const handleTabSelect = (routeName: MainTabRouteName) => {
@@ -245,11 +279,18 @@ function MainTabs({
     <AppShell
       activeRouteName={detailRoute ? undefined : currentRouteName}
       header={getHeaderConfig(
-        detailRoute ? "assetDetail" : currentRouteName,
+        detailRoute?.kind === "asset"
+          ? "assetDetail"
+          : detailRoute?.kind === "wallet"
+            ? "wallet"
+            : currentRouteName,
         authStatus,
       )}
       onBack={detailRoute
-        ? () => setDetailRoute(null)
+        ? () => {
+            setCurrentRouteName(detailRoute.returnTo);
+            setDetailRoute(null);
+          }
         : undefined}
       onLogin={onLogin}
       onTabSelect={handleTabSelect}
@@ -266,7 +307,13 @@ function MainTabs({
       }
       tabs={detailRoute ? undefined : getTabRoutes()}
     >
-      {detailRoute ? (
+      {detailRoute?.kind === "wallet" ? (
+        <WalletScreen
+          chain={walletChain}
+          privyWalletMetadata={privyWalletMetadata}
+          viewerState={viewerState}
+        />
+      ) : detailRoute?.kind === "asset" ? (
         <AssetDetailScreen
           assetId={detailRoute.assetId}
           loader={assetDetailLoader}
@@ -303,9 +350,18 @@ function MainTabs({
             void onLogin?.();
           }
         },
+        () => {
+          if (authStatus === "authenticated") {
+            setCurrentRouteName("profile");
+            setDetailRoute({ kind: "wallet", returnTo: "profile" });
+          } else {
+            void onLogin?.();
+          }
+        },
         rewardsDependencies,
         (asset) => setDetailRoute({
           assetId: asset.id,
+          kind: "asset",
           placeholder: asset,
           returnTo: currentRouteName,
         }),
@@ -326,6 +382,7 @@ function renderRoute(
   inviteFeedback: InviteFeedback,
   onInvitePress: () => void,
   onKycPress: () => void,
+  onWalletPress: () => void,
   rewardsDependencies: RewardsDataDependencies,
   onAssetPress: (asset: PublicAssetSummary) => void,
 ) {
@@ -345,6 +402,7 @@ function renderRoute(
         onInvitePress={onInvitePress}
         onKycPress={onKycPress}
         onLogout={onLogout}
+        onWalletPress={onWalletPress}
       />
     );
   }
@@ -376,12 +434,14 @@ function ProfileRoute({
   onInvitePress,
   onKycPress,
   onLogout,
+  onWalletPress,
 }: {
   authStatus: "authenticated" | "logged_out";
   inviteFeedback: InviteFeedback;
   onInvitePress: () => void;
   onKycPress: () => void;
   onLogout: () => Promise<void>;
+  onWalletPress: () => void;
 }) {
   return (
     <View style={styles.profile}>
@@ -391,7 +451,7 @@ function ProfileRoute({
         title="Profile"
       />
       <View accessibilityLabel="Profile menu section" style={styles.profileLinks}>
-        <ProfileMenuItem label="Wallet" />
+        <ProfileMenuItem label="Wallet" onPress={onWalletPress} />
         <ProfileMenuItem label="KYC" onPress={onKycPress} />
         <ProfileMenuItem label="邀请好友" onPress={onInvitePress} />
         <ProfileMenuItem label="Settings" />
@@ -486,6 +546,10 @@ function toMainTab(
 
   if (routeName === "dashboard") {
     return routeName;
+  }
+
+  if (routeName === "wallet") {
+    return "profile";
   }
 
   if (routeName === "home") {

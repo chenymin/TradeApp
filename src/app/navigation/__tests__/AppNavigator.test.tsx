@@ -417,6 +417,122 @@ describe("AppNavigator", () => {
     expect(JSON.stringify(renderer.toJSON())).toContain("Wallet");
   });
 
+  it("opens Wallet from authenticated Profile as a protected detail route", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          state={authenticatedState()}
+        />,
+      );
+    });
+
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item Wallet" })
+        .props.onPress();
+    });
+
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Wallet screen" }))
+      .toBeTruthy();
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Header title Wallet" }))
+      .toBeTruthy();
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Tab My" }))
+      .toHaveLength(0);
+
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Back" }).props.onPress();
+    });
+
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Tab My" })
+      .props.accessibilityState).toEqual({ selected: true });
+  });
+
+  it("starts login instead of opening Wallet from a logged-out Profile", async () => {
+    const actions = createActions();
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={actions}
+          initialRouteName="profile"
+          state={{ status: "logged_out" }}
+        />,
+      );
+    });
+
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item Wallet" })
+        .props.onPress();
+    });
+
+    expect(actions.login).toHaveBeenCalledOnce();
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
+      .toHaveLength(0);
+  });
+
+  it("opens an authenticated initial Wallet route", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="wallet"
+          state={authenticatedState()}
+        />,
+      );
+    });
+
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Wallet screen" }))
+      .toBeTruthy();
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Tab My" }))
+      .toHaveLength(0);
+  });
+
+  it("clears the Wallet detail when the authenticated viewer changes", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          state={authenticatedState()}
+        />,
+      );
+    });
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item Wallet" })
+        .props.onPress();
+    });
+
+    await act(async () => {
+      renderer!.update(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          state={{
+            ...authenticatedState(),
+            viewer: {
+              ...authenticatedState().viewer,
+              id: "viewer-2",
+              walletAddress: "0x0000000000000000000000000000000000000009",
+            },
+          }}
+        />,
+      );
+    });
+
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
+      .toHaveLength(0);
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Tab My" })
+      .props.accessibilityState).toEqual({ selected: true });
+  });
+
   it("renders profile as the container for wallet kyc invite settings and logout", async () => {
     const actions = createActions();
     let testRenderer: ReactTestRenderer | undefined;

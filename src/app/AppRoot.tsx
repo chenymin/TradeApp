@@ -26,24 +26,49 @@ import {
   createDefaultNicknameRepository,
 } from "../features/dashboard/services/createDefaultDashboardServices";
 import { createDefaultRewardsServices } from "../features/referral/services/createDefaultRewardsServices";
+import { mapPrivyWalletMetadata } from "../features/wallet/domain/walletIdentity";
+import {
+  getPublicChainConfig,
+  type PublicChainConfig,
+} from "../lib/chain/publicChainRegistry";
 
 export function AppRoot() {
   const publicConfig = readPublicConfig();
 
   if (!publicConfig.ok) {
-    return <FatalConfigScreen missingKeys={publicConfig.missingKeys} />;
+    return (
+      <FatalConfigScreen
+        invalidKeys={publicConfig.invalidKeys}
+        missingKeys={publicConfig.missingKeys}
+      />
+    );
   }
+
+  const walletChain = getPublicChainConfig(publicConfig.config.chainId);
 
   return (
     <PrivyProviderBoundary config={publicConfig.config}>
-      <AuthRuntime publicWebOrigin={publicConfig.config.publicWebOrigin} />
+      <AuthRuntime
+        publicWebOrigin={publicConfig.config.publicWebOrigin}
+        walletChain={walletChain}
+      />
     </PrivyProviderBoundary>
   );
 }
 
-function AuthRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
-  const { getAccessToken, logout } = usePrivy();
+function AuthRuntime({
+  publicWebOrigin,
+  walletChain,
+}: {
+  publicWebOrigin?: string;
+  walletChain: PublicChainConfig;
+}) {
+  const { getAccessToken, logout, user } = usePrivy();
   const { login } = useLogin();
+  const privyWalletMetadata = useMemo(
+    () => mapPrivyWalletMetadata(user),
+    [user],
+  );
   const workflow = useMemo(
     () => createRuntimeAuthWorkflow({ getAccessToken, login, logout }),
     [getAccessToken, login, logout],
@@ -51,12 +76,24 @@ function AuthRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
 
   return (
     <AuthProvider workflow={workflow}>
-      <AuthGateRuntime publicWebOrigin={publicWebOrigin} />
+      <AuthGateRuntime
+        privyWalletMetadata={privyWalletMetadata}
+        publicWebOrigin={publicWebOrigin}
+        walletChain={walletChain}
+      />
     </AuthProvider>
   );
 }
 
-function AuthGateRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
+function AuthGateRuntime({
+  privyWalletMetadata,
+  publicWebOrigin,
+  walletChain,
+}: {
+  privyWalletMetadata: ReturnType<typeof mapPrivyWalletMetadata>;
+  publicWebOrigin?: string;
+  walletChain: PublicChainConfig;
+}) {
   const state = useAuthState();
   const actions = useAuthActions();
   const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
@@ -98,9 +135,11 @@ function AuthGateRuntime({ publicWebOrigin }: { publicWebOrigin?: string }) {
       assetPageLoader={assetPageLoader}
       dashboardDependencies={dashboardDependencies}
       externalLinkAdapter={externalLinkAdapter}
+      privyWalletMetadata={privyWalletMetadata}
       publicWebOrigin={publicWebOrigin}
       rewardsDependencies={rewardsDependencies}
       state={state}
+      walletChain={walletChain}
     />
   );
 }
