@@ -32,3 +32,18 @@ export type WalletAssetContract = {
 export type WalletAssetContractRepository = {
   fetchByChain(chainId: 56 | 97): Promise<WalletAssetContract[]>;
 };
+
+export type WalletBalanceRow = {
+  contractAddress: `0x${string}` | null;
+  displayAmount?: string;
+  id: string;
+  imageUrl: string | null;
+  kind: "native" | "usdt" | "art";
+  status: "ready" | "unavailable";
+  symbol: string;
+};
+
+export type WalletBalanceLoadResult = {
+  artDiscoveryStatus: "ready" | "unavailable";
+  rows: WalletBalanceRow[];
+};
