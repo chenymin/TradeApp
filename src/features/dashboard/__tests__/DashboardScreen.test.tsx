@@ -71,6 +71,21 @@ describe("DashboardScreen", () => {
     expect(renderer.root.findAllByType(FlatList)).toHaveLength(1);
   });
 
+  it("keeps horizontal content padding consistent across Dashboard tabs", async () => {
+    const renderer = await renderDashboard();
+    const activePadding = () => flattenStyle(
+      renderer.root.findByType(FlatList).props.contentContainerStyle,
+    ).paddingHorizontal;
+
+    expect(activePadding()).toBe(16);
+    await press(renderer, "Transactions");
+    expect(activePadding()).toBe(16);
+    await press(renderer, "Whitelist");
+    expect(activePadding()).toBe(16);
+    await press(renderer, "Rewards");
+    expect(activePadding()).toBe(16);
+  });
+
   it.each([
     ["holdings", "Artwork"],
     ["whitelist", "Whitelist approved"],

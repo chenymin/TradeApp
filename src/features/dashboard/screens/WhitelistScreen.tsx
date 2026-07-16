@@ -338,7 +338,7 @@ function statusPresentation(state: WhitelistStatusState): {
 const styles = StyleSheet.create({
   content: {
     paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   factLabel: {
     color: colors.muted,
