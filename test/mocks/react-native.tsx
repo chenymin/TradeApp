@@ -24,6 +24,14 @@ export function ScrollView({ children, ...props }: Props) {
   return React.createElement("ScrollView", props, children);
 }
 
+export function RefreshControl(props: Props) {
+  return React.createElement("RefreshControl", props);
+}
+
+export function useWindowDimensions() {
+  return { fontScale: 1, height: 844, scale: 3, width: 390 };
+}
+
 export function ActivityIndicator(props: Props) {
   return React.createElement("ActivityIndicator", props);
 }
