@@ -7,6 +7,7 @@ const REQUIRED_PUBLIC_KEYS = [
 export type PublicConfigEnv = Partial<
   Record<
     | (typeof REQUIRED_PUBLIC_KEYS)[number]
+    | "EXPO_PUBLIC_CHAIN_ID"
     | "EXPO_PUBLIC_WEB_ORIGIN"
     | "EXPO_PUBLIC_PRIVY_CLIENT_ID"
     | "EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH",
@@ -14,7 +15,10 @@ export type PublicConfigEnv = Partial<
   >
 >;
 
+export type SupportedPublicChainId = 56 | 97;
+
 export type PublicConfig = {
+  chainId: SupportedPublicChainId;
   privyAppId: string;
   privyClientId?: string;
   publicWebOrigin?: string;
@@ -25,10 +29,11 @@ export type PublicConfig = {
 
 export type PublicConfigResult =
   | { config: PublicConfig; ok: true }
-  | { missingKeys: string[]; ok: false };
+  | { invalidKeys: string[]; missingKeys: string[]; ok: false };
 
 export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
   const normalized = normalizeEnv(env);
+  const chainId = parseChainId(normalized.EXPO_PUBLIC_CHAIN_ID);
   const privyAppId = normalized.EXPO_PUBLIC_PRIVY_APP_ID;
   const supabaseAnonKey = normalized.EXPO_PUBLIC_SUPABASE_ANON_KEY;
   const supabaseUrl = normalized.EXPO_PUBLIC_SUPABASE_URL;
@@ -37,8 +42,15 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
   );
   const missingKeys = REQUIRED_PUBLIC_KEYS.filter((key) => !normalized[key]);
 
-  if (missingKeys.length > 0 || !privyAppId || !supabaseAnonKey || !supabaseUrl) {
+  if (
+    missingKeys.length > 0 ||
+    !privyAppId ||
+    !supabaseAnonKey ||
+    !supabaseUrl ||
+    chainId === null
+  ) {
     return {
+      invalidKeys: chainId === null ? ["EXPO_PUBLIC_CHAIN_ID"] : [],
       missingKeys,
       ok: false,
     };
@@ -46,6 +58,7 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
 
   return {
     config: {
+      chainId,
       privyAppId,
       privyClientId: normalized.EXPO_PUBLIC_PRIVY_CLIENT_ID,
       ...(publicWebOrigin ? { publicWebOrigin } : {}),
@@ -61,6 +74,7 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
 
 export function readPublicConfig(): PublicConfigResult {
   return parsePublicConfig({
+    EXPO_PUBLIC_CHAIN_ID: process.env.EXPO_PUBLIC_CHAIN_ID,
     EXPO_PUBLIC_PRIVY_APP_ID: process.env.EXPO_PUBLIC_PRIVY_APP_ID,
     EXPO_PUBLIC_PRIVY_CLIENT_ID: process.env.EXPO_PUBLIC_PRIVY_CLIENT_ID,
     EXPO_PUBLIC_WEB_ORIGIN: process.env.EXPO_PUBLIC_WEB_ORIGIN,
@@ -69,6 +83,15 @@ export function readPublicConfig(): PublicConfigResult {
     EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH:
       process.env.EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH,
   });
+}
+
+function parseChainId(
+  value: string | undefined,
+): SupportedPublicChainId | null {
+  if (value === undefined) return 97;
+  if (value === "56") return 56;
+  if (value === "97") return 97;
+  return null;
 }
 
 function normalizePublicWebOrigin(value: string | undefined): string | undefined {

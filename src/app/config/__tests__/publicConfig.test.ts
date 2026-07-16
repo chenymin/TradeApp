@@ -7,6 +7,7 @@ describe("parsePublicConfig", () => {
     const result = parsePublicConfig({});
 
     expect(result).toEqual({
+      invalidKeys: [],
       ok: false,
       missingKeys: [
         "EXPO_PUBLIC_PRIVY_APP_ID",
@@ -27,6 +28,7 @@ describe("parsePublicConfig", () => {
 
     expect(result).toEqual({
       config: {
+        chainId: 97,
         privyAppId: "privy-app-id",
         privyClientId: "privy-client-id",
         supabaseAnonKey: "anon-key",
@@ -78,6 +80,30 @@ describe("parsePublicConfig", () => {
       expect(result.config.publicWebOrigin).toBeUndefined();
     }
   });
+
+  it.each([
+    [undefined, 97],
+    [" 56 ", 56],
+    [" 97 ", 97],
+  ])("maps EXPO_PUBLIC_CHAIN_ID=%s to %s", (value, chainId) => {
+    const result = parsePublicConfig(validEnv({
+      ...(value ? { EXPO_PUBLIC_CHAIN_ID: value } : {}),
+    }));
+
+    expect(result).toMatchObject({ ok: true, config: { chainId } });
+  });
+
+  it.each(["0", "1", "98", "bsc", "56.0"])(
+    "rejects unsupported chain value %s",
+    (value) => {
+      expect(parsePublicConfig(validEnv({ EXPO_PUBLIC_CHAIN_ID: value })))
+        .toEqual({
+          invalidKeys: ["EXPO_PUBLIC_CHAIN_ID"],
+          missingKeys: [],
+          ok: false,
+        });
+    },
+  );
 });
 
 function validEnv(overrides: Record<string, string> = {}) {

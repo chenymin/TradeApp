@@ -26,6 +26,7 @@ describe("PrivyProviderBoundary", () => {
         PrivyProviderBoundary,
         {
           config: {
+            chainId: 97,
             privyAppId: "test-privy-app-id",
             supabaseAnonKey: "anon-key",
             supabaseUrl: "https://example.supabase.co",
