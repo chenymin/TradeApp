@@ -259,7 +259,7 @@ function InlineState({
 const styles = StyleSheet.create({
   content: {
     paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   header: {
     gap: spacing.md,
