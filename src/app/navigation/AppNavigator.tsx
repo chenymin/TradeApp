@@ -396,7 +396,22 @@ function ProfileRoute({
         <ProfileMenuItem label="邀请好友" onPress={onInvitePress} />
         <ProfileMenuItem label="Settings" />
       </View>
-      {inviteFeedback !== "idle" ? (
+      {inviteFeedback === "loading" ? (
+        <View
+          accessibilityLabel="Loading invite details"
+          accessibilityRole="progressbar"
+          style={styles.inviteSkeleton}
+        >
+          <View
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={styles.inviteSkeletonLines}
+          >
+            <View testID="invite-loading-primary" style={styles.inviteSkeletonPrimary} />
+            <View testID="invite-loading-secondary" style={styles.inviteSkeletonSecondary} />
+          </View>
+        </View>
+      ) : inviteFeedback !== "idle" ? (
         <View accessibilityLabel="Invite command status" style={styles.inviteFeedback}>
           <AppText style={styles.inviteFeedbackText} variant="body">
             {inviteFeedbackLabel(inviteFeedback)}
@@ -577,6 +592,28 @@ const styles = StyleSheet.create({
   },
   inviteFeedbackText: {
     fontWeight: "700",
+  },
+  inviteSkeleton: {
+    backgroundColor: colors.surface,
+    justifyContent: "center",
+    marginHorizontal: spacing.lg,
+    minHeight: 64,
+    paddingHorizontal: spacing.lg,
+  },
+  inviteSkeletonLines: {
+    gap: spacing.sm,
+  },
+  inviteSkeletonPrimary: {
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    height: 12,
+    width: "58%",
+  },
+  inviteSkeletonSecondary: {
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    height: 12,
+    width: "36%",
   },
   inviteRetry: {
     justifyContent: "center",
