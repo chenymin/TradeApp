@@ -14,6 +14,7 @@ import {
   type WalletLoadState,
 } from "../components/WalletBalanceSection";
 import { WalletIdentitySection } from "../components/WalletIdentitySection";
+import type { WalletUnlinkPresentation } from "../components/WalletIdentitySection";
 import { WalletReceiveSection } from "../components/WalletReceiveSection";
 import { WalletReceiveShareCard } from "../components/WalletReceiveShareCard";
 import { mapWalletIdentity } from "../domain/walletIdentity";
@@ -21,6 +22,12 @@ import type {
   PrivyWalletMetadata,
   WalletDataDependencies,
 } from "../domain/walletModels";
+import {
+  requestWalletUnlink,
+  retryWalletSync,
+  type WalletUnlinkDependencies,
+  type WalletUnlinkTarget,
+} from "../workflow/walletUnlinkWorkflow";
 
 export type { WalletDataDependencies } from "../domain/walletModels";
 
@@ -37,11 +44,13 @@ export function WalletScreen({
   chain,
   dependencies = EMPTY_DEPENDENCIES,
   privyWalletMetadata,
+  unlinkDependencies,
   viewerState,
 }: {
   chain: PublicChainConfig;
   dependencies?: WalletDataDependencies;
   privyWalletMetadata: PrivyWalletMetadata;
+  unlinkDependencies?: WalletUnlinkDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
 }) {
   const { width } = useWindowDimensions();
@@ -51,6 +60,9 @@ export function WalletScreen({
     [privyWalletMetadata, viewerState.viewer],
   );
   const [requestVersion, setRequestVersion] = useState(0);
+  const [unlinkState, setUnlinkState] = useState<WalletUnlinkPresentation>({
+    status: "idle",
+  });
   const [loadState, setLoadState] = useState<WalletLoadState>(
     identity ? { status: "loading" } : { status: "unavailable" },
   );
@@ -83,6 +95,22 @@ export function WalletScreen({
     requestVersion,
   ]);
 
+  useEffect(() => {
+    setUnlinkState({ status: "idle" });
+  }, [viewerState.viewer?.id, viewerState.viewer?.walletAddress]);
+
+  useEffect(() => {
+    if (
+      unlinkState.status === "complete" &&
+      identity &&
+      !identity.wallets.some((wallet) =>
+        sameAddress(wallet.address, unlinkState.address)
+      )
+    ) {
+      setUnlinkState({ status: "idle" });
+    }
+  }, [identity, unlinkState]);
+
   if (!identity) {
     return (
       <View accessibilityLabel="Wallet screen" style={styles.unavailable}>
@@ -96,6 +124,50 @@ export function WalletScreen({
   }
 
   const wide = width >= 768;
+  const displayIdentity = unlinkState.status === "complete"
+    ? {
+        ...identity,
+        wallets: identity.wallets.filter((wallet) =>
+          !sameAddress(wallet.address, unlinkState.address)
+        ),
+      }
+    : identity;
+
+  const handleUnlink = async (wallet: WalletUnlinkTarget) => {
+    if (
+      !unlinkDependencies ||
+      (unlinkState.status !== "idle" && unlinkState.status !== "unlink_error")
+    ) return;
+
+    setUnlinkState({ address: wallet.address, status: "confirming" });
+    const result = await requestWalletUnlink(identity, wallet, {
+      ...unlinkDependencies,
+      refreshSession: async () => {
+        setUnlinkState({ address: wallet.address, status: "syncing" });
+        return unlinkDependencies.refreshSession();
+      },
+      unlink: async (address) => {
+        setUnlinkState({ address: wallet.address, status: "unlinking" });
+        return unlinkDependencies.unlink(address);
+      },
+    });
+
+    if (result === "cancelled" || result === "ineligible") {
+      setUnlinkState({ status: "idle" });
+      return;
+    }
+
+    setUnlinkState({ address: wallet.address, status: result });
+  };
+
+  const handleRetrySync = async () => {
+    if (!unlinkDependencies || unlinkState.status !== "sync_error") return;
+
+    const address = unlinkState.address;
+    setUnlinkState({ address, status: "syncing" });
+    const result = await retryWalletSync(unlinkDependencies);
+    setUnlinkState({ address, status: result });
+  };
 
   return (
     <ScrollView
@@ -117,7 +189,14 @@ export function WalletScreen({
         style={[styles.layout, wide ? styles.wideLayout : styles.phoneLayout]}
       >
         <View style={styles.column}>
-          <WalletIdentitySection chainName={chain.name} identity={identity} />
+          <WalletIdentitySection
+            chainName={chain.name}
+            identity={displayIdentity}
+            onRetryWalletSync={handleRetrySync}
+            onUnlinkWallet={handleUnlink}
+            unlinkEnabled={Boolean(unlinkDependencies)}
+            unlinkState={unlinkState}
+          />
         </View>
         <View style={styles.column}>
           <WalletBalanceSection
@@ -195,3 +274,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
 });
+
+function sameAddress(left: string, right: string): boolean {
+  return left.toLowerCase() === right.toLowerCase();
+}

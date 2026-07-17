@@ -11,6 +11,7 @@ import {
   WalletScreen,
   type WalletDataDependencies,
 } from "../screens/WalletScreen";
+import type { WalletUnlinkDependencies } from "../workflow/walletUnlinkWorkflow";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -81,6 +82,118 @@ describe("WalletScreen", () => {
     expect(output(renderer)).toContain("External");
     expect(output(renderer)).toContain("Passkey MFA enabled");
     expect(output(renderer)).toContain("Transfers are unavailable");
+  });
+
+  it("offers unlink only for a linked external wallet and suppresses it after success", async () => {
+    const unlinkDependencies = walletUnlinkDependencies();
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      unlinkDependencies,
+    });
+
+    expect(renderer.root.findByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    })).toBeTruthy();
+    expect(renderer.root.findAllByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(8))}`,
+    })).toHaveLength(0);
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(unlinkDependencies.confirm).toHaveBeenCalledOnce();
+    expect(unlinkDependencies.unlink).toHaveBeenCalledWith(address(9));
+    expect(unlinkDependencies.refreshSession).toHaveBeenCalledOnce();
+    expect(output(renderer)).not.toContain("MetaMask");
+  });
+
+  it("does not unlink when confirmation is cancelled", async () => {
+    const unlinkDependencies = walletUnlinkDependencies();
+    unlinkDependencies.confirm.mockResolvedValue(false);
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      unlinkDependencies,
+    });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(unlinkDependencies.unlink).not.toHaveBeenCalled();
+    expect(unlinkDependencies.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it("keeps platform synchronization separate from a failed Privy unlink", async () => {
+    const unlinkDependencies = walletUnlinkDependencies();
+    unlinkDependencies.unlink
+      .mockRejectedValueOnce(new Error("privy unavailable"))
+      .mockResolvedValueOnce(undefined);
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      unlinkDependencies,
+    });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain("Wallet could not be unlinked");
+    expect(unlinkDependencies.refreshSession).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(unlinkDependencies.unlink).toHaveBeenCalledTimes(2);
+    expect(unlinkDependencies.refreshSession).toHaveBeenCalledOnce();
+    expect(output(renderer)).not.toContain("MetaMask");
+  });
+
+  it("retries only platform synchronization after Privy unlink succeeds", async () => {
+    const unlinkDependencies = walletUnlinkDependencies();
+    unlinkDependencies.refreshSession
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      unlinkDependencies,
+    });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain("Wallet removed; sync pending");
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Retry wallet sync",
+      }).props.onPress();
+    });
+
+    expect(unlinkDependencies.unlink).toHaveBeenCalledOnce();
+    expect(unlinkDependencies.refreshSession).toHaveBeenCalledTimes(2);
+    expect(output(renderer)).not.toContain("MetaMask");
+  });
+
+  it("keeps unlink unavailable without controlled mutation dependencies", async () => {
+    const renderer = await renderWallet({ metadata: linkedWalletMetadata() });
+
+    expect(renderer.root.findAll((node) => (
+      typeof node.props.accessibilityLabel === "string" &&
+      node.props.accessibilityLabel.startsWith("Unlink wallet ")
+    ))).toHaveLength(0);
   });
 
   it("uses two columns on tablet widths", async () => {
@@ -157,10 +270,12 @@ describe("WalletScreen", () => {
 async function renderWallet({
   dependencies = walletDependencies(),
   metadata = EMPTY_METADATA,
+  unlinkDependencies,
   walletAddress = address(8),
 }: {
   dependencies?: WalletDataDependencies;
   metadata?: PrivyWalletMetadata;
+  unlinkDependencies?: WalletUnlinkDependencies;
   walletAddress?: string | null;
 } = {}): Promise<ReactTestRenderer> {
   let renderer: ReactTestRenderer | undefined;
@@ -170,6 +285,7 @@ async function renderWallet({
         chain={CHAIN}
         dependencies={dependencies}
         privyWalletMetadata={metadata}
+        unlinkDependencies={unlinkDependencies}
         viewerState={{
           isSessionReady: true,
           viewer: { email: null, id: "viewer-1", walletAddress },
@@ -179,6 +295,29 @@ async function renderWallet({
     await Promise.resolve();
   });
   return renderer!;
+}
+
+function walletUnlinkDependencies() {
+  return {
+    confirm: vi.fn().mockResolvedValue(true),
+    refreshSession: vi.fn().mockResolvedValue(true),
+    unlink: vi.fn().mockResolvedValue(undefined),
+  } satisfies WalletUnlinkDependencies;
+}
+
+function linkedWalletMetadata(): PrivyWalletMetadata {
+  return {
+    passkeyMfaEnabled: true,
+    wallets: [
+      { address: address(8), kind: "embedded", providerLabel: "Privy" },
+      { address: address(9), kind: "external", providerLabel: "MetaMask" },
+      { address: address(6), kind: "embedded", providerLabel: "Privy" },
+    ],
+  };
+}
+
+function shortAddress(value: string): string {
+  return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
 
 function walletDependencies(
