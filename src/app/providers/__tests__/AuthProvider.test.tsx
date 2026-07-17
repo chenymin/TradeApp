@@ -221,6 +221,47 @@ describe("AuthProvider", () => {
 
     expect(snapshots.at(-1)).toEqual(authenticatedSnapshot);
   });
+
+  it("ignores a session refresh that completes after logout starts", async () => {
+    let resolveRefresh: ((result: {
+      ok: true;
+      viewer: ReturnType<typeof viewer>;
+    }) => void) | undefined;
+    const workflow = fakeWorkflow();
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    workflow.refreshSession.mockReturnValue(new Promise((resolve) => {
+      resolveRefresh = resolve;
+    }));
+    workflow.logout.mockResolvedValue({ status: "logged_out" });
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+
+    await act(async () => {
+      create(
+        <AuthProvider workflow={workflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    let refreshResult: Promise<boolean> | undefined;
+    await act(async () => {
+      refreshResult = actions.refreshSession?.();
+      await actions.logout?.();
+      resolveRefresh?.({ ok: true, viewer: { ...viewer(), walletAddress: "0xdef" } });
+      await expect(refreshResult).resolves.toBe(false);
+    });
+
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: false,
+      status: "logged_out",
+      viewer: null,
+    });
+  });
 });
 
 function StateProbe({ snapshots }: { snapshots: Array<unknown> }) {

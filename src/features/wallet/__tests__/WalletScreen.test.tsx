@@ -128,6 +128,32 @@ describe("WalletScreen", () => {
     expect(unlinkDependencies.refreshSession).not.toHaveBeenCalled();
   });
 
+  it("coalesces rapid unlink presses into one Privy mutation", async () => {
+    let resolveConfirmation: ((confirmed: boolean) => void) | undefined;
+    const unlinkDependencies = walletUnlinkDependencies();
+    unlinkDependencies.confirm.mockReturnValue(new Promise<boolean>((resolve) => {
+      resolveConfirmation = resolve;
+    }));
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      unlinkDependencies,
+    });
+    const onPress = renderer.root.findByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    }).props.onPress;
+
+    await act(async () => {
+      const first = onPress();
+      const second = onPress();
+      resolveConfirmation?.(true);
+      await Promise.all([first, second]);
+    });
+
+    expect(unlinkDependencies.confirm).toHaveBeenCalledOnce();
+    expect(unlinkDependencies.unlink).toHaveBeenCalledOnce();
+    expect(unlinkDependencies.refreshSession).toHaveBeenCalledOnce();
+  });
+
   it("keeps platform synchronization separate from a failed Privy unlink", async () => {
     const unlinkDependencies = walletUnlinkDependencies();
     unlinkDependencies.unlink

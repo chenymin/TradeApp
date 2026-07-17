@@ -75,13 +75,15 @@ export function createAuthWorkflow(adapters: AuthWorkflowAdapters) {
         },
         getPendingRecoverySession: () => pendingRecoverySession,
       }),
-    refreshSession: () => refreshSession(adapters),
+    refreshSession: (isCurrent: () => boolean = () => true) =>
+      refreshSession(adapters, isCurrent),
     restoreSession: () => restoreSession(adapters),
   };
 }
 
 async function refreshSession(
   adapters: AuthWorkflowAdapters,
+  isCurrent: () => boolean,
 ): Promise<AuthSessionRefreshResult> {
   try {
     const privyAccessToken = await adapters.privy.getAccessToken();
@@ -96,6 +98,12 @@ async function refreshSession(
     if (!exchanged.viewer) {
       return {
         error: { code: "auth_viewer_missing", retryable: true },
+        ok: false,
+      };
+    }
+    if (!isCurrent()) {
+      return {
+        error: { code: "session_refresh_superseded", retryable: true },
         ok: false,
       };
     }

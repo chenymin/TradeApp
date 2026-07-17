@@ -55,6 +55,7 @@ export function WalletScreen({
 }) {
   const { width } = useWindowDimensions();
   const receiveShareRef = useRef<View>(null);
+  const unlinkOperationInFlight = useRef(false);
   const identity = useMemo(
     () => mapWalletIdentity(viewerState.viewer, privyWalletMetadata),
     [privyWalletMetadata, viewerState.viewer],
@@ -96,6 +97,7 @@ export function WalletScreen({
   ]);
 
   useEffect(() => {
+    unlinkOperationInFlight.current = false;
     setUnlinkState({ status: "idle" });
   }, [viewerState.viewer?.id, viewerState.viewer?.walletAddress]);
 
@@ -136,21 +138,28 @@ export function WalletScreen({
   const handleUnlink = async (wallet: WalletUnlinkTarget) => {
     if (
       !unlinkDependencies ||
+      unlinkOperationInFlight.current ||
       (unlinkState.status !== "idle" && unlinkState.status !== "unlink_error")
     ) return;
 
+    unlinkOperationInFlight.current = true;
     setUnlinkState({ address: wallet.address, status: "confirming" });
-    const result = await requestWalletUnlink(identity, wallet, {
-      ...unlinkDependencies,
-      refreshSession: async () => {
-        setUnlinkState({ address: wallet.address, status: "syncing" });
-        return unlinkDependencies.refreshSession();
+    const result = await requestWalletUnlink(
+      identity,
+      wallet,
+      {
+        ...unlinkDependencies,
+        refreshSession: async () => {
+          setUnlinkState({ address: wallet.address, status: "syncing" });
+          return unlinkDependencies.refreshSession();
+        },
+        unlink: async (address) => {
+          setUnlinkState({ address: wallet.address, status: "unlinking" });
+          return unlinkDependencies.unlink(address);
+        },
       },
-      unlink: async (address) => {
-        setUnlinkState({ address: wallet.address, status: "unlinking" });
-        return unlinkDependencies.unlink(address);
-      },
-    });
+    );
+    unlinkOperationInFlight.current = false;
 
     if (result === "cancelled" || result === "ineligible") {
       setUnlinkState({ status: "idle" });
@@ -161,11 +170,17 @@ export function WalletScreen({
   };
 
   const handleRetrySync = async () => {
-    if (!unlinkDependencies || unlinkState.status !== "sync_error") return;
+    if (
+      !unlinkDependencies ||
+      unlinkOperationInFlight.current ||
+      unlinkState.status !== "sync_error"
+    ) return;
 
     const address = unlinkState.address;
+    unlinkOperationInFlight.current = true;
     setUnlinkState({ address, status: "syncing" });
     const result = await retryWalletSync(unlinkDependencies);
+    unlinkOperationInFlight.current = false;
     setUnlinkState({ address, status: result });
   };
 

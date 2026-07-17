@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -48,6 +49,7 @@ export function AuthProvider({
     status: "restoring_session",
     viewer: null,
   });
+  const authGeneration = useRef(0);
 
   const applyResult = useCallback((result: AuthWorkflowResult) => {
     setState({
@@ -59,6 +61,7 @@ export function AuthProvider({
   }, []);
 
   const restoreSession = useCallback(async () => {
+    authGeneration.current += 1;
     setState({
       isSessionReady: false,
       status: "restoring_session",
@@ -68,6 +71,7 @@ export function AuthProvider({
   }, [applyResult, workflow]);
 
   const login = useCallback(async () => {
+    authGeneration.current += 1;
     setState({
       isSessionReady: false,
       status: "privy_authenticating",
@@ -77,11 +81,13 @@ export function AuthProvider({
   }, [applyResult, workflow]);
 
   const logout = useCallback(async () => {
+    authGeneration.current += 1;
     setState({ isSessionReady: false, status: "logging_out", viewer: null });
     applyResult(await workflow.logout());
   }, [applyResult, workflow]);
 
   const recoverAsInvestor = useCallback(async () => {
+    authGeneration.current += 1;
     setState({
       isSessionReady: false,
       status: "exchanging_session",
@@ -91,8 +97,11 @@ export function AuthProvider({
   }, [applyResult, workflow]);
 
   const refreshSession = useCallback(async () => {
-    const result = await workflow.refreshSession();
-    if (!result.ok) return false;
+    const generation = authGeneration.current;
+    const result = await workflow.refreshSession(
+      () => generation === authGeneration.current,
+    );
+    if (!result.ok || generation !== authGeneration.current) return false;
 
     setState({
       isSessionReady: true,

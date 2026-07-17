@@ -232,6 +232,33 @@ describe("authWorkflow", () => {
     expect(adapters.session.clearSession).not.toHaveBeenCalled();
   });
 
+  it("does not persist a refresh superseded by another auth operation", async () => {
+    let resolveExchange: ((value: {
+      session: { accessToken: string };
+      viewer: ReturnType<typeof viewer>;
+    }) => void) | undefined;
+    let refreshCurrent = true;
+    const adapters = fakeAdapters();
+    adapters.privy.getAccessToken.mockResolvedValue("fresh-privy-token");
+    adapters.exchange.exchange.mockReturnValue(new Promise((resolve) => {
+      resolveExchange = resolve;
+    }));
+    const workflow = createAuthWorkflow(adapters);
+
+    const refresh = workflow.refreshSession(() => refreshCurrent);
+    refreshCurrent = false;
+    resolveExchange?.({
+      session: { accessToken: "replacement-token" },
+      viewer: viewer(),
+    });
+
+    await expect(refresh).resolves.toEqual({
+      error: { code: "session_refresh_superseded", retryable: true },
+      ok: false,
+    });
+    expect(adapters.session.setSession).not.toHaveBeenCalled();
+  });
+
   it("restores and logs out through the session and Privy boundaries", async () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);
