@@ -147,7 +147,9 @@ export function AppNavigator({
         initialDetailRoute={initialRouteName === "wallet"
           ? { kind: "wallet", returnTo: "profile" }
           : null}
-        key={`authenticated:${state.viewer!.id}`}
+        key={`authenticated:${state.viewer!.id}:${
+          state.viewer!.walletAddress?.toLowerCase() ?? "no-wallet"
+        }`}
         onLogout={actions.logout}
         privyWalletMetadata={privyWalletMetadata}
         publicWebOrigin={publicWebOrigin}

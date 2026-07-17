@@ -552,6 +552,45 @@ describe("AppNavigator", () => {
       .props.accessibilityState).toEqual({ selected: true });
   });
 
+  it("clears Wallet state when the verified address changes for the same viewer", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          state={authenticatedState()}
+        />,
+      );
+    });
+    await act(async () => {
+      renderer!.root.findByProps({ accessibilityLabel: "Profile item Wallet" })
+        .props.onPress();
+    });
+
+    await act(async () => {
+      renderer!.update(
+        <AppNavigator
+          actions={createActions()}
+          initialRouteName="profile"
+          state={{
+            ...authenticatedState(),
+            viewer: {
+              ...authenticatedState().viewer,
+              walletAddress: "0x0000000000000000000000000000000000000009",
+            },
+          }}
+        />,
+      );
+    });
+
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
+      .toHaveLength(0);
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Tab My" })
+      .props.accessibilityState).toEqual({ selected: true });
+  });
+
   it("renders profile as the container for wallet kyc invite settings and logout", async () => {
     const actions = createActions();
     let testRenderer: ReactTestRenderer | undefined;
