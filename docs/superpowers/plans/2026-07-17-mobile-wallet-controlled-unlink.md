@@ -251,14 +251,14 @@ expect(canUnlinkWallet(singleWalletIdentity, singleWalletIdentity.wallets[0]!))
 Add command tests:
 
 ```ts
-await expect(requestWalletUnlink(linkedExternal, dependencies)).resolves.toBe(
+await expect(requestWalletUnlink(identity, linkedExternal, dependencies)).resolves.toBe(
   "complete",
 );
 expect(dependencies.unlink).toHaveBeenCalledOnce();
 expect(dependencies.refreshSession).toHaveBeenCalledOnce();
 
 dependencies.refreshSession.mockResolvedValue(false);
-await expect(requestWalletUnlink(linkedExternal, dependencies)).resolves.toBe(
+await expect(requestWalletUnlink(identity, linkedExternal, dependencies)).resolves.toBe(
   "sync_error",
 );
 await expect(retryWalletSync(dependencies)).resolves.toBe("complete");
@@ -295,11 +295,12 @@ export type WalletUnlinkDependencies = {
 export type WalletUnlinkResult =
   | "cancelled"
   | "complete"
+  | "ineligible"
   | "sync_error"
   | "unlink_error";
 ```
 
-Implement `canUnlinkWallet`, `requestWalletUnlink`, and a separate `retryWalletSync`. The request function must call in order: eligibility guard, confirmation, unlink once, refresh. `retryWalletSync` may call only `refreshSession`.
+Implement `canUnlinkWallet`, `requestWalletUnlink(identity, wallet, dependencies)`, and a separate `retryWalletSync`. The request function must call in order: eligibility guard, confirmation, unlink once, refresh. An ineligible target returns `ineligible` before confirmation. `retryWalletSync` may call only `refreshSession`.
 
 - [ ] **Step 4: Run the workflow tests and verify GREEN**
 
