@@ -25,12 +25,25 @@ Scope: Task 8A-8C, authenticated Wallet identity, balances, receive, copy, text 
 Production export:
 
 ```text
-npx expo export --platform all --output-dir /tmp/mytrade-wallet-export-20260717-0906
+npx expo export --platform all --output-dir /tmp/mytrade-wallet-export-20260717-0944
 Android: pass, 4,588 modules, 8.5 MB Hermes bundle
-iOS: pass, 4,576 modules, 8.5 MB Hermes bundle
+iOS: pass, 4,532 modules, 8.5 MB Hermes bundle
 ```
 
 Metro emitted the existing `@noble/hashes/crypto.js` package-exports fallback warning. Both platform exports completed.
+
+iOS native integration:
+
+```text
+xcodebuild -workspace ios/MyTradeApp.xcworkspace -scheme MyTradeApp \
+  -configuration Debug -sdk iphonesimulator \
+  -destination platform=iOS Simulator,id=<redacted> \
+  -derivedDataPath /tmp/MyTradeAppWalletDerivedData \
+  CODE_SIGNING_ALLOWED=NO build
+Result: BUILD SUCCEEDED
+```
+
+The resulting app loaded the 8090 feature bundle on an iPhone 17 Pro simulator running iOS 26.5 and rendered Launchpad without a missing-native-module or dyld error.
 
 ## Review Results
 
@@ -41,12 +54,15 @@ Metro emitted the existing `@noble/hashes/crypto.js` package-exports fallback wa
 - Share privacy: the capture card contains only ArtStar, configured public chain, public address, and QR. It excludes balances, user IDs, email, sessions, and tokens. Temporary PNG cleanup runs in `finally`.
 - Data boundary: the Wallet repository performs a read-only `art_assets` query filtered by `chain_id` and `is_deleted = false`. No schema, migration, transaction, or user-data mutation is included.
 - Performance: no polling, realtime subscription, or app-wide high-frequency state was added. Balance state stays screen-local. Large ART sets still use one multicall and one screen `ScrollView`; device profiling remains required before release.
+- Native dependency compatibility: direct `expo-file-system 57.0.1` reproduced a dyld symbol failure against the Expo 57 prebuilt core. The dependency is pinned to the SDK's previously working `57.0.0`, CocoaPods records `ExpoSharing 57.0.5` and `react-native-view-shot 5.1.0`, and the rebuilt simulator app stays running.
 
 An external Codex review was not run because the private repository diff was not authorized for transmission to an external review service. The diff was reviewed locally against `cb9e91c`.
 
 ## Device QA Status
 
-Physical iOS and Android QA has not been executed from this worktree. The following release checks remain pending:
+Physical iOS and Android QA has not been executed from this worktree. Partial iOS simulator QA passed native build, installation, bundle loading, and logged-out Launchpad rendering. Authenticated Wallet QA could not proceed because the intentionally unsigned simulator build cannot write SecureStore/Keychain (`setValueWithKeyAsync` reports missing authorization), so it cannot restore a login session.
+
+The following release checks remain pending:
 
 - Phone and tablet layout, including long addresses, large balances, and many positive ART rows.
 - BSC Testnet `97`, then configuration-only Mainnet `56` verification.
@@ -55,7 +71,7 @@ Physical iOS and Android QA has not been executed from this worktree. The follow
 - Clipboard content, text-share cancellation, image-share cancellation/failure, retry, and temporary-file cleanup.
 - Branded PNG legibility and QR scan on a second device.
 
-Owner: mobile QA. Evidence path: this document plus the device/build matrix captured during execution. Next action: run the checklist on authenticated iOS and Android builds before release approval.
+Owner: mobile QA. Evidence path: this document plus the device/build matrix captured during execution. Next action: install a signed dev client or use a physical development build, sign in, then run the checklist on authenticated iOS and Android builds before release approval.
 
 ## Residual Risks
 
