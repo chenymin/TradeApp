@@ -59,12 +59,15 @@ Reverting the mobile commits removes the unlink action and non-interactive refre
 
 The following checks require a signed Expo development build and a real authenticated Privy account. They are not claimed by the machine suite:
 
-- iOS and Android render the destructive confirmation correctly.
-- Cancel and system-dismiss leave the linked wallet unchanged.
+- iOS destructive confirmation: pass on iPhone 17 Pro simulator with an authenticated account and a real linked Rabby wallet.
+- iOS Cancel: pass; the external wallet row remained linked and no destructive confirmation was accepted.
+- Android destructive confirmation and cancellation: pending.
 - A real external linked wallet is removed by Privy exactly once.
 - `wallet-login` succeeds after unlink and returns the same account id and active wallet.
 - The corresponding `investor_wallets` row becomes `status='removed'`.
 - Offline refresh shows `Wallet removed; sync pending`; reconnect + Retry sync converges without a second Privy request.
 - Active wallet, KYC status, points, referrals, and rewards remain unchanged.
 
-Status: machine verification passed; manual device/backend convergence gate pending.
+The iOS Wallet view also surfaced a pre-existing background request timeout indicator after navigation from Dashboard. Task 8D does not modify the Dashboard request path; this observation is outside the unlink scope and should be triaged separately.
+
+Status: machine verification and non-destructive iOS UI verification passed; destructive Privy/backend convergence and Android gates pending.
