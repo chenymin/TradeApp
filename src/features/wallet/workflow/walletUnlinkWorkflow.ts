@@ -27,7 +27,8 @@ export function canUnlinkWallet(
   );
 
   return belongsToIdentity &&
-    identity.wallets.length > 1 &&
+    wallet.privyLinked &&
+    identity.wallets.filter((candidate) => candidate.privyLinked).length > 1 &&
     wallet.kind === "external" &&
     wallet.status === "linked" &&
     !sameAddress(wallet.address, identity.activeAddress);

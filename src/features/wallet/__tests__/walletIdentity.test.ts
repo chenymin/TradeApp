@@ -21,12 +21,13 @@ describe("wallet identity", () => {
     );
 
     expect(identity?.activeAddress).toBe(address(8));
-    expect(identity?.wallets.map(({ address: walletAddress, status }) => ({
+    expect(identity?.wallets.map(({ address: walletAddress, privyLinked, status }) => ({
       address: walletAddress,
+      privyLinked,
       status,
     }))).toEqual([
-      { address: address(8), status: "active" },
-      { address: address(9), status: "linked" },
+      { address: address(8), privyLinked: true, status: "active" },
+      { address: address(9), privyLinked: true, status: "linked" },
     ]);
     expect(identity?.passkeyMfaEnabled).toBe(true);
   });
@@ -52,12 +53,14 @@ describe("wallet identity", () => {
         {
           address: address(8),
           kind: "external",
+          privyLinked: false,
           providerLabel: "Verified wallet",
           status: "active",
         },
         {
           address: address(9),
           kind: "embedded",
+          privyLinked: true,
           providerLabel: "Privy",
           status: "linked",
         },
@@ -74,7 +77,11 @@ describe("wallet identity", () => {
     });
 
     expect(identity?.wallets).toHaveLength(1);
-    expect(identity?.wallets[0]).toMatchObject({ kind: "embedded", status: "active" });
+    expect(identity?.wallets[0]).toMatchObject({
+      kind: "embedded",
+      privyLinked: true,
+      status: "active",
+    });
   });
 });
 

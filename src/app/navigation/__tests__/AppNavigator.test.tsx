@@ -431,11 +431,18 @@ describe("AppNavigator", () => {
           initialRouteName="profile"
           privyWalletMetadata={{
             passkeyMfaEnabled: false,
-            wallets: [{
-              address: "0x0000000000000000000000000000000000000009",
-              kind: "external",
-              providerLabel: "metamask",
-            }],
+            wallets: [
+              {
+                address: "0x0000000000000000000000000000000000000008",
+                kind: "embedded",
+                providerLabel: "Privy",
+              },
+              {
+                address: "0x0000000000000000000000000000000000000009",
+                kind: "external",
+                providerLabel: "metamask",
+              },
+            ],
           }}
           state={authenticatedState()}
           walletDependencies={walletDependencies}

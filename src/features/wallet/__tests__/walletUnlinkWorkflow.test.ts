@@ -29,6 +29,7 @@ describe("walletUnlinkWorkflow", () => {
     const unknownWallet = {
       address: address(4),
       kind: "external" as const,
+      privyLinked: true,
       providerLabel: "Unknown",
       status: "linked" as const,
     };
@@ -38,6 +39,31 @@ describe("walletUnlinkWorkflow", () => {
     ).resolves.toBe("ineligible");
     expect(dependencies.confirm).not.toHaveBeenCalled();
     expect(dependencies.unlink).not.toHaveBeenCalled();
+  });
+
+  it("does not count a viewer-only synthetic wallet as a remaining Privy wallet", () => {
+    const identity: WalletIdentity = {
+      activeAddress: address(1),
+      passkeyMfaEnabled: false,
+      wallets: [
+        {
+          address: address(1),
+          kind: "external",
+          privyLinked: false,
+          providerLabel: "Verified wallet",
+          status: "active",
+        },
+        {
+          address: address(2),
+          kind: "external",
+          privyLinked: true,
+          providerLabel: "MetaMask",
+          status: "linked",
+        },
+      ],
+    };
+
+    expect(canUnlinkWallet(identity, identity.wallets[1]!)).toBe(false);
   });
 
   it("does nothing after confirmation is cancelled", async () => {
@@ -115,18 +141,21 @@ function walletIdentity(): WalletIdentity {
       {
         address: address(1),
         kind: "embedded",
+        privyLinked: true,
         providerLabel: "Privy",
         status: "active",
       },
       {
         address: address(2),
         kind: "external",
+        privyLinked: true,
         providerLabel: "MetaMask",
         status: "linked",
       },
       {
         address: address(3),
         kind: "embedded",
+        privyLinked: true,
         providerLabel: "Privy",
         status: "linked",
       },

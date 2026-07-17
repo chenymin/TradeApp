@@ -17,6 +17,7 @@ export type WalletIdentity = {
   wallets: Array<{
     address: `0x${string}`;
     kind: WalletKind;
+    privyLinked: boolean;
     providerLabel: string;
     status: WalletLinkStatus;
   }>;

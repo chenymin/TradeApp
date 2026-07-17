@@ -61,6 +61,7 @@ export function mapWalletIdentity(
   const active = wallets.find((wallet) => sameAddress(wallet.address, activeAddress)) ?? {
     address: activeAddress,
     kind: "external" as const,
+    privyLinked: false,
     providerLabel: "Verified wallet",
   };
 
@@ -71,6 +72,7 @@ export function mapWalletIdentity(
       {
         ...active,
         address: activeAddress,
+        privyLinked: active.privyLinked,
         status: "active",
       },
       ...wallets
@@ -78,6 +80,7 @@ export function mapWalletIdentity(
         .map((wallet) => ({
           ...wallet,
           address: getAddress(wallet.address),
+          privyLinked: true,
           status: "linked" as const,
         })),
     ],
@@ -87,11 +90,13 @@ export function mapWalletIdentity(
 function dedupeWallets(wallets: PrivyWalletMetadata["wallets"]): Array<{
   address: `0x${string}`;
   kind: WalletKind;
+  privyLinked: true;
   providerLabel: string;
 }> {
   const unique = new Map<string, {
     address: `0x${string}`;
     kind: WalletKind;
+    privyLinked: true;
     providerLabel: string;
   }>();
 
@@ -99,7 +104,9 @@ function dedupeWallets(wallets: PrivyWalletMetadata["wallets"]): Array<{
     if (!isAddress(wallet.address)) continue;
     const address = getAddress(wallet.address);
     const key = address.toLowerCase();
-    if (!unique.has(key)) unique.set(key, { ...wallet, address });
+    if (!unique.has(key)) {
+      unique.set(key, { ...wallet, address, privyLinked: true });
+    }
   }
 
   return [...unique.values()];
