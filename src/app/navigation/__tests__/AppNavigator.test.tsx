@@ -12,6 +12,7 @@ import type { AssetDetailLoader } from "../../../features/assets/domain/assetDet
 import { toAssetDetailReadModel } from "../../../features/assets/domain/assetDetailMappers";
 import type { RewardsDataDependencies } from "../../../features/referral/screens/RewardsScreen";
 import type { WalletDataDependencies } from "../../../features/wallet/domain/walletModels";
+import type { WalletUnlinkDependencies } from "../../../features/wallet/workflow/walletUnlinkWorkflow";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -420,6 +421,7 @@ describe("AppNavigator", () => {
 
   it("opens Wallet from authenticated Profile as a protected detail route", async () => {
     const walletDependencies = createWalletDependencies();
+    const walletUnlinkDependencies = createUnlinkDependencies();
     let renderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -437,6 +439,7 @@ describe("AppNavigator", () => {
           }}
           state={authenticatedState()}
           walletDependencies={walletDependencies}
+          walletUnlinkDependencies={walletUnlinkDependencies}
         />,
       );
     });
@@ -457,6 +460,9 @@ describe("AppNavigator", () => {
       address: "0x0000000000000000000000000000000000000008",
       chain: expect.objectContaining({ chainId: 97 }),
     });
+    expect(renderer!.root.findByProps({
+      accessibilityLabel: "Unlink wallet 0x000000...000009",
+    })).toBeTruthy();
 
     await act(async () => {
       renderer!.root.findByProps({ accessibilityLabel: "Back" }).props.onPress();
@@ -478,6 +484,7 @@ describe("AppNavigator", () => {
           initialRouteName="profile"
           state={{ status: "logged_out" }}
           walletDependencies={walletDependencies}
+          walletUnlinkDependencies={createUnlinkDependencies()}
         />,
       );
     });
@@ -491,6 +498,10 @@ describe("AppNavigator", () => {
     expect(walletDependencies.loadBalances).not.toHaveBeenCalled();
     expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
       .toHaveLength(0);
+    expect(renderer!.root.findAll((node) => (
+      typeof node.props.accessibilityLabel === "string" &&
+      node.props.accessibilityLabel.startsWith("Unlink wallet ")
+    ))).toHaveLength(0);
   });
 
   it("opens an authenticated initial Wallet route", async () => {
@@ -957,6 +968,14 @@ function createActions() {
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
     refreshSession: vi.fn().mockResolvedValue(true),
     restoreSession: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createUnlinkDependencies(): WalletUnlinkDependencies {
+  return {
+    confirm: vi.fn().mockResolvedValue(true),
+    refreshSession: vi.fn().mockResolvedValue(true),
+    unlink: vi.fn().mockResolvedValue(undefined),
   };
 }
 

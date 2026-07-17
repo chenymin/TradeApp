@@ -1,7 +1,7 @@
 import { useLogin } from "@privy-io/expo/ui";
 import * as Linking from "expo-linking";
 import { useEffect, useMemo } from "react";
-import { usePrivy } from "@privy-io/expo";
+import { usePrivy, useUnlinkWallet } from "@privy-io/expo";
 
 import { createLinkingAdapter } from "./linking/createLinkingAdapter";
 import { AuthProvider } from "./providers/AuthProvider";
@@ -28,6 +28,7 @@ import {
 import { createDefaultRewardsServices } from "../features/referral/services/createDefaultRewardsServices";
 import { mapPrivyWalletMetadata } from "../features/wallet/domain/walletIdentity";
 import { createDefaultWalletServices } from "../features/wallet/services/createDefaultWalletServices";
+import { createWalletUnlinkDependencies } from "../features/wallet/services/createWalletUnlinkDependencies";
 import {
   getPublicChainConfig,
   type PublicChainConfig,
@@ -65,6 +66,7 @@ function AuthRuntime({
   walletChain: PublicChainConfig;
 }) {
   const { getAccessToken, logout, user } = usePrivy();
+  const { unlinkWallet } = useUnlinkWallet();
   const { login } = useLogin();
   const privyWalletMetadata = useMemo(
     () => mapPrivyWalletMetadata(user),
@@ -84,6 +86,7 @@ function AuthRuntime({
       <AuthGateRuntime
         privyWalletMetadata={privyWalletMetadata}
         publicWebOrigin={publicWebOrigin}
+        unlinkWallet={unlinkWallet}
         walletDependencies={walletDependencies}
         walletChain={walletChain}
       />
@@ -94,16 +97,25 @@ function AuthRuntime({
 function AuthGateRuntime({
   privyWalletMetadata,
   publicWebOrigin,
+  unlinkWallet,
   walletDependencies,
   walletChain,
 }: {
   privyWalletMetadata: ReturnType<typeof mapPrivyWalletMetadata>;
   publicWebOrigin?: string;
+  unlinkWallet: (input: { address: string }) => Promise<unknown>;
   walletDependencies: ReturnType<typeof createDefaultWalletServices>;
   walletChain: PublicChainConfig;
 }) {
   const state = useAuthState();
   const actions = useAuthActions();
+  const walletUnlinkDependencies = useMemo(
+    () => createWalletUnlinkDependencies({
+      refreshSession: actions.refreshSession,
+      unlinkWallet,
+    }),
+    [actions.refreshSession, unlinkWallet],
+  );
   const assetDetailLoader = useMemo(() => createDefaultPublicAssetDetailLoader(), []);
   const assetPageLoader = useMemo(() => createDefaultPublicAssetLoader(), []);
   const externalLinkAdapter = useMemo(() => createDefaultExternalLinkAdapter(), []);
@@ -148,6 +160,7 @@ function AuthGateRuntime({
       rewardsDependencies={rewardsDependencies}
       state={state}
       walletDependencies={walletDependencies}
+      walletUnlinkDependencies={walletUnlinkDependencies}
       walletChain={walletChain}
     />
   );
