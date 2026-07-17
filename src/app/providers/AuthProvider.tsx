@@ -28,6 +28,7 @@ export type AuthProviderActions = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   recoverAsInvestor: () => Promise<void>;
+  refreshSession: () => Promise<boolean>;
   restoreSession: () => Promise<void>;
 };
 
@@ -89,6 +90,18 @@ export function AuthProvider({
     applyResult(await workflow.recoverAsInvestor());
   }, [applyResult, workflow]);
 
+  const refreshSession = useCallback(async () => {
+    const result = await workflow.refreshSession();
+    if (!result.ok) return false;
+
+    setState({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: result.viewer,
+    });
+    return true;
+  }, [workflow]);
+
   useEffect(() => {
     void restoreSession();
   }, [restoreSession]);
@@ -98,9 +111,10 @@ export function AuthProvider({
       login,
       logout,
       recoverAsInvestor,
+      refreshSession,
       restoreSession,
     }),
-    [login, logout, recoverAsInvestor, restoreSession],
+    [login, logout, recoverAsInvestor, refreshSession, restoreSession],
   );
 
   return (

@@ -18,6 +18,10 @@ export type AuthWorkflowResult = AuthState & {
   viewer?: AuthViewer;
 };
 
+export type AuthSessionRefreshResult =
+  | { ok: true; viewer: AuthViewer }
+  | { error: AuthWorkflowError; ok: false };
+
 export type AuthWorkflowAdapters = {
   exchange: {
     exchange: (privyAccessToken: string) => Promise<{
@@ -27,6 +31,7 @@ export type AuthWorkflowAdapters = {
     }>;
   };
   privy: {
+    getAccessToken: () => Promise<string | null>;
     login: () => Promise<{ accessToken: string }>;
     logout: () => Promise<void>;
   };
@@ -70,8 +75,38 @@ export function createAuthWorkflow(adapters: AuthWorkflowAdapters) {
         },
         getPendingRecoverySession: () => pendingRecoverySession,
       }),
+    refreshSession: () => refreshSession(adapters),
     restoreSession: () => restoreSession(adapters),
   };
+}
+
+async function refreshSession(
+  adapters: AuthWorkflowAdapters,
+): Promise<AuthSessionRefreshResult> {
+  try {
+    const privyAccessToken = await adapters.privy.getAccessToken();
+    if (!privyAccessToken) {
+      return {
+        error: { code: "privy_session_unavailable", retryable: true },
+        ok: false,
+      };
+    }
+
+    const exchanged = await exchangeWithRetry(adapters, privyAccessToken);
+    if (!exchanged.viewer) {
+      return {
+        error: { code: "auth_viewer_missing", retryable: true },
+        ok: false,
+      };
+    }
+
+    await adapters.session.setSession(
+      attachViewer(exchanged.session, exchanged.viewer),
+    );
+    return { ok: true, viewer: exchanged.viewer };
+  } catch (error) {
+    return { error: normalizeWorkflowError(error), ok: false };
+  }
 }
 
 async function login(

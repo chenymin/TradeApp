@@ -153,6 +153,74 @@ describe("AuthProvider", () => {
       viewer: viewer(),
     });
   });
+
+  it("replaces the viewer after a non-interactive session refresh", async () => {
+    const workflow = fakeWorkflow();
+    const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    workflow.refreshSession.mockResolvedValue({
+      ok: true,
+      viewer: replacementViewer,
+    });
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+
+    await act(async () => {
+      create(
+        <AuthProvider workflow={workflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    await act(async () => {
+      await expect(actions.refreshSession?.()).resolves.toBe(true);
+    });
+
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: replacementViewer,
+    });
+  });
+
+  it("preserves the authenticated viewer when session refresh fails", async () => {
+    const workflow = fakeWorkflow();
+    const authenticatedSnapshot = {
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: viewer(),
+    };
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    workflow.refreshSession.mockResolvedValue({
+      error: { code: "server_unavailable", retryable: true },
+      ok: false,
+    });
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+
+    await act(async () => {
+      create(
+        <AuthProvider workflow={workflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    await act(async () => {
+      await expect(actions.refreshSession?.()).resolves.toBe(false);
+    });
+
+    expect(snapshots.at(-1)).toEqual(authenticatedSnapshot);
+  });
 });
 
 function StateProbe({ snapshots }: { snapshots: Array<unknown> }) {
@@ -178,6 +246,7 @@ function fakeWorkflow() {
     login: vi.fn().mockResolvedValue({ status: "authenticated" }),
     logout: vi.fn().mockResolvedValue({ status: "logged_out" }),
     recoverAsInvestor: vi.fn().mockResolvedValue({ status: "authenticated" }),
+    refreshSession: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
     restoreSession: vi.fn().mockResolvedValue({ status: "logged_out" }),
   };
 }

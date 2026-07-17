@@ -191,6 +191,47 @@ describe("authWorkflow", () => {
     expect(adapters.session.clearSession).toHaveBeenCalledOnce();
   });
 
+  it("refreshes an authenticated session without opening Privy login", async () => {
+    const adapters = fakeAdapters();
+    const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
+    adapters.privy.getAccessToken.mockResolvedValue("fresh-privy-token");
+    adapters.exchange.exchange.mockResolvedValue({
+      session: { accessToken: "replacement-token" },
+      userStatus: "existing",
+      viewer: replacementViewer,
+    });
+    const workflow = createAuthWorkflow(adapters);
+
+    await expect(workflow.refreshSession()).resolves.toEqual({
+      ok: true,
+      viewer: replacementViewer,
+    });
+
+    expect(adapters.privy.login).not.toHaveBeenCalled();
+    expect(adapters.exchange.exchange).toHaveBeenCalledWith("fresh-privy-token");
+    expect(adapters.session.setSession).toHaveBeenCalledWith({
+      accessToken: "replacement-token",
+      viewer: replacementViewer,
+    });
+  });
+
+  it("does not clear the working session when refresh fails", async () => {
+    const adapters = fakeAdapters();
+    adapters.privy.getAccessToken.mockResolvedValue("fresh-privy-token");
+    adapters.exchange.exchange.mockRejectedValue({
+      code: "server_unavailable",
+      retryable: false,
+    });
+    const workflow = createAuthWorkflow(adapters);
+
+    await expect(workflow.refreshSession()).resolves.toEqual({
+      error: { code: "server_unavailable", retryable: false },
+      ok: false,
+    });
+
+    expect(adapters.session.clearSession).not.toHaveBeenCalled();
+  });
+
   it("restores and logs out through the session and Privy boundaries", async () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);
@@ -217,6 +258,7 @@ function fakeAdapters() {
       }),
     },
     privy: {
+      getAccessToken: vi.fn().mockResolvedValue("privy-token"),
       login: vi.fn().mockResolvedValue({ accessToken: "privy-token" }),
       logout: vi.fn().mockResolvedValue(undefined),
     },

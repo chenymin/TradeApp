@@ -35,6 +35,7 @@ export function createRuntimeAuthWorkflow(privy: PrivyRuntimeBindings) {
         }),
     },
     privy: {
+      getAccessToken: privy.getAccessToken,
       login: () =>
         loginWithPrivy({
           getAccessToken: privy.getAccessToken,
