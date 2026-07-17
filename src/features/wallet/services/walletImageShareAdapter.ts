@@ -1,4 +1,4 @@
-import { deleteAsync } from "expo-file-system/legacy";
+import { File } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { captureRef } from "react-native-view-shot";
 
@@ -54,7 +54,7 @@ export function createDefaultWalletImageShareAdapter(): WalletImageShareAdapter 
       });
     },
     async deleteFile(uri) {
-      await deleteAsync(uri, { idempotent: true });
+      new File(uri).delete();
     },
     isSharingAvailable: Sharing.isAvailableAsync,
     async shareFile(uri) {

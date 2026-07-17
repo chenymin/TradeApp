@@ -1,6 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createWalletImageShareAdapter } from "../services/walletImageShareAdapter";
+const deleteNativeFile = vi.hoisted(() => vi.fn());
+
+vi.mock("expo-file-system", () => ({
+  File: vi.fn(function MockFile(this: { delete(): void }) {
+    this.delete = deleteNativeFile;
+  }),
+}));
+
+import { File } from "expo-file-system";
+
+import {
+  createDefaultWalletImageShareAdapter,
+  createWalletImageShareAdapter,
+} from "../services/walletImageShareAdapter";
 
 describe("wallet image share adapter", () => {
   it("removes the temporary PNG after a successful share", async () => {
@@ -50,6 +63,14 @@ describe("wallet image share adapter", () => {
 
     await expect(createWalletImageShareAdapter(io).share(target()))
       .resolves.toBe("shared");
+  });
+
+  it("uses the Expo File API to delete the default adapter tmpfile", async () => {
+    await expect(createDefaultWalletImageShareAdapter().share(target()))
+      .resolves.toBe("shared");
+
+    expect(File).toHaveBeenCalledWith("file:///tmp/wallet.png");
+    expect(deleteNativeFile).toHaveBeenCalledOnce();
   });
 });
 
