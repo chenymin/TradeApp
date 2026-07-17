@@ -193,6 +193,10 @@ describe("WalletScreen", () => {
       metadata: linkedWalletMetadata(),
       unlinkDependencies,
     });
+    const actionSlotTestId = `wallet-unlink-action-slot-${address(9).toLowerCase()}`;
+    const initialActionSlotStyle = renderer.root.findByProps({
+      testID: actionSlotTestId,
+    }).props.style;
 
     await act(async () => {
       await renderer.root.findByProps({
@@ -201,6 +205,11 @@ describe("WalletScreen", () => {
     });
 
     expect(output(renderer)).toContain("Wallet removed; sync pending");
+    expect(renderer.root.findByProps({ testID: actionSlotTestId }).props.style)
+      .toEqual(initialActionSlotStyle);
+    expect(renderer.root.findAllByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    })).toHaveLength(0);
 
     await act(async () => {
       await renderer.root.findByProps({

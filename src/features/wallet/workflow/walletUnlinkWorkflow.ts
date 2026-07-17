@@ -22,16 +22,16 @@ export function canUnlinkWallet(
   identity: WalletIdentity,
   wallet: WalletUnlinkTarget,
 ): boolean {
-  const belongsToIdentity = identity.wallets.some(
+  const canonicalWallet = identity.wallets.find(
     (candidate) => sameAddress(candidate.address, wallet.address),
   );
+  if (!canonicalWallet) return false;
 
-  return belongsToIdentity &&
-    wallet.privyLinked &&
+  return canonicalWallet.privyLinked &&
     identity.wallets.filter((candidate) => candidate.privyLinked).length > 1 &&
-    wallet.kind === "external" &&
-    wallet.status === "linked" &&
-    !sameAddress(wallet.address, identity.activeAddress);
+    canonicalWallet.kind === "external" &&
+    canonicalWallet.status === "linked" &&
+    !sameAddress(canonicalWallet.address, identity.activeAddress);
 }
 
 export async function requestWalletUnlink(
@@ -39,16 +39,21 @@ export async function requestWalletUnlink(
   wallet: WalletUnlinkTarget,
   dependencies: WalletUnlinkDependencies,
 ): Promise<WalletUnlinkResult> {
-  if (!canUnlinkWallet(identity, wallet)) return "ineligible";
+  const canonicalWallet = identity.wallets.find(
+    (candidate) => sameAddress(candidate.address, wallet.address),
+  );
+  if (!canonicalWallet || !canUnlinkWallet(identity, wallet)) {
+    return "ineligible";
+  }
 
   const confirmed = await dependencies.confirm({
-    address: wallet.address,
-    providerLabel: wallet.providerLabel,
+    address: canonicalWallet.address,
+    providerLabel: canonicalWallet.providerLabel,
   });
   if (!confirmed) return "cancelled";
 
   try {
-    await dependencies.unlink(wallet.address);
+    await dependencies.unlink(canonicalWallet.address);
   } catch {
     return "unlink_error";
   }

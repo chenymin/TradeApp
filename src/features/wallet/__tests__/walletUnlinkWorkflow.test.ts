@@ -41,6 +41,23 @@ describe("walletUnlinkWorkflow", () => {
     expect(dependencies.unlink).not.toHaveBeenCalled();
   });
 
+  it("does not trust forged wallet properties for a known address", async () => {
+    const identity = walletIdentity();
+    const dependencies = unlinkDependencies();
+    const forgedExternal = {
+      ...identity.wallets[2]!,
+      kind: "external" as const,
+      providerLabel: "Forged provider",
+    };
+
+    expect(canUnlinkWallet(identity, forgedExternal)).toBe(false);
+    await expect(
+      requestWalletUnlink(identity, forgedExternal, dependencies),
+    ).resolves.toBe("ineligible");
+    expect(dependencies.confirm).not.toHaveBeenCalled();
+    expect(dependencies.unlink).not.toHaveBeenCalled();
+  });
+
   it("does not count a viewer-only synthetic wallet as a remaining Privy wallet", () => {
     const identity: WalletIdentity = {
       activeAddress: address(1),

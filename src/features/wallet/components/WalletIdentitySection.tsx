@@ -86,24 +86,31 @@ export function WalletIdentitySection({
                   {wallet.kind === "embedded" ? "Embedded" : "External"}
                 </AppText>
               </View>
-              {eligible && !targetNeedsSync ? (
-                <Pressable
-                  accessibilityHint="Removes this external wallet after confirmation"
-                  accessibilityLabel={`Unlink wallet ${shortAddress(wallet.address)}`}
-                  accessibilityRole="button"
-                  disabled={operationBusy}
-                  onPress={() => onUnlinkWallet?.(wallet)}
-                  style={({ pressed }) => [
-                    styles.unlinkAction,
-                    pressed ? styles.unlinkActionPressed : null,
-                  ]}
+              {eligible ? (
+                <View
+                  style={styles.unlinkAction}
+                  testID={`wallet-unlink-action-slot-${wallet.address.toLowerCase()}`}
                 >
-                  {targetBusy ? (
-                    <ActivityIndicator color={colors.danger} size="small" />
-                  ) : (
-                    <Trash2 color={colors.danger} size={19} strokeWidth={2.2} />
-                  )}
-                </Pressable>
+                  {!targetNeedsSync ? (
+                    <Pressable
+                      accessibilityHint="Removes this external wallet after confirmation"
+                      accessibilityLabel={`Unlink wallet ${shortAddress(wallet.address)}`}
+                      accessibilityRole="button"
+                      disabled={operationBusy}
+                      onPress={() => onUnlinkWallet?.(wallet)}
+                      style={({ pressed }) => [
+                        styles.unlinkButton,
+                        pressed ? styles.unlinkActionPressed : null,
+                      ]}
+                    >
+                      {targetBusy ? (
+                        <ActivityIndicator color={colors.danger} size="small" />
+                      ) : (
+                        <Trash2 color={colors.danger} size={19} strokeWidth={2.2} />
+                      )}
+                    </Pressable>
+                  ) : null}
+                </View>
               ) : null}
             </View>
           );
@@ -192,6 +199,12 @@ const styles = StyleSheet.create({
   },
   unlinkActionPressed: {
     opacity: 0.6,
+  },
+  unlinkButton: {
+    alignItems: "center",
+    height: 44,
+    justifyContent: "center",
+    width: 44,
   },
   walletDetails: {
     flex: 1,
