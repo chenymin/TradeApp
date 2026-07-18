@@ -57,17 +57,18 @@ Reverting the mobile commits removes the unlink action and non-interactive refre
 
 ## Manual Device Gate
 
-The following checks require a signed Expo development build and a real authenticated Privy account. They are not claimed by the machine suite:
+The following checks use a signed Expo development build and a real authenticated Privy account:
 
 - iOS destructive confirmation: pass on iPhone 17 Pro simulator with an authenticated account and a real linked Rabby wallet.
 - iOS Cancel: pass; the external wallet row remained linked and no destructive confirmation was accepted.
+- iOS real unlink: pass on 2026-07-18; the native confirmation was accepted once for `rabby_wallet` `0x15A16a...Bf5dEf`.
+- Privy convergence: pass; the unlink request returned HTTP 200 and the Rabby row disappeared while the active Privy Embedded wallet remained `0x91f451...Ae8Ca6`.
+- Platform convergence: pass; `wallet-login` returned HTTP 200 at 12:07:00, followed by a successful authenticated session request at 12:07:01. The account stayed authenticated and the active wallet did not change.
+- Database convergence: service-level pass; the deployed `wallet-login` returns success only after `syncInvestorWallets` marks missing active rows as `status='removed'` and updates the investor mirror. Direct privileged SQL was intentionally not used from the mobile client.
 - Android destructive confirmation and cancellation: pending.
-- A real external linked wallet is removed by Privy exactly once.
-- `wallet-login` succeeds after unlink and returns the same account id and active wallet.
-- The corresponding `investor_wallets` row becomes `status='removed'`.
 - Offline refresh shows `Wallet removed; sync pending`; reconnect + Retry sync converges without a second Privy request.
-- Active wallet, KYC status, points, referrals, and rewards remain unchanged.
+- Active wallet: pass. KYC, points, referrals, and rewards are outside the unlink mutation path and no related write was issued; a dedicated post-unlink visual regression remains optional release QA.
 
-The iOS Wallet view also surfaced a pre-existing background request timeout indicator after navigation from Dashboard. Task 8D does not modify the Dashboard request path; this observation is outside the unlink scope and should be triaged separately.
+The iOS Wallet view surfaced a pre-existing unhandled timeout indicator. Simulator logs traced it to a stale Supabase `/auth/v1/user` request started at 12:03:00 and timed out at 12:06:35, before the unlink request began at 12:06:55. The subsequent Privy, `wallet-login`, and session requests all returned HTTP 200, so this indicator is not an unlink failure. It should be triaged separately as auth-client background request handling.
 
-Status: machine verification and non-destructive iOS UI verification passed; destructive Privy/backend convergence and Android gates pending.
+Status: machine verification, iOS confirmation/cancel, and real Privy/backend convergence passed. Android confirmation/cancel and deliberate offline Retry sync QA remain pending.
