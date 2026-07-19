@@ -105,6 +105,43 @@
       "suppressedFindings": [
         "suggested-risk-tags"
       ]
+    },
+    "rn-wallet-switching": {
+      "slug": "rn-wallet-switching",
+      "title": "移动端钱包绑定与活跃钱包切换",
+      "createdAt": "2026-07-19",
+      "currentStage": "需求澄清",
+      "paths": {
+        "requirement": "docs/requirements/2026-07-19-rn-wallet-switching.md",
+        "design": "docs/plans/2026-07-19-rn-wallet-switching-design.md",
+        "implementation": "docs/plans/2026-07-19-rn-wallet-switching-implementation.md",
+        "review": "docs/plans/2026-07-19-rn-wallet-switching-review.md",
+        "quality": "docs/plans/2026-07-19-rn-wallet-switching-quality-review.md",
+        "release": "docs/plans/2026-07-19-rn-wallet-switching-release.md"
+      },
+      "config": {
+        "language": "zh-CN",
+        "manifestPath": "docs/ai-delivery/features.json",
+        "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+        "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+        "executorProfilesPath": "docs/ai-delivery/executors.json",
+        "requirementsDir": "docs/requirements",
+        "plansDir": "docs/plans",
+        "templateDir": "docs/templates",
+        "promptDir": "docs/prompts",
+        "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+        "prTemplatePath": ".github/pull_request_template.md",
+        "riskPacks": [],
+        "teamPreset": {
+          "defaultBranch": "",
+          "requiredGates": [],
+          "riskPacks": [],
+          "externalProviders": []
+        }
+      },
+      "suppressedFindings": [
+        "suggested-risk-tags"
+      ]
     }
   }
 }
