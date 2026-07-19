@@ -68,6 +68,43 @@
           "externalProviders": []
         }
       }
+    },
+    "rn-wallet-controlled-unlink": {
+      "slug": "rn-wallet-controlled-unlink",
+      "title": "移动端受控钱包解绑",
+      "createdAt": "2026-07-18",
+      "currentStage": "任务拆分",
+      "paths": {
+        "requirement": "docs/requirements/2026-07-18-rn-wallet-controlled-unlink.md",
+        "design": "docs/plans/2026-07-18-rn-wallet-controlled-unlink-design.md",
+        "implementation": "docs/plans/2026-07-18-rn-wallet-controlled-unlink-implementation.md",
+        "review": "docs/plans/2026-07-18-rn-wallet-controlled-unlink-review.md",
+        "quality": "docs/plans/2026-07-18-rn-wallet-controlled-unlink-quality-review.md",
+        "release": "docs/plans/2026-07-18-rn-wallet-controlled-unlink-release.md"
+      },
+      "config": {
+        "language": "zh-CN",
+        "manifestPath": "docs/ai-delivery/features.json",
+        "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+        "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+        "executorProfilesPath": "docs/ai-delivery/executors.json",
+        "requirementsDir": "docs/requirements",
+        "plansDir": "docs/plans",
+        "templateDir": "docs/templates",
+        "promptDir": "docs/prompts",
+        "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+        "prTemplatePath": ".github/pull_request_template.md",
+        "riskPacks": [],
+        "teamPreset": {
+          "defaultBranch": "",
+          "requiredGates": [],
+          "riskPacks": [],
+          "externalProviders": []
+        }
+      },
+      "suppressedFindings": [
+        "suggested-risk-tags"
+      ]
     }
   }
 }
