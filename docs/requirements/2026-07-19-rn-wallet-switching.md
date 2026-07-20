@@ -175,5 +175,5 @@ Feature slug：`rn-wallet-switching`
 - `docs/requirements/2026-07-18-rn-wallet-controlled-unlink.md`：Task 8D 的账户隔离、Privy 身份和会话刷新约束。
 - `/Users/rwa_start/ProjectSource/ArtStarFront/src/pages/Wallet.tsx` 与 `src/components/wallet`：当前 Web 钱包绑定、展示和切换交互依据。
 - `/Users/rwa_start/ProjectSource/ArtStarFront/supabase/functions/wallet-login/index.ts`：现有登录、钱包同步和 JWT 签发逻辑；本功能保持其行为不变。
-- `/Users/rwa_start/ProjectSource/ArtStarManagementPlatform/supabase/migrations/021_investor_wallets.sql`：现有钱包唯一性、primary 约束和 RLS 基础。
+- `/Users/rwa_start/ProjectSource/ArtStarManagementPlatform/supabase/migrations/` 中现有 `investor_wallets` migration：钱包唯一性、primary 约束和 RLS 基础。
 - `/Users/rwa_start/ProjectSource/ArtStarManagementPlatform/docs/superpowers/plans/2026-04-29-kyc-uniqueness-wallet-binding.md`：历史 `sync-wallets` / `wallet-select` 重构意图，仅作为业务和风险参考，不视为已实现能力。

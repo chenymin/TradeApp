@@ -110,7 +110,7 @@
       "slug": "rn-wallet-switching",
       "title": "移动端钱包绑定与活跃钱包切换",
       "createdAt": "2026-07-19",
-      "currentStage": "方案设计",
+      "currentStage": "任务拆分",
       "paths": {
         "requirement": "docs/requirements/2026-07-19-rn-wallet-switching.md",
         "design": "docs/plans/2026-07-19-rn-wallet-switching-design.md",
