@@ -85,7 +85,7 @@ export async function exchangePrivyTokenForSession({
   }
 
   const body = await parseJson(response);
-  return parseExchangeResponse(body, now);
+  return parseAuthExchangeResponse(body, now);
 }
 
 function mapStatusToError(
@@ -131,9 +131,9 @@ async function parseJson(response: Response): Promise<unknown> {
   }
 }
 
-function parseExchangeResponse(
+export function parseAuthExchangeResponse(
   body: unknown,
-  now: () => number,
+  now: () => number = () => Math.floor(Date.now() / 1000),
 ): AuthExchangeResult {
   const parsedBody = body as ExchangeResponseBody;
   const session = parsedBody.session;

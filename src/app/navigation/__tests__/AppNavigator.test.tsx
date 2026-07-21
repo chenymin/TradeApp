@@ -973,6 +973,7 @@ function createActions() {
     login: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
+    replaceSession: vi.fn().mockResolvedValue(true),
     refreshSession: vi.fn().mockResolvedValue(true),
     restoreSession: vi.fn().mockResolvedValue(undefined),
   };

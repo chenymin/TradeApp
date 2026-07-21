@@ -10,7 +10,8 @@ export type PublicConfigEnv = Partial<
     | "EXPO_PUBLIC_CHAIN_ID"
     | "EXPO_PUBLIC_WEB_ORIGIN"
     | "EXPO_PUBLIC_PRIVY_CLIENT_ID"
-    | "EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH",
+    | "EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH"
+    | "EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH",
     string
   >
 >;
@@ -25,6 +26,7 @@ export type PublicConfig = {
   supabaseAnonKey: string;
   supabaseUrl: string;
   walletLoginPath: string;
+  walletSelectPath: string;
 };
 
 export type PublicConfigResult =
@@ -67,6 +69,9 @@ export function parsePublicConfig(env: PublicConfigEnv): PublicConfigResult {
       walletLoginPath:
         normalized.EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH ??
         "/functions/v1/wallet-login",
+      walletSelectPath:
+        normalized.EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH ??
+        "/functions/v1/wallet-select",
     },
     ok: true,
   };
@@ -82,6 +87,8 @@ export function readPublicConfig(): PublicConfigResult {
     EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
     EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH:
       process.env.EXPO_PUBLIC_SUPABASE_WALLET_LOGIN_PATH,
+    EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH:
+      process.env.EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH,
   });
 }
 

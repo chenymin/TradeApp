@@ -34,6 +34,7 @@ describe("parsePublicConfig", () => {
         supabaseAnonKey: "anon-key",
         supabaseUrl: "https://example.supabase.co",
         walletLoginPath: "/functions/v1/wallet-login",
+        walletSelectPath: "/functions/v1/wallet-select",
       },
       ok: true,
     });
@@ -51,6 +52,22 @@ describe("parsePublicConfig", () => {
     if (result.ok) {
       expect(result.config.walletLoginPath).toBe("/custom-wallet-login");
     }
+  });
+
+  it("defaults and overrides the wallet-select endpoint path", () => {
+    const defaultResult = parsePublicConfig(validEnv());
+    const customResult = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH: "/custom-wallet-select",
+    }));
+
+    expect(defaultResult).toMatchObject({
+      ok: true,
+      config: { walletSelectPath: "/functions/v1/wallet-select" },
+    });
+    expect(customResult).toMatchObject({
+      ok: true,
+      config: { walletSelectPath: "/custom-wallet-select" },
+    });
   });
 
   it("normalizes an optional secure public web origin", () => {

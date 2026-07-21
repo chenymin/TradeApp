@@ -259,6 +259,47 @@ describe("authWorkflow", () => {
     expect(adapters.session.setSession).not.toHaveBeenCalled();
   });
 
+  it("replaces the stored session with the wallet-select Viewer", async () => {
+    const adapters = fakeAdapters();
+    const workflow = createAuthWorkflow(adapters);
+    const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
+
+    await expect(workflow.replaceSession({
+      session: { accessToken: "replacement-token" },
+      viewer: replacementViewer,
+    })).resolves.toEqual({ ok: true, viewer: replacementViewer });
+
+    expect(adapters.session.setSession).toHaveBeenCalledWith({
+      accessToken: "replacement-token",
+      viewer: replacementViewer,
+    });
+  });
+
+  it("reports a wallet session persistence failure without clearing the working session", async () => {
+    const adapters = fakeAdapters();
+    adapters.session.setSession.mockRejectedValue({
+      code: "session_storage_failed",
+    });
+    const workflow = createAuthWorkflow(adapters);
+
+    await expect(workflow.replaceSession({
+      session: { accessToken: "replacement-token" },
+      viewer: viewer(),
+    })).resolves.toEqual({ ok: false });
+    expect(adapters.session.clearSession).not.toHaveBeenCalled();
+  });
+
+  it("does not persist a wallet session after its auth generation expires", async () => {
+    const adapters = fakeAdapters();
+    const workflow = createAuthWorkflow(adapters);
+
+    await expect(workflow.replaceSession({
+      session: { accessToken: "replacement-token" },
+      viewer: viewer(),
+    }, () => false)).resolves.toEqual({ ok: false });
+    expect(adapters.session.setSession).not.toHaveBeenCalled();
+  });
+
   it("restores and logs out through the session and Privy boundaries", async () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);

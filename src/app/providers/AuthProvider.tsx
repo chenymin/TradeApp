@@ -15,6 +15,7 @@ import type {
 } from "../../features/auth/workflow/authWorkflow";
 import type { AuthStatus } from "../../features/auth/workflow/authStateMachine";
 import type { AuthViewer } from "../../features/auth/domain/authViewer";
+import type { AuthExchangeResult } from "../../features/auth/services/authExchangeClient";
 
 export type AuthProviderState = {
   error?: AuthWorkflowResult["error"];
@@ -29,6 +30,7 @@ export type AuthProviderActions = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   recoverAsInvestor: () => Promise<void>;
+  replaceSession: (result: AuthExchangeResult) => Promise<boolean>;
   refreshSession: () => Promise<boolean>;
   restoreSession: () => Promise<void>;
 };
@@ -111,6 +113,22 @@ export function AuthProvider({
     return true;
   }, [workflow]);
 
+  const replaceSession = useCallback(async (session: AuthExchangeResult) => {
+    const generation = authGeneration.current;
+    const result = await workflow.replaceSession(
+      session,
+      () => generation === authGeneration.current,
+    );
+    if (!result.ok || generation !== authGeneration.current) return false;
+
+    setState({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: result.viewer,
+    });
+    return true;
+  }, [workflow]);
+
   useEffect(() => {
     void restoreSession();
   }, [restoreSession]);
@@ -120,10 +138,18 @@ export function AuthProvider({
       login,
       logout,
       recoverAsInvestor,
+      replaceSession,
       refreshSession,
       restoreSession,
     }),
-    [login, logout, recoverAsInvestor, refreshSession, restoreSession],
+    [
+      login,
+      logout,
+      recoverAsInvestor,
+      replaceSession,
+      refreshSession,
+      restoreSession,
+    ],
   );
 
   return (

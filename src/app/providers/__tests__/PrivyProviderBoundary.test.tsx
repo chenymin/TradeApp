@@ -31,6 +31,7 @@ describe("PrivyProviderBoundary", () => {
             supabaseAnonKey: "anon-key",
             supabaseUrl: "https://example.supabase.co",
             walletLoginPath: "/test-auth-path",
+            walletSelectPath: "/test-wallet-select-path",
           },
         },
         React.createElement("app-content"),
