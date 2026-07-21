@@ -71,6 +71,7 @@ export function AppRoot() {
                     publicConfig.config.supabaseUrl,
                   ).toString(),
                   publicWebOrigin: publicConfig.config.publicWebOrigin,
+                  supabasePublicKey: publicConfig.config.supabaseAnonKey,
                 }
               : undefined
           }

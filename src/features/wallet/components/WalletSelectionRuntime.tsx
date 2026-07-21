@@ -34,6 +34,7 @@ import type {
 export type WalletSelectionRuntimeConfig = {
   endpoint: string;
   publicWebOrigin: string;
+  supabasePublicKey: string;
 };
 
 type PendingConnection = {
@@ -90,11 +91,13 @@ export function WalletSelectionRuntime({
       selectWallet: (input) => selectWalletForSession({
         ...input,
         endpoint: config.endpoint,
+        supabasePublicKey: config.supabasePublicKey,
       }),
     }),
     [
       config.endpoint,
       config.publicWebOrigin,
+      config.supabasePublicKey,
       connection.adapter,
       getAccessToken,
       operationStorage,

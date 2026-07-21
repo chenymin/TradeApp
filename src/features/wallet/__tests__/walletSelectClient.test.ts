@@ -11,6 +11,7 @@ const request = {
   expectedPreviousAddress: "0x1111111111111111111111111111111111111111" as const,
   operationId: "11111111-1111-4111-8111-111111111111",
   privyToken: "privy-token",
+  supabasePublicKey: "publishable-key",
   targetAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
 };
 
@@ -48,6 +49,8 @@ describe("selectWalletForSession", () => {
       method: "POST",
       headers: {
         Accept: "application/json",
+        apikey: request.supabasePublicKey,
+        Authorization: `Bearer ${request.supabasePublicKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

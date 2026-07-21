@@ -39,6 +39,7 @@ type WalletSelectRequest = {
   now?: () => number;
   operationId: string;
   privyToken: string;
+  supabasePublicKey: string;
   targetAddress: `0x${string}`;
 };
 
@@ -56,6 +57,7 @@ export async function selectWalletForSession({
   now = () => Math.floor(Date.now() / 1000),
   operationId,
   privyToken,
+  supabasePublicKey,
   targetAddress,
 }: WalletSelectRequest): Promise<AuthExchangeResult & { operationId: string }> {
   let response: Response;
@@ -65,6 +67,8 @@ export async function selectWalletForSession({
       method: "POST",
       headers: {
         Accept: "application/json",
+        apikey: supabasePublicKey,
+        Authorization: `Bearer ${supabasePublicKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
