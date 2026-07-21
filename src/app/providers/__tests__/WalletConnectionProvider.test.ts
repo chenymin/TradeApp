@@ -49,6 +49,18 @@ describe("WalletConnectionProvider configuration", () => {
     expect(app.expo.scheme).toBe("mytradeapp");
   });
 
+  it("locks the Metro preset and WalletConnect native pods", () => {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(root, "package.json"), "utf8"),
+    );
+    const podfileLock = readFileSync(resolve(root, "ios/Podfile.lock"), "utf8");
+
+    expect(packageJson.devDependencies["babel-preset-expo"]).toBe("57.0.1");
+    expect(podfileLock).toContain("RNCAsyncStorage (2.2.0)");
+    expect(podfileLock).toContain("react-native-compat (2.23.10)");
+    expect(podfileLock).toContain("react-native-netinfo (12.0.1)");
+  });
+
   it("composes Reown, Privy SIWE, wallet selection, and secure recovery", () => {
     const appRoot = readFileSync(resolve(root, "src/app/AppRoot.tsx"), "utf8");
     const runtime = readFileSync(
