@@ -1,4 +1,5 @@
 import type {
+  AuthExchangeResult,
   AuthExchangeSession,
   AuthExchangeUserStatus,
 } from "../services/authExchangeClient";
@@ -21,6 +22,10 @@ export type AuthWorkflowResult = AuthState & {
 export type AuthSessionRefreshResult =
   | { ok: true; viewer: AuthViewer }
   | { error: AuthWorkflowError; ok: false };
+
+export type AuthSessionReplacementResult =
+  | { ok: true; viewer: AuthViewer }
+  | { ok: false };
 
 export type AuthWorkflowAdapters = {
   exchange: {
@@ -75,10 +80,32 @@ export function createAuthWorkflow(adapters: AuthWorkflowAdapters) {
         },
         getPendingRecoverySession: () => pendingRecoverySession,
       }),
+    replaceSession: (
+      result: AuthExchangeResult,
+      isCurrent: () => boolean = () => true,
+    ) => replaceSession(adapters, result, isCurrent),
     refreshSession: (isCurrent: () => boolean = () => true) =>
       refreshSession(adapters, isCurrent),
     restoreSession: () => restoreSession(adapters),
   };
+}
+
+async function replaceSession(
+  adapters: AuthWorkflowAdapters,
+  result: AuthExchangeResult,
+  isCurrent: () => boolean,
+): Promise<AuthSessionReplacementResult> {
+  if (!isCurrent()) return { ok: false };
+
+  try {
+    await adapters.session.setSession(
+      attachViewer(result.session, result.viewer),
+    );
+    if (!isCurrent()) return { ok: false };
+    return { ok: true, viewer: result.viewer };
+  } catch {
+    return { ok: false };
+  }
 }
 
 async function refreshSession(

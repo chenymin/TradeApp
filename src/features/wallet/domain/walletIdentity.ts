@@ -4,7 +4,9 @@ import type { AuthViewer } from "../../auth/domain/authViewer";
 import type {
   PrivyWalletMetadata,
   WalletIdentity,
+  WalletIdentityItem,
   WalletKind,
+  WalletSelectionAction,
 } from "./walletModels";
 
 export const EMPTY_PRIVY_WALLET_METADATA: PrivyWalletMetadata = {
@@ -85,6 +87,18 @@ export function mapWalletIdentity(
         })),
     ],
   };
+}
+
+export function getWalletSelectionAction(
+  wallet: WalletIdentityItem,
+  connectedExternalAddress?: string,
+): WalletSelectionAction {
+  if (wallet.status === "active") return "none";
+  if (wallet.kind === "embedded") return "use";
+  return connectedExternalAddress &&
+      sameAddress(connectedExternalAddress, wallet.address)
+    ? "use"
+    : "connect";
 }
 
 function dedupeWallets(wallets: PrivyWalletMetadata["wallets"]): Array<{

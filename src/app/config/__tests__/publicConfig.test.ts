@@ -34,6 +34,7 @@ describe("parsePublicConfig", () => {
         supabaseAnonKey: "anon-key",
         supabaseUrl: "https://example.supabase.co",
         walletLoginPath: "/functions/v1/wallet-login",
+        walletSelectPath: "/functions/v1/wallet-select",
       },
       ok: true,
     });
@@ -51,6 +52,39 @@ describe("parsePublicConfig", () => {
     if (result.ok) {
       expect(result.config.walletLoginPath).toBe("/custom-wallet-login");
     }
+  });
+
+  it("defaults and overrides the wallet-select endpoint path", () => {
+    const defaultResult = parsePublicConfig(validEnv());
+    const customResult = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH: "/custom-wallet-select",
+    }));
+
+    expect(defaultResult).toMatchObject({
+      ok: true,
+      config: { walletSelectPath: "/functions/v1/wallet-select" },
+    });
+    expect(customResult).toMatchObject({
+      ok: true,
+      config: { walletSelectPath: "/custom-wallet-select" },
+    });
+  });
+
+  it("treats Reown project id as an optional connection capability", () => {
+    const disabled = parsePublicConfig(validEnv());
+    const enabled = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_REOWN_PROJECT_ID: "  reown-project-id  ",
+    }));
+
+    expect(disabled).toMatchObject({
+      ok: true,
+      config: { reownProjectId: undefined },
+    });
+    expect(enabled).toMatchObject({
+      ok: true,
+      config: { reownProjectId: "reown-project-id" },
+    });
+    expect(JSON.stringify(disabled)).not.toContain("reown-project-id");
   });
 
   it("normalizes an optional secure public web origin", () => {

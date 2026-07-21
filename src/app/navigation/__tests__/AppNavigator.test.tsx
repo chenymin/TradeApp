@@ -13,6 +13,7 @@ import { toAssetDetailReadModel } from "../../../features/assets/domain/assetDet
 import type { RewardsDataDependencies } from "../../../features/referral/screens/RewardsScreen";
 import type { WalletDataDependencies } from "../../../features/wallet/domain/walletModels";
 import type { WalletUnlinkDependencies } from "../../../features/wallet/workflow/walletUnlinkWorkflow";
+import type { WalletSelectionRuntimeDependencies } from "../../../features/wallet/workflow/walletSelectionWorkflow";
 import { AppNavigator } from "../AppNavigator";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -421,6 +422,7 @@ describe("AppNavigator", () => {
 
   it("opens Wallet from authenticated Profile as a protected detail route", async () => {
     const walletDependencies = createWalletDependencies();
+    const walletSelectionDependencies = createSelectionDependencies();
     const walletUnlinkDependencies = createUnlinkDependencies();
     let renderer: ReactTestRenderer | undefined;
 
@@ -446,6 +448,7 @@ describe("AppNavigator", () => {
           }}
           state={authenticatedState()}
           walletDependencies={walletDependencies}
+          walletSelectionDependencies={walletSelectionDependencies}
           walletUnlinkDependencies={walletUnlinkDependencies}
         />,
       );
@@ -470,6 +473,8 @@ describe("AppNavigator", () => {
     expect(renderer!.root.findByProps({
       accessibilityLabel: "Unlink wallet 0x000000...000009",
     })).toBeTruthy();
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Bind wallet" }))
+      .toBeTruthy();
 
     await act(async () => {
       renderer!.root.findByProps({ accessibilityLabel: "Back" }).props.onPress();
@@ -973,6 +978,7 @@ function createActions() {
     login: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
+    replaceSession: vi.fn().mockResolvedValue(true),
     refreshSession: vi.fn().mockResolvedValue(true),
     restoreSession: vi.fn().mockResolvedValue(undefined),
   };
@@ -983,6 +989,26 @@ function createUnlinkDependencies(): WalletUnlinkDependencies {
     confirm: vi.fn().mockResolvedValue(true),
     refreshSession: vi.fn().mockResolvedValue(true),
     unlink: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+function createSelectionDependencies(): WalletSelectionRuntimeDependencies {
+  return {
+    workflow: {
+      confirmSwitch: vi.fn().mockResolvedValue(true),
+      connect: vi.fn(),
+      getPrivyAccessToken: vi.fn().mockResolvedValue("privy-token"),
+      link: vi.fn(),
+      newOperationId: vi.fn().mockReturnValue("operation-1"),
+      now: vi.fn().mockReturnValue(100),
+      operationStorage: {
+        clear: vi.fn(),
+        load: vi.fn().mockResolvedValue(null),
+        save: vi.fn(),
+      },
+      persistSession: vi.fn().mockResolvedValue(true),
+      select: vi.fn(),
+    },
   };
 }
 

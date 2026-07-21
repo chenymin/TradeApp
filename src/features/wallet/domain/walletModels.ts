@@ -23,6 +23,10 @@ export type WalletIdentity = {
   }>;
 };
 
+export type WalletIdentityItem = WalletIdentity["wallets"][number];
+
+export type WalletSelectionAction = "connect" | "none" | "use";
+
 export type WalletAssetContract = {
   address: `0x${string}`;
   id: string;

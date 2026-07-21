@@ -1,3 +1,4 @@
+import "@walletconnect/react-native-compat";
 import "react-native-url-polyfill/auto";
 import "fast-text-encoding";
 import "react-native-get-random-values";

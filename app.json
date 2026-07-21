@@ -3,6 +3,7 @@
     "name": "MyTradeApp",
     "slug": "my-trade-app",
     "version": "1.0.0",
+    "scheme": "mytradeapp",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {

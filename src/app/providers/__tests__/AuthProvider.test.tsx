@@ -262,6 +262,89 @@ describe("AuthProvider", () => {
       viewer: null,
     });
   });
+
+  it("replaces the authenticated Viewer from a current wallet-select session", async () => {
+    const workflow = fakeWorkflow();
+    const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    workflow.replaceSession.mockResolvedValue({
+      ok: true,
+      viewer: replacementViewer,
+    });
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+
+    await act(async () => {
+      create(
+        <AuthProvider workflow={workflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    await act(async () => {
+      await expect(actions.replaceSession?.({
+        session: { accessToken: "replacement-token" },
+        viewer: replacementViewer,
+      })).resolves.toBe(true);
+    });
+
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: replacementViewer,
+    });
+  });
+
+  it("ignores a wallet session replacement that completes after logout", async () => {
+    let resolveReplacement: ((result: {
+      ok: true;
+      viewer: ReturnType<typeof viewer>;
+    }) => void) | undefined;
+    const workflow = fakeWorkflow();
+    workflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    workflow.replaceSession.mockReturnValue(new Promise((resolve) => {
+      resolveReplacement = resolve;
+    }));
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+
+    await act(async () => {
+      create(
+        <AuthProvider workflow={workflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    let replacement: Promise<boolean> | undefined;
+    await act(async () => {
+      replacement = actions.replaceSession?.({
+        session: { accessToken: "replacement-token" },
+        viewer: { ...viewer(), walletAddress: "0xdef" },
+      });
+      await actions.logout?.();
+      resolveReplacement?.({
+        ok: true,
+        viewer: { ...viewer(), walletAddress: "0xdef" },
+      });
+      await expect(replacement).resolves.toBe(false);
+    });
+
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: false,
+      status: "logged_out",
+      viewer: null,
+    });
+  });
 });
 
 function StateProbe({ snapshots }: { snapshots: Array<unknown> }) {
@@ -287,6 +370,7 @@ function fakeWorkflow() {
     login: vi.fn().mockResolvedValue({ status: "authenticated" }),
     logout: vi.fn().mockResolvedValue({ status: "logged_out" }),
     recoverAsInvestor: vi.fn().mockResolvedValue({ status: "authenticated" }),
+    replaceSession: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
     refreshSession: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
     restoreSession: vi.fn().mockResolvedValue({ status: "logged_out" }),
   };

@@ -35,6 +35,7 @@ import type {
   WalletDataDependencies,
 } from "../../features/wallet/domain/walletModels";
 import type { WalletUnlinkDependencies } from "../../features/wallet/workflow/walletUnlinkWorkflow";
+import type { WalletSelectionRuntimeDependencies } from "../../features/wallet/workflow/walletSelectionWorkflow";
 import { WalletScreen } from "../../features/wallet/screens/WalletScreen";
 import {
   getPublicChainConfig,
@@ -77,6 +78,7 @@ export function AppNavigator({
   rewardsDependencies,
   state,
   walletDependencies,
+  walletSelectionDependencies,
   walletUnlinkDependencies,
   walletChain = getPublicChainConfig(97),
 }: {
@@ -93,6 +95,7 @@ export function AppNavigator({
     Pick<AuthProviderState, "isSessionReady" | "viewer">
   >;
   walletDependencies?: WalletDataDependencies;
+  walletSelectionDependencies?: WalletSelectionRuntimeDependencies;
   walletUnlinkDependencies?: WalletUnlinkDependencies;
   walletChain?: PublicChainConfig;
 }) {
@@ -162,6 +165,7 @@ export function AppNavigator({
           viewer: state.viewer ?? null,
         }}
         walletDependencies={walletDependencies}
+        walletSelectionDependencies={walletSelectionDependencies}
         walletUnlinkDependencies={walletUnlinkDependencies}
         walletChain={walletChain}
       />
@@ -189,6 +193,7 @@ export function AppNavigator({
       rewardsDependencies={rewardsDependencies ?? EMPTY_REWARDS_DEPENDENCIES}
       viewerState={{ isSessionReady: false, viewer: null }}
       walletDependencies={undefined}
+      walletSelectionDependencies={undefined}
       walletUnlinkDependencies={undefined}
       walletChain={walletChain}
     />
@@ -211,6 +216,7 @@ function MainTabs({
   rewardsDependencies,
   viewerState,
   walletDependencies,
+  walletSelectionDependencies,
   walletUnlinkDependencies,
   walletChain,
 }: {
@@ -229,6 +235,7 @@ function MainTabs({
   rewardsDependencies: RewardsDataDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
   walletDependencies?: WalletDataDependencies;
+  walletSelectionDependencies?: WalletSelectionRuntimeDependencies;
   walletUnlinkDependencies?: WalletUnlinkDependencies;
   walletChain: PublicChainConfig;
 }) {
@@ -330,6 +337,7 @@ function MainTabs({
           chain={walletChain}
           dependencies={walletDependencies}
           privyWalletMetadata={privyWalletMetadata}
+          selectionDependencies={walletSelectionDependencies}
           unlinkDependencies={walletUnlinkDependencies}
           viewerState={viewerState}
         />
