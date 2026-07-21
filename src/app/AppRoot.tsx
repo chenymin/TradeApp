@@ -6,6 +6,7 @@ import { usePrivy, useUnlinkWallet } from "@privy-io/expo";
 import { createLinkingAdapter } from "./linking/createLinkingAdapter";
 import { AuthProvider } from "./providers/AuthProvider";
 import { PrivyProviderBoundary } from "./providers/PrivyProviderBoundary";
+import { WalletConnectionProvider } from "./providers/WalletConnectionProvider";
 import { createRuntimeAuthWorkflow } from "./auth/createAuthWorkflow";
 import { FatalConfigScreen } from "./config/FatalConfigScreen";
 import { readPublicConfig } from "./config/publicConfig";
@@ -50,10 +51,16 @@ export function AppRoot() {
 
   return (
     <PrivyProviderBoundary config={publicConfig.config}>
-      <AuthRuntime
+      <WalletConnectionProvider
+        chainId={publicConfig.config.chainId}
+        projectId={publicConfig.config.reownProjectId}
         publicWebOrigin={publicConfig.config.publicWebOrigin}
-        walletChain={walletChain}
-      />
+      >
+        <AuthRuntime
+          publicWebOrigin={publicConfig.config.publicWebOrigin}
+          walletChain={walletChain}
+        />
+      </WalletConnectionProvider>
     </PrivyProviderBoundary>
   );
 }

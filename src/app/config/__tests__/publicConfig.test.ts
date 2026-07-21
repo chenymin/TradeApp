@@ -70,6 +70,23 @@ describe("parsePublicConfig", () => {
     });
   });
 
+  it("treats Reown project id as an optional connection capability", () => {
+    const disabled = parsePublicConfig(validEnv());
+    const enabled = parsePublicConfig(validEnv({
+      EXPO_PUBLIC_REOWN_PROJECT_ID: "  reown-project-id  ",
+    }));
+
+    expect(disabled).toMatchObject({
+      ok: true,
+      config: { reownProjectId: undefined },
+    });
+    expect(enabled).toMatchObject({
+      ok: true,
+      config: { reownProjectId: "reown-project-id" },
+    });
+    expect(JSON.stringify(disabled)).not.toContain("reown-project-id");
+  });
+
   it("normalizes an optional secure public web origin", () => {
     const result = parsePublicConfig(validEnv({
       EXPO_PUBLIC_WEB_ORIGIN: "  https://test.artstarex.com/  ",
