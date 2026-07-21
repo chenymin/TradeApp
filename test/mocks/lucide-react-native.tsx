@@ -20,6 +20,7 @@ export const Image = createIcon("lucide-image");
 export const LayoutDashboard = createIcon("lucide-layout-dashboard");
 export const LayoutGrid = createIcon("lucide-layout-grid");
 export const LogIn = createIcon("lucide-log-in");
+export const Plus = createIcon("lucide-plus");
 export const RefreshCw = createIcon("lucide-refresh-cw");
 export const Share2 = createIcon("lucide-share-2");
 export const ShieldCheck = createIcon("lucide-shield-check");

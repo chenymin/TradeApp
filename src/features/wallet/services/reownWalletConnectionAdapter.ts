@@ -38,7 +38,7 @@ export class WalletConnectionError extends Error {
 }
 
 export function createReownWalletConnectionAdapter(dependencies: {
-  connect(): Promise<ReownConnectionSnapshot>;
+  connect(expectedAddress?: `0x${string}`): Promise<ReownConnectionSnapshot>;
   disconnect(): Promise<void> | void;
 }) {
   return {
@@ -48,7 +48,7 @@ export function createReownWalletConnectionAdapter(dependencies: {
       let connection: ReownConnectionSnapshot;
 
       try {
-        connection = await dependencies.connect();
+        connection = await dependencies.connect(expectedAddress);
       } catch (error) {
         if (error instanceof WalletConnectionError) throw error;
         throw new WalletConnectionError("connection_failed");

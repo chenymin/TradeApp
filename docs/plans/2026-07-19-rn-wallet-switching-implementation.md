@@ -133,7 +133,7 @@ Feature slug：`rn-wallet-switching`
 - 结构验收：一个 RPC包含事务；固定锁顺序；无 HTTP / token；函数 `SECURITY INVOKER` 且 service-role-only。
 - 可测试性验收：静态 migration contract由 Vitest 验证；本地 Supabase verification SQL覆盖 commit、rollback、idempotency、stale、conflict 和 direct-update denial。
 
-- [ ] **Step 1：创建 migration 文件并写 RED contract test**
+- [x] **Step 1：创建 migration 文件并写 RED contract test**
 
 Run:
 
@@ -153,13 +153,13 @@ expect(sql).toContain('drop policy if exists "investors: self update"');
 expect(sql).toContain("grant execute on function public.select_investor_wallet");
 ```
 
-- [ ] **Step 2：运行 RED test**
+- [x] **Step 2：运行 RED test**
 
 Run: `npm test -- --run src/lib/wallet-selection-migration.test.ts`
 
 Expected: FAIL，因为 migration 尚无 schema / function SQL。
 
-- [ ] **Step 3：实现 operation ledger 与原子 RPC**
+- [x] **Step 3：实现 operation ledger 与原子 RPC**
 
 RPC签名固定为：
 
@@ -180,11 +180,11 @@ public.select_investor_wallet(
 
 实现顺序：规范化地址 → 锁 investor → 校验 existing operation payload → 校验 mirror 与唯一 primary一致 → 校验 expected previous → 按地址排序锁 wallet rows → upsert target → 清旧 primary → 设 target primary → 更新 mirror → 写 completed operation → return。所有异常使用稳定 code：`operation_conflict`、`stale_previous_wallet`、`wallet_owned_by_another_investor`、`wallet_state_inconsistent`。
 
-- [ ] **Step 4：实现 RLS / grant 与 verification SQL**
+- [x] **Step 4：实现 RLS / grant 与 verification SQL**
 
 要求：operation table `ENABLE/FORCE RLS` 且无客户端 policy；RPC revoke `PUBLIC, anon, authenticated` 后只 grant `service_role`；撤销 authenticated 对 `investors` UPDATE并 drop宽泛 self-update policy。verification SQL必须在 transaction 中建立两个 investor fixture，验证成功切换、重复 operation、不同 payload、stale previous、跨 investor address conflict 与 authenticated direct update rejection，最后 rollback。
 
-- [ ] **Step 5：运行 GREEN 与 migration 检查**
+- [x] **Step 5：运行 GREEN 与 migration 检查**
 
 Run:
 
@@ -196,7 +196,7 @@ git diff --check
 
 Expected: PASS；无 SQL placeholder；无宽泛 grant。
 
-- [ ] **Step 6：提交 Management Task**
+- [x] **Step 6：提交 Management Task**
 
 ```bash
 git add supabase/migrations/045_wallet_selection.sql supabase/manual/verify_wallet_selection.sql src/lib/wallet-selection-migration.test.ts
@@ -217,7 +217,7 @@ git commit -m "feat: add atomic investor wallet selection"
 - 结构验收：index 小于 120 行；domain无 Deno / fetch / Supabase；service所有 IO注入；RPC是唯一数据库写依赖。
 - 可测试性验收：fake Privy / investor / RPC / signer覆盖所有分支，无 live secrets / network。
 
-- [ ] **Step 1：写 RED domain tests**
+- [x] **Step 1：写 RED domain tests**
 
 覆盖：解析 UUID / EVM address；按目标地址而非数组顺序匹配 Ethereum account；embedded / external type derivation；拒绝 missing token、invalid target、non-linked、non-Ethereum。
 
@@ -237,19 +237,19 @@ export function findLinkedEthereumWallet(
 ): { address: `0x${string}`; walletType: "embedded" | "external" } | null;
 ```
 
-- [ ] **Step 2：运行 RED domain test**
+- [x] **Step 2：运行 RED domain test**
 
 Run: `npm run test:run -- src/__tests__/walletSelectDomain.test.ts`
 
 Expected: FAIL，模块不存在。
 
-- [ ] **Step 3：实现纯 domain 并转绿**
+- [x] **Step 3：实现纯 domain 并转绿**
 
 Run: `npm run test:run -- src/__tests__/walletSelectDomain.test.ts`
 
 Expected: PASS；target使用 `getAddress` / lowercase规范化，绝不选择第一项。
 
-- [ ] **Step 4：写 RED service tests**
+- [x] **Step 4：写 RED service tests**
 
 覆盖：invalid Privy 401；closed / suspended 403；target not linked 403；cross-account 409；stale 409；RPC success response；同 operation id幂等；RPC未知错误 500；所有日志输入均为 redacted metadata。
 
@@ -267,11 +267,11 @@ export function createWalletSelectService(deps: WalletSelectServiceDependencies)
   (input: WalletSelectInput) => Promise<WalletSelectServiceResult>;
 ```
 
-- [ ] **Step 5：实现 service 与 thin HTTP entrypoint**
+- [x] **Step 5：实现 service 与 thin HTTP entrypoint**
 
 `service.ts` 顺序固定：verify Privy token → exact linked target → investor lookup/status → RPC → roles lookup → sign 30-minute JWT → response。`index.ts` 只接受 POST/OPTIONS，body最多四个字段，不记录原始 body。
 
-- [ ] **Step 6：运行 Edge Function GREEN / scans**
+- [x] **Step 6：运行 Edge Function GREEN / scans**
 
 ```bash
 npm run test:run -- src/__tests__/walletSelectDomain.test.ts src/__tests__/walletSelectService.test.ts
@@ -282,7 +282,7 @@ git diff --check
 
 Expected: tests PASS；scan无匹配；`wallet-login/index.ts` diff为空。
 
-- [ ] **Step 7：提交 Front Task**
+- [x] **Step 7：提交 Front Task**
 
 ```bash
 git add supabase/functions/wallet-select src/__tests__/walletSelectDomain.test.ts src/__tests__/walletSelectService.test.ts
@@ -307,17 +307,17 @@ git commit -m "feat: add verified wallet select endpoint"
 - 结构验收：复用一个 auth response parser；Wallet client不直接写 SecureStore；AuthProvider只应用 workflow result。
 - 可测试性验收：HTTP / now / session adapter均注入；late result在 auth generation变化后被丢弃。
 
-- [ ] **Step 1：写 RED client / auth tests**
+- [x] **Step 1：写 RED client / auth tests**
 
 断言 request 仅包含 `privyToken/targetAddress/expectedPreviousAddress/operationId`；解析 access token、expires、operation id和 Viewer；stable 409/401/503错误；`replaceSession` 成功更新 Viewer，存储失败返回 false，logout generation 后结果无效。
 
-- [ ] **Step 2：运行 RED tests**
+- [x] **Step 2：运行 RED tests**
 
 Run: `npm test -- --run src/features/wallet/__tests__/walletSelectClient.test.ts src/features/auth/__tests__/authWorkflow.test.ts src/app/providers/__tests__/AuthProvider.test.tsx`
 
 Expected: FAIL，新 client / action 不存在。
 
-- [ ] **Step 3：导出共享 parser并实现 client**
+- [x] **Step 3：导出共享 parser并实现 client**
 
 ```ts
 export async function selectWalletForSession(input: {
@@ -332,7 +332,7 @@ export async function selectWalletForSession(input: {
 
 `authExchangeClient.ts` 只导出原有响应 parser，不改变 `wallet-login` request behavior。
 
-- [ ] **Step 4：实现 generation-safe `replaceSession`**
+- [x] **Step 4：实现 generation-safe `replaceSession`**
 
 ```ts
 replaceSession(
@@ -343,11 +343,11 @@ replaceSession(
 
 AuthProvider action捕获当前 generation；session 写成功且 generation未变化才更新 authenticated Viewer。
 
-- [ ] **Step 5：增加 endpoint public config并转绿**
+- [x] **Step 5：增加 endpoint public config并转绿**
 
 默认 `walletSelectPath = "/functions/v1/wallet-select"`；允许 `EXPO_PUBLIC_SUPABASE_WALLET_SELECT_PATH` 覆盖。Run聚焦 tests + `npm run typecheck`，Expected PASS。
 
-- [ ] **Step 6：提交 mobile session Task**
+- [x] **Step 6：提交 mobile session Task**
 
 ```bash
 git add src/features/auth src/features/wallet/services/walletSelectClient.ts src/features/wallet/__tests__/walletSelectClient.test.ts src/app/providers src/app/config
@@ -371,7 +371,7 @@ git commit -m "feat: add wallet selection session contract"
 - 结构验收：Reown类型只存在 provider / adapter；workflow只看到 `connect/sign/disconnect/link` 接口；无 Wagmi / React Query。
 - 可测试性验收：adapter核心 mapper / signer用 fake EIP-1193 provider；Privy adapter用 fake hook functions。
 
-- [ ] **Step 1：安装固定依赖并建立配置 RED tests**
+- [x] **Step 1：安装固定依赖并建立配置 RED tests**
 
 ```bash
 npm install --save-exact @reown/appkit-react-native@2.0.6 @reown/appkit-ethers-react-native@2.0.6 @walletconnect/react-native-compat@2.23.10
@@ -380,17 +380,17 @@ npx expo install @react-native-async-storage/async-storage @react-native-communi
 
 添加测试断言 missing Reown project id时只禁用 connection capability，不让 token进入错误文本；adapter拒绝 non-eip155、invalid address和address mismatch。
 
-- [ ] **Step 2：运行 RED adapter tests**
+- [x] **Step 2：运行 RED adapter tests**
 
 Run: `npm test -- --run src/features/wallet/__tests__/reownWalletConnectionAdapter.test.ts src/features/wallet/__tests__/privyWalletLinkAdapter.test.ts src/app/config/__tests__/publicConfig.test.ts`
 
 Expected: FAIL，provider / adapter 不存在。
 
-- [ ] **Step 3：实现 AppKit provider 与原生配置**
+- [x] **Step 3：实现 AppKit provider 与原生配置**
 
 `babel.config.js` 使用 `babel-preset-expo` + `unstable_transformImportMeta: true`；`app.json` 增加 `scheme: "mytradeapp"`；provider使用 BSC / BSC Testnet network、EthersAdapter、AsyncStorage、`mytradeapp://` redirect并渲染 `<AppKit />`。配置 `features: { swaps: false, onramp: false, socials: false, showWallets: true }`、`enableAnalytics: false`、`logger: "error"`，只开放 wallet connection。
 
-- [ ] **Step 4：实现 connection / SIWE adapters**
+- [x] **Step 4：实现 connection / SIWE adapters**
 
 ```ts
 export type ConnectedExternalWallet = {
@@ -408,7 +408,7 @@ export type PrivyWalletLinkAdapter = {
 
 sign使用 `personal_sign`；Privy adapter依次调用 `generateSiweMessage`、wallet signer、`linkWithSiwe`，并校验返回 user含 target。
 
-- [ ] **Step 5：运行 GREEN、Expo dependency check与 typecheck**
+- [x] **Step 5：运行 GREEN、Expo dependency check与 typecheck**
 
 ```bash
 npm test -- --run src/features/wallet/__tests__/reownWalletConnectionAdapter.test.ts src/features/wallet/__tests__/privyWalletLinkAdapter.test.ts src/app/config/__tests__/publicConfig.test.ts
@@ -418,7 +418,7 @@ npm run typecheck
 
 Expected: PASS；无 duplicate Viem / Valtio blocking mismatch；Expo Go不可用不视为失败，dev build必须可编译。
 
-- [ ] **Step 6：提交 connector Task**
+- [x] **Step 6：提交 connector Task**
 
 ```bash
 git add package.json package-lock.json app.json index.ts babel.config.js src/app/providers/WalletConnectionProvider.tsx src/app/config src/features/wallet/services src/features/wallet/__tests__
@@ -446,17 +446,17 @@ git commit -m "feat: add external wallet connection adapters"
 - 结构验收：pure reducer无 IO；workflow无 React；screen只映射状态 / handlers；section只展示；selection与unlink共享single-flight。
 - 可测试性验收：每个需求验收场景可用 fake deps驱动；无真实 modal/token/network。
 
-- [ ] **Step 1：写 RED machine / workflow tests**
+- [x] **Step 1：写 RED machine / workflow tests**
 
 固定状态 union：`idle | connecting | binding | confirming_switch | platform_syncing | sync_error | session_persisting | session_sync_pending | conflict | consistency_error | complete`。覆盖新绑定自动 select、连接地址 mismatch、取消确认、平台确定失败、未知结果同 operation retry、session retry不重复 link、logout generation、concurrent action拒绝。
 
-- [ ] **Step 2：运行 RED workflow tests**
+- [x] **Step 2：运行 RED workflow tests**
 
 Run: `npm test -- --run src/features/wallet/__tests__/walletSelectionMachine.test.ts src/features/wallet/__tests__/walletSelectionWorkflow.test.ts`
 
 Expected: FAIL，新模块不存在。
 
-- [ ] **Step 3：实现 pure machine / workflow与operation storage**
+- [x] **Step 3：实现 pure machine / workflow与operation storage**
 
 ```ts
 export type WalletSelectionDependencies = {
@@ -473,15 +473,15 @@ export type WalletSelectionDependencies = {
 
 operation storage只保存 operation id、target、previous、stage和 timestamp；登出 / complete清理，不保存 token / JWT。
 
-- [ ] **Step 4：写 RED Wallet UI / identity tests**
+- [x] **Step 4：写 RED Wallet UI / identity tests**
 
 断言：active无 action；connected external显示 `Use`；unconnected external显示 `Connect`；embedded linked显示 `Use`；bind按钮；操作中固定 action slot / spinner；sync error显示 Retry；conflict显示 `Remove link`；selection busy时 unlink不可触发；所有地址缩略显示。
 
-- [ ] **Step 5：实现 UI 与 dependency plumbing**
+- [x] **Step 5：实现 UI 与 dependency plumbing**
 
 `AppRoot` 在 Reown / Privy provider内构造 adapters；`AppNavigator` 只透传 `walletSelectionDependencies`；`WalletScreen` 使用一个 `identityMutationInFlight` 协调 selection / unlink并将 presentation传给 section。正常完成后 Viewer地址触发 balance / receive刷新。
 
-- [ ] **Step 6：运行 Wallet GREEN 与回归 tests**
+- [x] **Step 6：运行 Wallet GREEN 与回归 tests**
 
 ```bash
 npm test -- --run src/features/wallet src/app/navigation src/app/providers
@@ -491,7 +491,7 @@ git diff --check
 
 Expected: PASS；四种行状态布局稳定；原解绑资格和 retry行为不回归。
 
-- [ ] **Step 7：提交 Wallet workflow / UI Task**
+- [x] **Step 7：提交 Wallet workflow / UI Task**
 
 ```bash
 git add src/features/wallet src/app/AppRoot.tsx src/app/navigation

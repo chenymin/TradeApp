@@ -23,6 +23,14 @@ import type {
   WalletDataDependencies,
 } from "../domain/walletModels";
 import {
+  initialWalletSelectionState,
+  type WalletSelectionState,
+} from "../workflow/walletSelectionMachine";
+import {
+  createWalletSelectionWorkflow,
+  type WalletSelectionRuntimeDependencies,
+} from "../workflow/walletSelectionWorkflow";
+import {
   requestWalletUnlink,
   retryWalletSync,
   type WalletUnlinkDependencies,
@@ -44,18 +52,20 @@ export function WalletScreen({
   chain,
   dependencies = EMPTY_DEPENDENCIES,
   privyWalletMetadata,
+  selectionDependencies,
   unlinkDependencies,
   viewerState,
 }: {
   chain: PublicChainConfig;
   dependencies?: WalletDataDependencies;
   privyWalletMetadata: PrivyWalletMetadata;
+  selectionDependencies?: WalletSelectionRuntimeDependencies;
   unlinkDependencies?: WalletUnlinkDependencies;
   viewerState: Pick<AuthProviderState, "isSessionReady" | "viewer">;
 }) {
   const { width } = useWindowDimensions();
   const receiveShareRef = useRef<View>(null);
-  const unlinkOperationInFlight = useRef(false);
+  const identityMutationInFlight = useRef(false);
   const identity = useMemo(
     () => mapWalletIdentity(viewerState.viewer, privyWalletMetadata),
     [privyWalletMetadata, viewerState.viewer],
@@ -64,6 +74,15 @@ export function WalletScreen({
   const [unlinkState, setUnlinkState] = useState<WalletUnlinkPresentation>({
     status: "idle",
   });
+  const selectionWorkflow = useMemo(
+    () => selectionDependencies
+      ? createWalletSelectionWorkflow(selectionDependencies.workflow)
+      : null,
+    [selectionDependencies?.workflow],
+  );
+  const [selectionState, setSelectionState] = useState<WalletSelectionState>(
+    initialWalletSelectionState,
+  );
   const [loadState, setLoadState] = useState<WalletLoadState>(
     identity ? { status: "loading" } : { status: "unavailable" },
   );
@@ -97,9 +116,18 @@ export function WalletScreen({
   ]);
 
   useEffect(() => {
-    unlinkOperationInFlight.current = false;
+    identityMutationInFlight.current = false;
     setUnlinkState({ status: "idle" });
   }, [viewerState.viewer?.id, viewerState.viewer?.walletAddress]);
+
+  useEffect(() => {
+    setSelectionState(
+      selectionWorkflow?.getState() ?? initialWalletSelectionState,
+    );
+    const unsubscribe = selectionWorkflow?.subscribe(setSelectionState);
+    if (selectionWorkflow) void selectionWorkflow.restore();
+    return unsubscribe;
+  }, [selectionWorkflow]);
 
   useEffect(() => {
     if (
@@ -138,11 +166,11 @@ export function WalletScreen({
   const handleUnlink = async (wallet: WalletUnlinkTarget) => {
     if (
       !unlinkDependencies ||
-      unlinkOperationInFlight.current ||
+      identityMutationInFlight.current ||
       (unlinkState.status !== "idle" && unlinkState.status !== "unlink_error")
     ) return;
 
-    unlinkOperationInFlight.current = true;
+    identityMutationInFlight.current = true;
     setUnlinkState({ address: wallet.address, status: "confirming" });
     const result = await requestWalletUnlink(
       identity,
@@ -159,7 +187,7 @@ export function WalletScreen({
         },
       },
     );
-    unlinkOperationInFlight.current = false;
+    identityMutationInFlight.current = false;
 
     if (result === "cancelled" || result === "ineligible") {
       setUnlinkState({ status: "idle" });
@@ -172,16 +200,49 @@ export function WalletScreen({
   const handleRetrySync = async () => {
     if (
       !unlinkDependencies ||
-      unlinkOperationInFlight.current ||
+      identityMutationInFlight.current ||
       unlinkState.status !== "sync_error"
     ) return;
 
     const address = unlinkState.address;
-    unlinkOperationInFlight.current = true;
+    identityMutationInFlight.current = true;
     setUnlinkState({ address, status: "syncing" });
     const result = await retryWalletSync(unlinkDependencies);
-    unlinkOperationInFlight.current = false;
+    identityMutationInFlight.current = false;
     setUnlinkState({ address, status: result });
+  };
+
+  const handleSelectWallet = async (wallet: WalletUnlinkTarget) => {
+    if (!selectionWorkflow || identityMutationInFlight.current) return;
+
+    identityMutationInFlight.current = true;
+    try {
+      await selectionWorkflow.selectExisting(wallet, identity.activeAddress);
+    } finally {
+      identityMutationInFlight.current = false;
+    }
+  };
+
+  const handleBindWallet = async () => {
+    if (!selectionWorkflow || identityMutationInFlight.current) return;
+
+    identityMutationInFlight.current = true;
+    try {
+      await selectionWorkflow.bindNew(identity.activeAddress);
+    } finally {
+      identityMutationInFlight.current = false;
+    }
+  };
+
+  const handleRetrySelection = async () => {
+    if (!selectionWorkflow || identityMutationInFlight.current) return;
+
+    identityMutationInFlight.current = true;
+    try {
+      await selectionWorkflow.retry();
+    } finally {
+      identityMutationInFlight.current = false;
+    }
   };
 
   return (
@@ -206,9 +267,18 @@ export function WalletScreen({
         <View style={styles.column}>
           <WalletIdentitySection
             chainName={chain.name}
+            connectedExternalAddress={
+              selectionDependencies?.connectedExternalAddress
+            }
             identity={displayIdentity}
+            onBindWallet={handleBindWallet}
+            onRemoveConflictLink={handleUnlink}
             onRetryWalletSync={handleRetrySync}
+            onRetryWalletSelection={handleRetrySelection}
+            onSelectWallet={handleSelectWallet}
             onUnlinkWallet={handleUnlink}
+            selectionEnabled={Boolean(selectionDependencies)}
+            selectionState={selectionState}
             unlinkEnabled={Boolean(unlinkDependencies)}
             unlinkState={unlinkState}
           />

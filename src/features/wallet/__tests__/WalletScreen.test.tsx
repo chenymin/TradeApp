@@ -12,6 +12,7 @@ import {
   type WalletDataDependencies,
 } from "../screens/WalletScreen";
 import type { WalletUnlinkDependencies } from "../workflow/walletUnlinkWorkflow";
+import type { WalletSelectionRuntimeDependencies } from "../workflow/walletSelectionWorkflow";
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 
@@ -82,6 +83,173 @@ describe("WalletScreen", () => {
     expect(output(renderer)).toContain("External");
     expect(output(renderer)).toContain("Passkey MFA enabled");
     expect(output(renderer)).toContain("Transfers are unavailable");
+  });
+
+  it("offers stable wallet selection actions and a bind command", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies,
+    });
+
+    expect(renderer.root.findAllByProps({
+      accessibilityLabel: `Use wallet ${shortAddress(address(8))}`,
+    })).toHaveLength(0);
+    expect(renderer.root.findByProps({
+      accessibilityLabel: `Use wallet ${shortAddress(address(6))}`,
+    })).toBeTruthy();
+    expect(renderer.root.findByProps({
+      accessibilityLabel: `Connect wallet ${shortAddress(address(9))}`,
+    })).toBeTruthy();
+    expect(renderer.root.findByProps({
+      accessibilityLabel: "Bind wallet",
+    })).toBeTruthy();
+
+    const connectedRenderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies: {
+        ...walletSelectionDependencies(),
+        connectedExternalAddress: address(9),
+      },
+    });
+    expect(connectedRenderer.root.findByProps({
+      accessibilityLabel: `Use wallet ${shortAddress(address(9))}`,
+    })).toBeTruthy();
+  });
+
+  it("keeps the action slot stable and locks unlink during wallet selection", async () => {
+    let resolveConfirmation: ((confirmed: boolean) => void) | undefined;
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.confirmSwitch = vi.fn().mockReturnValue(
+      new Promise<boolean>((resolve) => { resolveConfirmation = resolve; }),
+    );
+    const unlinkDependencies = walletUnlinkDependencies();
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies,
+      unlinkDependencies,
+    });
+    const actionSlot = `wallet-selection-action-slot-${address(6).toLowerCase()}`;
+    const initialStyle = renderer.root.findByProps({ testID: actionSlot }).props.style;
+    const unlink = renderer.root.findByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    });
+
+    let selection: Promise<void> | undefined;
+    await act(async () => {
+      selection = renderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(6))}`,
+      }).props.onPress();
+      await Promise.resolve();
+    });
+
+    expect(renderer.root.findByProps({ testID: actionSlot }).props.style)
+      .toEqual(initialStyle);
+    expect(renderer.root.findByProps({
+      testID: `wallet-selection-spinner-${address(6).toLowerCase()}`,
+    })).toBeTruthy();
+    await act(async () => {
+      await unlink.props.onPress();
+      expect(unlinkDependencies.confirm).not.toHaveBeenCalled();
+
+      resolveConfirmation?.(false);
+      await selection;
+    });
+  });
+
+  it("keeps the active workflow when the connected wallet snapshot changes", async () => {
+    let resolveConfirmation: ((confirmed: boolean) => void) | undefined;
+    const dependencies = walletDependencies();
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.confirmSwitch = vi.fn().mockReturnValue(
+      new Promise<boolean>((resolve) => { resolveConfirmation = resolve; }),
+    );
+    const metadata = linkedWalletMetadata();
+    const renderer = await renderWallet({
+      dependencies,
+      metadata,
+      selectionDependencies,
+    });
+    let selection: Promise<void> | undefined;
+    await act(async () => {
+      selection = renderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(6))}`,
+      }).props.onPress();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      renderer.update(
+        <WalletScreen
+          chain={CHAIN}
+          dependencies={dependencies}
+          privyWalletMetadata={metadata}
+          selectionDependencies={{
+            ...selectionDependencies,
+            connectedExternalAddress: address(9),
+          }}
+          viewerState={{
+            isSessionReady: true,
+            viewer: { email: null, id: "viewer-1", walletAddress: address(8) },
+          }}
+        />,
+      );
+    });
+
+    expect(renderer.root.findByProps({
+      testID: `wallet-selection-spinner-${address(6).toLowerCase()}`,
+    })).toBeTruthy();
+    await act(async () => {
+      resolveConfirmation?.(false);
+      await selection;
+    });
+  });
+
+  it("shows Retry after platform failure and Remove link for a conflict", async () => {
+    const failed = walletSelectionDependencies();
+    failed.workflow.select = vi.fn().mockRejectedValueOnce({ code: "server_unavailable" });
+    const failedRenderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies: failed,
+      unlinkDependencies: walletUnlinkDependencies(),
+    });
+
+    await act(async () => {
+      await failedRenderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(6))}`,
+      }).props.onPress();
+    });
+    expect(failedRenderer.root.findByProps({
+      accessibilityLabel: "Retry wallet selection",
+    })).toBeTruthy();
+    expect(failedRenderer.root.findByProps({ accessibilityLabel: "Bind wallet" })
+      .props.disabled).toBe(true);
+    expect(failedRenderer.root.findByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    }).props.disabled).toBe(true);
+
+    const conflict = walletSelectionDependencies();
+    conflict.workflow.select = vi.fn().mockRejectedValue({
+      code: "wallet_owned_by_another_investor",
+    });
+    const conflictRenderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies: {
+        ...conflict,
+        connectedExternalAddress: address(9),
+      },
+      unlinkDependencies: walletUnlinkDependencies(),
+    });
+    await act(async () => {
+      await conflictRenderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+    expect(conflictRenderer.root.findByProps({
+      accessibilityLabel: `Remove link ${shortAddress(address(9))}`,
+    }).props.disabled).toBe(false);
+    expect(conflictRenderer.root.findByProps({ accessibilityLabel: "Bind wallet" })
+      .props.disabled).toBe(true);
   });
 
   it("offers unlink only for a linked external wallet and suppresses it after success", async () => {
@@ -305,11 +473,13 @@ describe("WalletScreen", () => {
 async function renderWallet({
   dependencies = walletDependencies(),
   metadata = EMPTY_METADATA,
+  selectionDependencies,
   unlinkDependencies,
   walletAddress = address(8),
 }: {
   dependencies?: WalletDataDependencies;
   metadata?: PrivyWalletMetadata;
+  selectionDependencies?: WalletSelectionRuntimeDependencies;
   unlinkDependencies?: WalletUnlinkDependencies;
   walletAddress?: string | null;
 } = {}): Promise<ReactTestRenderer> {
@@ -320,6 +490,7 @@ async function renderWallet({
         chain={CHAIN}
         dependencies={dependencies}
         privyWalletMetadata={metadata}
+        selectionDependencies={selectionDependencies}
         unlinkDependencies={unlinkDependencies}
         viewerState={{
           isSessionReady: true,
@@ -330,6 +501,36 @@ async function renderWallet({
     await Promise.resolve();
   });
   return renderer!;
+}
+
+function walletSelectionDependencies(): WalletSelectionRuntimeDependencies {
+  return {
+    workflow: {
+      confirmSwitch: vi.fn().mockResolvedValue(true),
+      connect: vi.fn().mockResolvedValue({
+        address: address(9),
+        chainId: "eip155:97",
+        connectorType: "wallet_connect",
+        providerLabel: "MetaMask",
+        signMessage: vi.fn().mockResolvedValue("0xsigned"),
+      }),
+      getPrivyAccessToken: vi.fn().mockResolvedValue("privy-token"),
+      link: vi.fn().mockResolvedValue(undefined),
+      newOperationId: vi.fn().mockReturnValue("operation-1"),
+      now: vi.fn().mockReturnValue(100),
+      operationStorage: {
+        clear: vi.fn().mockResolvedValue(undefined),
+        load: vi.fn().mockResolvedValue(null),
+        save: vi.fn().mockResolvedValue(undefined),
+      },
+      persistSession: vi.fn().mockResolvedValue(true),
+      select: vi.fn().mockImplementation(async ({ operationId, targetAddress }) => ({
+        operationId,
+        session: { accessToken: "replacement-token" },
+        viewer: { email: null, id: "viewer-1", walletAddress: targetAddress },
+      })),
+    },
+  };
 }
 
 function walletUnlinkDependencies() {

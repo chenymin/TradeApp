@@ -48,4 +48,26 @@ describe("WalletConnectionProvider configuration", () => {
     )).toBe(true);
     expect(app.expo.scheme).toBe("mytradeapp");
   });
+
+  it("composes Reown, Privy SIWE, wallet selection, and secure recovery", () => {
+    const appRoot = readFileSync(resolve(root, "src/app/AppRoot.tsx"), "utf8");
+    const runtime = readFileSync(
+      resolve(root, "src/features/wallet/components/WalletSelectionRuntime.tsx"),
+      "utf8",
+    );
+    const source = `${appRoot}\n${runtime}`;
+
+    expect(source).toContain("useAppKit()");
+    expect(source).toContain("useAccount()");
+    expect(source).toContain("useProvider()");
+    expect(source).toContain("useWalletInfo()");
+    expect(source).toContain("useAppKitState()");
+    expect(source).toContain("useLinkWithSiwe");
+    expect(source).toContain("createReownWalletConnectionAdapter");
+    expect(source).toContain("createPrivyWalletLinkAdapter");
+    expect(source).toContain("createWalletSelectionOperationStorage");
+    expect(source).toContain("createWalletSelectionDependencies");
+    expect(source).toContain("selectWalletForSession");
+    expect(appRoot).toContain("walletSelectionDependencies=");
+  });
 });

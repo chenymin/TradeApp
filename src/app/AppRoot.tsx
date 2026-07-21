@@ -31,6 +31,11 @@ import { mapPrivyWalletMetadata } from "../features/wallet/domain/walletIdentity
 import { createDefaultWalletServices } from "../features/wallet/services/createDefaultWalletServices";
 import { createWalletUnlinkDependencies } from "../features/wallet/services/createWalletUnlinkDependencies";
 import {
+  WalletSelectionRuntime,
+  type WalletSelectionRuntimeConfig,
+} from "../features/wallet/components/WalletSelectionRuntime";
+import type { WalletSelectionRuntimeDependencies } from "../features/wallet/workflow/walletSelectionWorkflow";
+import {
   getPublicChainConfig,
   type PublicChainConfig,
 } from "../lib/chain/publicChainRegistry";
@@ -57,6 +62,18 @@ export function AppRoot() {
         publicWebOrigin={publicConfig.config.publicWebOrigin}
       >
         <AuthRuntime
+          walletSelectionConfig={
+            publicConfig.config.reownProjectId &&
+              publicConfig.config.publicWebOrigin
+              ? {
+                  endpoint: new URL(
+                    publicConfig.config.walletSelectPath,
+                    publicConfig.config.supabaseUrl,
+                  ).toString(),
+                  publicWebOrigin: publicConfig.config.publicWebOrigin,
+                }
+              : undefined
+          }
           publicWebOrigin={publicConfig.config.publicWebOrigin}
           walletChain={walletChain}
         />
@@ -67,9 +84,11 @@ export function AppRoot() {
 
 function AuthRuntime({
   publicWebOrigin,
+  walletSelectionConfig,
   walletChain,
 }: {
   publicWebOrigin?: string;
+  walletSelectionConfig?: WalletSelectionRuntimeConfig;
   walletChain: PublicChainConfig;
 }) {
   const { getAccessToken, logout, user } = usePrivy();
@@ -91,9 +110,11 @@ function AuthRuntime({
   return (
     <AuthProvider workflow={workflow}>
       <AuthGateRuntime
+        getAccessToken={getAccessToken}
         privyWalletMetadata={privyWalletMetadata}
         publicWebOrigin={publicWebOrigin}
         unlinkWallet={unlinkWallet}
+        walletSelectionConfig={walletSelectionConfig}
         walletDependencies={walletDependencies}
         walletChain={walletChain}
       />
@@ -102,15 +123,19 @@ function AuthRuntime({
 }
 
 function AuthGateRuntime({
+  getAccessToken,
   privyWalletMetadata,
   publicWebOrigin,
   unlinkWallet,
+  walletSelectionConfig,
   walletDependencies,
   walletChain,
 }: {
+  getAccessToken: () => Promise<string | null>;
   privyWalletMetadata: ReturnType<typeof mapPrivyWalletMetadata>;
   publicWebOrigin?: string;
   unlinkWallet: (input: { address: string }) => Promise<unknown>;
+  walletSelectionConfig?: WalletSelectionRuntimeConfig;
   walletDependencies: ReturnType<typeof createDefaultWalletServices>;
   walletChain: PublicChainConfig;
 }) {
@@ -155,7 +180,9 @@ function AuthGateRuntime({
     };
   }, []);
 
-  return (
+  const renderNavigator = (
+    walletSelectionDependencies?: WalletSelectionRuntimeDependencies,
+  ) => (
     <AppNavigator
       actions={actions}
       assetDetailLoader={assetDetailLoader}
@@ -167,8 +194,20 @@ function AuthGateRuntime({
       rewardsDependencies={rewardsDependencies}
       state={state}
       walletDependencies={walletDependencies}
+      walletSelectionDependencies={walletSelectionDependencies}
       walletUnlinkDependencies={walletUnlinkDependencies}
       walletChain={walletChain}
     />
   );
+
+  return walletSelectionConfig ? (
+    <WalletSelectionRuntime
+      config={walletSelectionConfig}
+      getAccessToken={getAccessToken}
+      replaceSession={actions.replaceSession}
+      viewerId={state.viewer?.id ?? null}
+    >
+      {renderNavigator}
+    </WalletSelectionRuntime>
+  ) : renderNavigator();
 }

@@ -59,19 +59,22 @@ describe("Reown wallet connection adapter", () => {
   });
 
   it("rejects a connected address that differs from the requested wallet", async () => {
+    const connect = vi.fn().mockResolvedValue({
+      address: target,
+      chainId: "97",
+      namespace: "eip155",
+      provider: { request: vi.fn() },
+      providerLabel: "Rabby",
+    });
     const adapter = createReownWalletConnectionAdapter({
-      connect: vi.fn().mockResolvedValue({
-        address: target,
-        chainId: "97",
-        namespace: "eip155",
-        provider: { request: vi.fn() },
-        providerLabel: "Rabby",
-      }),
+      connect,
       disconnect: vi.fn(),
     });
+    const expected = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 
     await expect(
-      adapter.connect("0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+      adapter.connect(expected),
     ).rejects.toEqual(new WalletConnectionError("address_mismatch"));
+    expect(connect).toHaveBeenCalledWith(expected);
   });
 });

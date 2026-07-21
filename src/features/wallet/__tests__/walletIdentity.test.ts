@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { AuthViewer } from "../../auth/domain/authViewer";
 import {
+  getWalletSelectionAction,
   EMPTY_PRIVY_WALLET_METADATA,
   mapPrivyWalletMetadata,
   mapWalletIdentity,
@@ -123,6 +124,42 @@ describe("Privy wallet metadata", () => {
 
   it("returns empty metadata when Privy has no authenticated user", () => {
     expect(mapPrivyWalletMetadata(null)).toEqual(EMPTY_PRIVY_WALLET_METADATA);
+  });
+});
+
+describe("wallet selection actions", () => {
+  const active = {
+    address: address(8),
+    kind: "embedded" as const,
+    privyLinked: true,
+    providerLabel: "Privy",
+    status: "active" as const,
+  };
+  const embedded = {
+    ...active,
+    address: address(6),
+    status: "linked" as const,
+  };
+  const external = {
+    ...active,
+    address: address(9),
+    kind: "external" as const,
+    providerLabel: "MetaMask",
+    status: "linked" as const,
+  };
+
+  it("does not offer an action for the active wallet", () => {
+    expect(getWalletSelectionAction(active)).toBe("none");
+  });
+
+  it("offers Use for a linked embedded wallet", () => {
+    expect(getWalletSelectionAction(embedded)).toBe("use");
+  });
+
+  it("offers Connect until the linked external wallet is connected", () => {
+    expect(getWalletSelectionAction(external)).toBe("connect");
+    expect(getWalletSelectionAction(external, address(9))).toBe("use");
+    expect(getWalletSelectionAction(external, address(7))).toBe("connect");
   });
 });
 
