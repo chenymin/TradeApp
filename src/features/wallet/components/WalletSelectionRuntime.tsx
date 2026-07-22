@@ -25,7 +25,7 @@ import {
 } from "../services/reownWalletConnectionAdapter";
 import { createWalletSelectionDependencies } from "../services/createWalletSelectionDependencies";
 import { createWalletSelectionOperationStorage } from "../services/walletSelectionOperationStorage";
-import { selectWalletForSession } from "../services/walletSelectClient";
+import { selectWalletForViewer } from "../services/walletSelectClient";
 import type {
   WalletSelectionDependencies,
   WalletSelectionRuntimeDependencies,
@@ -48,13 +48,13 @@ export function WalletSelectionRuntime({
   children,
   config,
   getAccessToken,
-  replaceSession,
+  replaceViewer,
   viewerId,
 }: {
   children(dependencies: WalletSelectionRuntimeDependencies): ReactNode;
   config: WalletSelectionRuntimeConfig;
   getAccessToken: () => Promise<string | null>;
-  replaceSession: WalletSelectionDependencies["persistSession"];
+  replaceViewer: WalletSelectionDependencies["persistViewer"];
   viewerId: string | null;
 }) {
   const connection = useReownConnectionAdapter();
@@ -87,8 +87,8 @@ export function WalletSelectionRuntime({
       operationStorage,
       privyLink,
       publicWebOrigin: config.publicWebOrigin,
-      replaceSession,
-      selectWallet: (input) => selectWalletForSession({
+      replaceViewer,
+      selectWallet: (input) => selectWalletForViewer({
         ...input,
         endpoint: config.endpoint,
         supabasePublicKey: config.supabasePublicKey,
@@ -102,7 +102,7 @@ export function WalletSelectionRuntime({
       getAccessToken,
       operationStorage,
       privyLink,
-      replaceSession,
+      replaceViewer,
     ],
   );
   const dependencies = useMemo<WalletSelectionRuntimeDependencies>(

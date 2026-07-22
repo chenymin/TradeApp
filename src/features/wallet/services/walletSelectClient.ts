@@ -1,8 +1,7 @@
 import {
-  AuthExchangeError,
-  parseAuthExchangeResponse,
-  type AuthExchangeResult,
-} from "../../auth/services/authExchangeClient";
+  parseAuthViewer,
+  type AuthViewer,
+} from "../../auth/domain/authViewer";
 
 export type WalletSelectClientErrorCode =
   | "internal_error"
@@ -36,7 +35,6 @@ type WalletSelectRequest = {
   endpoint: string;
   expectedPreviousAddress: `0x${string}`;
   fetcher?: typeof fetch;
-  now?: () => number;
   operationId: string;
   privyToken: string;
   supabasePublicKey: string;
@@ -50,16 +48,19 @@ const CONFLICT_CODES = new Set<WalletSelectClientErrorCode>([
   "wallet_state_inconsistent",
 ]);
 
-export async function selectWalletForSession({
+export async function selectWalletForViewer({
   endpoint,
   expectedPreviousAddress,
   fetcher = fetch,
-  now = () => Math.floor(Date.now() / 1000),
   operationId,
   privyToken,
   supabasePublicKey,
   targetAddress,
-}: WalletSelectRequest): Promise<AuthExchangeResult & { operationId: string }> {
+}: WalletSelectRequest): Promise<{
+  idempotent: boolean;
+  operationId: string;
+  viewer: AuthViewer;
+}> {
   let response: Response;
 
   try {
@@ -90,25 +91,32 @@ export async function selectWalletForSession({
   }
 
   const responseOperationId = getStringField(body, "operation_id");
-  if (responseOperationId !== operationId) {
+  const idempotent = getBooleanField(body, "idempotent");
+  const viewer = getObjectField(body, "user");
+  if (
+    responseOperationId !== operationId ||
+    idempotent === undefined ||
+    hasOwnField(body, "access_token") ||
+    hasOwnField(body, "expires_in") ||
+    hasOwnField(body, "session")
+  ) {
     throw new WalletSelectClientError("invalid_response", {
       retryable: false,
     });
   }
 
-  try {
-    return {
-      ...parseAuthExchangeResponse(body, now),
-      operationId: responseOperationId,
-    };
-  } catch (error) {
-    if (error instanceof AuthExchangeError) {
-      throw new WalletSelectClientError("invalid_response", {
-        retryable: false,
-      });
-    }
-    throw error;
+  const parsedViewer = parseAuthViewer(viewer);
+  if (!parsedViewer) {
+    throw new WalletSelectClientError("invalid_response", {
+      retryable: false,
+    });
   }
+
+  return {
+    idempotent,
+    operationId: responseOperationId,
+    viewer: parsedViewer,
+  };
 }
 
 async function parseResponseBody(response: Response): Promise<unknown> {
@@ -160,4 +168,20 @@ function getStringField(value: unknown, field: string): string | undefined {
   if (!value || typeof value !== "object") return undefined;
   const candidate = (value as Record<string, unknown>)[field];
   return typeof candidate === "string" ? candidate : undefined;
+}
+
+function getBooleanField(value: unknown, field: string): boolean | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = (value as Record<string, unknown>)[field];
+  return typeof candidate === "boolean" ? candidate : undefined;
+}
+
+function getObjectField(value: unknown, field: string): unknown {
+  if (!value || typeof value !== "object") return undefined;
+  return (value as Record<string, unknown>)[field];
+}
+
+function hasOwnField(value: unknown, field: string): boolean {
+  return !!value && typeof value === "object" &&
+    Object.prototype.hasOwnProperty.call(value, field);
 }

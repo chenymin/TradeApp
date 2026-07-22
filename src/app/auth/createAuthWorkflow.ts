@@ -6,6 +6,7 @@ import {
 import { exchangePrivyTokenForSession } from "../../features/auth/services/authExchangeClient";
 import {
   clearStoredSession,
+  replaceStoredSessionViewer,
   restoreStoredSession,
   setStoredSession,
 } from "../../features/auth/services/sessionStorage";
@@ -69,6 +70,12 @@ export function createRuntimeAuthWorkflow(privy: PrivyRuntimeBindings) {
         clearStoredSession({
           secureStorage: expoSecureSessionStorage,
           supabase,
+        }),
+      replaceViewer: (viewer, expectedViewerId) =>
+        replaceStoredSessionViewer({
+          expectedViewerId,
+          secureStorage: expoSecureSessionStorage,
+          viewer,
         }),
       restoreSession: () =>
         restoreStoredSession({

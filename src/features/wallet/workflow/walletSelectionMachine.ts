@@ -9,8 +9,8 @@ export type WalletSelectionTarget = {
 
 export type WalletSelectionOperationStage =
   | "platform_syncing"
-  | "session_persisting"
-  | "session_sync_pending";
+  | "viewer_persisting"
+  | "viewer_sync_pending";
 
 export type WalletSelectionOperation = {
   mode: "bind" | "switch";
@@ -37,8 +37,8 @@ export type WalletSelectionState =
       phase: "binding" | "connect" | "platform";
       status: "sync_error";
     }
-  | { operation: WalletSelectionOperation; status: "session_persisting" }
-  | { operation: WalletSelectionOperation; status: "session_sync_pending" }
+  | { operation: WalletSelectionOperation; status: "viewer_persisting" }
+  | { operation: WalletSelectionOperation; status: "viewer_sync_pending" }
   | {
       error: "wallet_owned_by_another_investor";
       operation: WalletSelectionOperation;
@@ -62,8 +62,8 @@ export type WalletSelectionEvent =
   | { type: "platform_failed"; error: string; phase: "binding" | "connect" | "platform" }
   | { type: "platform_conflict"; error: "wallet_owned_by_another_investor" }
   | { type: "recovery_loaded"; operation: WalletSelectionOperation }
-  | { type: "session_failed" }
-  | { type: "session_persisted"; target: WalletSelectionTarget }
+  | { type: "viewer_failed" }
+  | { type: "viewer_persisted"; target: WalletSelectionTarget }
   | { type: "consistency_failed"; error: string; target?: WalletSelectionTarget }
   | { type: "reset" };
 
@@ -93,7 +93,7 @@ export function walletSelectionReducer(
     case "platform_started":
       return { operation: event.operation, status: "platform_syncing" };
     case "platform_succeeded":
-      return { operation: event.operation, status: "session_persisting" };
+      return { operation: event.operation, status: "viewer_persisting" };
     case "platform_failed":
       return {
         error: event.error,
@@ -115,13 +115,13 @@ export function walletSelectionReducer(
           }
         : {
             operation: event.operation,
-            status: "session_sync_pending",
+            status: "viewer_sync_pending",
           };
-    case "session_failed":
+    case "viewer_failed":
       return hasOperation(state)
-        ? { operation: state.operation, status: "session_sync_pending" }
+        ? { operation: state.operation, status: "viewer_sync_pending" }
         : { error: "operation_missing", status: "consistency_error" };
-    case "session_persisted":
+    case "viewer_persisted":
       return { status: "complete", target: event.target };
     case "consistency_failed":
       return {

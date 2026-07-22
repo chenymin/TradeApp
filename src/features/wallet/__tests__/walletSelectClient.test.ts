@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  selectWalletForSession,
+  selectWalletForViewer,
   WalletSelectClientError,
 } from "../services/walletSelectClient";
 
@@ -15,11 +15,10 @@ const request = {
   targetAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const,
 };
 
-describe("selectWalletForSession", () => {
-  it("posts only the controlled wallet selection fields and parses the session", async () => {
+describe("selectWalletForViewer", () => {
+  it("posts only the controlled fields and parses the authoritative Viewer", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(200, {
-      access_token: "replacement-token",
-      expires_in: 1800,
+      idempotent: false,
       operation_id: request.operationId,
       user: {
         email: "viewer@example.com",
@@ -28,16 +27,12 @@ describe("selectWalletForSession", () => {
       },
     }));
 
-    await expect(selectWalletForSession({
+    await expect(selectWalletForViewer({
       ...request,
       fetcher,
-      now: () => 1_800_000_000,
     })).resolves.toEqual({
+      idempotent: false,
       operationId: request.operationId,
-      session: {
-        accessToken: "replacement-token",
-        expiresAt: 1_800_001_800,
-      },
       viewer: {
         email: "viewer@example.com",
         id: "viewer-1",
@@ -75,7 +70,7 @@ describe("selectWalletForSession", () => {
       );
 
       await expect(
-        selectWalletForSession({ ...request, fetcher }),
+        selectWalletForViewer({ ...request, fetcher }),
       ).rejects.toEqual(
         new WalletSelectClientError(code, {
           retryable,
@@ -87,8 +82,7 @@ describe("selectWalletForSession", () => {
 
   it("rejects a mismatched operation response", async () => {
     const fetcher = vi.fn().mockResolvedValue(jsonResponse(200, {
-      access_token: "replacement-token",
-      expires_in: 1800,
+      idempotent: false,
       operation_id: "22222222-2222-4222-8222-222222222222",
       user: {
         email: null,
@@ -98,7 +92,25 @@ describe("selectWalletForSession", () => {
     }));
 
     await expect(
-      selectWalletForSession({ ...request, fetcher }),
+      selectWalletForViewer({ ...request, fetcher }),
+    ).rejects.toMatchObject({ code: "invalid_response", retryable: false });
+  });
+
+  it("rejects a wallet-select response that attempts to rotate the session", async () => {
+    const fetcher = vi.fn().mockResolvedValue(jsonResponse(200, {
+      access_token: "unexpected-token",
+      expires_in: 1800,
+      idempotent: false,
+      operation_id: request.operationId,
+      user: {
+        email: null,
+        id: "viewer-1",
+        walletAddress: request.targetAddress,
+      },
+    }));
+
+    await expect(
+      selectWalletForViewer({ ...request, fetcher }),
     ).rejects.toMatchObject({ code: "invalid_response", retryable: false });
   });
 });

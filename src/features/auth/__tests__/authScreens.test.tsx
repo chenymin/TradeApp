@@ -117,7 +117,7 @@ function createActions(
     login: vi.fn(),
     logout: vi.fn(),
     recoverAsInvestor: vi.fn(),
-    replaceSession: vi.fn().mockResolvedValue(true),
+    replaceViewer: vi.fn().mockResolvedValue(true),
     refreshSession: vi.fn().mockResolvedValue(true),
     restoreSession: vi.fn(),
     ...overrides,

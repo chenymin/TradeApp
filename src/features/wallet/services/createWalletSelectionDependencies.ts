@@ -1,6 +1,6 @@
 import type { AlertButton, AlertOptions } from "react-native";
 
-import type { AuthExchangeResult } from "../../auth/services/authExchangeClient";
+import type { AuthViewer } from "../../auth/domain/authViewer";
 import type { PrivyWalletLinkAdapter } from "./privyWalletLinkAdapter";
 import type { ConnectedExternalWallet } from "./reownWalletConnectionAdapter";
 import type {
@@ -32,7 +32,7 @@ export type CreateWalletSelectionDependenciesInput = {
   operationStorage: WalletSelectionDependencies["operationStorage"];
   privyLink: PrivyWalletLinkAdapter;
   publicWebOrigin: string;
-  replaceSession(result: AuthExchangeResult): Promise<boolean>;
+  replaceViewer(viewer: AuthViewer): Promise<boolean>;
   selectWallet(input: WalletSelectRequest): Promise<WalletSelectResult>;
 };
 
@@ -55,7 +55,7 @@ export function createWalletSelectionDependencies({
   operationStorage,
   privyLink,
   publicWebOrigin,
-  replaceSession,
+  replaceViewer,
   selectWallet,
 }: CreateWalletSelectionDependenciesInput): WalletSelectionDependencies {
   return {
@@ -72,7 +72,7 @@ export function createWalletSelectionDependencies({
     newOperationId,
     now,
     operationStorage,
-    persistSession: replaceSession,
+    persistViewer: replaceViewer,
     select: selectWallet,
   };
 }

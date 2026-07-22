@@ -21,7 +21,7 @@ const operation: WalletSelectionOperation = {
 };
 
 describe("walletSelectionReducer", () => {
-  it("moves a confirmed switch through platform and session stages", () => {
+  it("moves a confirmed switch through platform and Viewer persistence", () => {
     const confirming = walletSelectionReducer(initialWalletSelectionState, {
       type: "switch_requested",
       target: operation.target,
@@ -32,20 +32,20 @@ describe("walletSelectionReducer", () => {
     });
     const persisting = walletSelectionReducer(syncing, {
       type: "platform_succeeded",
-      operation: { ...operation, stage: "session_persisting" },
+      operation: { ...operation, stage: "viewer_persisting" },
     });
     const complete = walletSelectionReducer(persisting, {
-      type: "session_persisted",
+      type: "viewer_persisted",
       target: operation.target,
     });
 
     expect(confirming.status).toBe("confirming_switch");
     expect(syncing.status).toBe("platform_syncing");
-    expect(persisting.status).toBe("session_persisting");
+    expect(persisting.status).toBe("viewer_persisting");
     expect(complete).toEqual({ status: "complete", target: operation.target });
   });
 
-  it("retains the operation for platform and session recovery", () => {
+  it("retains the operation for platform and Viewer recovery", () => {
     const syncing = { status: "platform_syncing", operation } as const;
 
     expect(walletSelectionReducer(syncing, {
@@ -69,10 +69,10 @@ describe("walletSelectionReducer", () => {
     });
 
     expect(walletSelectionReducer({
-      status: "session_persisting",
-      operation: { ...operation, stage: "session_persisting" },
-    }, { type: "session_failed" })).toMatchObject({
-      status: "session_sync_pending",
+      status: "viewer_persisting",
+      operation: { ...operation, stage: "viewer_persisting" },
+    }, { type: "viewer_failed" })).toMatchObject({
+      status: "viewer_sync_pending",
       operation: { operationId: "operation-1" },
     });
   });

@@ -1,4 +1,4 @@
-import type { AuthExchangeResult } from "../../auth/services/authExchangeClient";
+import type { AuthViewer } from "../../auth/domain/authViewer";
 import type { ConnectedExternalWallet } from "../services/reownWalletConnectionAdapter";
 import {
   initialWalletSelectionState,
@@ -15,7 +15,11 @@ export type WalletSelectRequest = {
   targetAddress: `0x${string}`;
 };
 
-export type WalletSelectResult = AuthExchangeResult & { operationId: string };
+export type WalletSelectResult = {
+  idempotent: boolean;
+  operationId: string;
+  viewer: AuthViewer;
+};
 
 export type WalletSelectionOperationStorage = {
   clear(): Promise<void>;
@@ -31,7 +35,7 @@ export type WalletSelectionDependencies = {
   newOperationId(): string;
   now(): number;
   operationStorage: WalletSelectionOperationStorage;
-  persistSession(result: AuthExchangeResult): Promise<boolean>;
+  persistViewer(viewer: AuthViewer): Promise<boolean>;
   select(input: WalletSelectRequest): Promise<WalletSelectResult>;
 };
 
@@ -68,9 +72,9 @@ export function createWalletSelectionWorkflow(
     selection: WalletSelectResult,
   ): Promise<WalletSelectionState> => {
     cachedSelection = selection;
-    const sessionOperation = { ...operation, stage: "session_persisting" as const };
+    const viewerOperation = { ...operation, stage: "viewer_persisting" as const };
     try {
-      await dependencies.operationStorage.save(sessionOperation);
+      await dependencies.operationStorage.save(viewerOperation);
     } catch {
       cachedSelection = null;
       return update({
@@ -79,17 +83,17 @@ export function createWalletSelectionWorkflow(
         target: operation.target,
       });
     }
-    update({ type: "platform_succeeded", operation: sessionOperation });
+    update({ type: "platform_succeeded", operation: viewerOperation });
 
     let persisted = false;
     try {
-      persisted = await dependencies.persistSession(selection);
+      persisted = await dependencies.persistViewer(selection.viewer);
     } catch {
       persisted = false;
     }
 
     if (!persisted) {
-      const pending = { ...sessionOperation, stage: "session_sync_pending" as const };
+      const pending = { ...viewerOperation, stage: "viewer_sync_pending" as const };
       try {
         await dependencies.operationStorage.save(pending);
       } catch {
@@ -100,8 +104,8 @@ export function createWalletSelectionWorkflow(
           target: operation.target,
         });
       }
-      update({ type: "session_failed" });
-      if (state.status === "session_sync_pending") {
+      update({ type: "viewer_failed" });
+      if (state.status === "viewer_sync_pending") {
         state = { ...state, operation: pending };
         listeners.forEach((listener) => listener(state));
       }
@@ -119,7 +123,7 @@ export function createWalletSelectionWorkflow(
     }
     cachedSelection = null;
     retryIntent = null;
-    return update({ type: "session_persisted", target: operation.target });
+    return update({ type: "viewer_persisted", target: operation.target });
   };
 
   const syncPlatform = async (
@@ -247,7 +251,7 @@ export function createWalletSelectionWorkflow(
   const retry = async (): Promise<WalletSelectionState> => {
     if (inFlight) return state;
 
-    if (state.status === "session_sync_pending" && cachedSelection) {
+    if (state.status === "viewer_sync_pending" && cachedSelection) {
       inFlight = true;
       try {
         return await persistSelection(state.operation, cachedSelection);
@@ -256,7 +260,7 @@ export function createWalletSelectionWorkflow(
       }
     }
 
-    if (state.status === "session_sync_pending") {
+    if (state.status === "viewer_sync_pending") {
       inFlight = true;
       try {
         return await syncPlatform({

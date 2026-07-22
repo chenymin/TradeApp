@@ -64,7 +64,7 @@ function parseOperation(raw: string): WalletSelectionOperation | null {
       typeof value.operationId !== "string" ||
       !value.operationId.trim() ||
       !isEvmAddress(value.previousAddress) ||
-      !isStage(value.stage) ||
+      !normalizeStage(value.stage) ||
       typeof value.timestamp !== "number" ||
       !Number.isFinite(value.timestamp) ||
       !target ||
@@ -81,7 +81,7 @@ function parseOperation(raw: string): WalletSelectionOperation | null {
       mode: value.mode,
       operationId: value.operationId,
       previousAddress: value.previousAddress.toLowerCase() as `0x${string}`,
-      stage: value.stage,
+      stage: normalizeStage(value.stage)!,
       target: {
         address: target.address.toLowerCase() as `0x${string}`,
         kind: target.kind,
@@ -99,8 +99,14 @@ function isEvmAddress(value: unknown): value is `0x${string}` {
   return typeof value === "string" && isAddress(value.toLowerCase());
 }
 
-function isStage(value: unknown): value is WalletSelectionOperation["stage"] {
-  return value === "platform_syncing" ||
-    value === "session_persisting" ||
-    value === "session_sync_pending";
+function normalizeStage(
+  value: unknown,
+): WalletSelectionOperation["stage"] | null {
+  if (value === "platform_syncing" || value === "viewer_persisting" ||
+    value === "viewer_sync_pending") {
+    return value;
+  }
+  if (value === "session_persisting") return "viewer_persisting";
+  if (value === "session_sync_pending") return "viewer_sync_pending";
+  return null;
 }

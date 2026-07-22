@@ -259,45 +259,42 @@ describe("authWorkflow", () => {
     expect(adapters.session.setSession).not.toHaveBeenCalled();
   });
 
-  it("replaces the stored session with the wallet-select Viewer", async () => {
+  it("persists the wallet-select Viewer without replacing the session", async () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);
     const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
 
-    await expect(workflow.replaceSession({
-      session: { accessToken: "replacement-token" },
-      viewer: replacementViewer,
-    })).resolves.toEqual({ ok: true, viewer: replacementViewer });
+    await expect(workflow.replaceViewer(
+      replacementViewer,
+      "viewer-1",
+    )).resolves.toEqual({ ok: true, viewer: replacementViewer });
 
-    expect(adapters.session.setSession).toHaveBeenCalledWith({
-      accessToken: "replacement-token",
-      viewer: replacementViewer,
-    });
+    expect(adapters.session.replaceViewer).toHaveBeenCalledWith(
+      replacementViewer,
+      "viewer-1",
+    );
+    expect(adapters.session.setSession).not.toHaveBeenCalled();
   });
 
-  it("reports a wallet session persistence failure without clearing the working session", async () => {
+  it("reports a wallet Viewer persistence failure without clearing the working session", async () => {
     const adapters = fakeAdapters();
-    adapters.session.setSession.mockRejectedValue({
+    adapters.session.replaceViewer.mockRejectedValue({
       code: "session_storage_failed",
     });
     const workflow = createAuthWorkflow(adapters);
 
-    await expect(workflow.replaceSession({
-      session: { accessToken: "replacement-token" },
-      viewer: viewer(),
-    })).resolves.toEqual({ ok: false });
+    await expect(workflow.replaceViewer(viewer(), "viewer-1"))
+      .resolves.toEqual({ ok: false });
     expect(adapters.session.clearSession).not.toHaveBeenCalled();
   });
 
-  it("does not persist a wallet session after its auth generation expires", async () => {
+  it("does not persist a wallet Viewer after its auth generation expires", async () => {
     const adapters = fakeAdapters();
     const workflow = createAuthWorkflow(adapters);
 
-    await expect(workflow.replaceSession({
-      session: { accessToken: "replacement-token" },
-      viewer: viewer(),
-    }, () => false)).resolves.toEqual({ ok: false });
-    expect(adapters.session.setSession).not.toHaveBeenCalled();
+    await expect(workflow.replaceViewer(viewer(), "viewer-1", () => false))
+      .resolves.toEqual({ ok: false });
+    expect(adapters.session.replaceViewer).not.toHaveBeenCalled();
   });
 
   it("restores and logs out through the session and Privy boundaries", async () => {
@@ -332,6 +329,7 @@ function fakeAdapters() {
     },
     session: {
       clearSession: vi.fn().mockResolvedValue(undefined),
+      replaceViewer: vi.fn().mockResolvedValue(undefined),
       restoreSession: vi.fn().mockResolvedValue({
         accessToken: "supabase-token",
         viewer: viewer(),

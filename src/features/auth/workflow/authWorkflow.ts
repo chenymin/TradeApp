@@ -1,5 +1,4 @@
 import type {
-  AuthExchangeResult,
   AuthExchangeSession,
   AuthExchangeUserStatus,
 } from "../services/authExchangeClient";
@@ -23,7 +22,7 @@ export type AuthSessionRefreshResult =
   | { ok: true; viewer: AuthViewer }
   | { error: AuthWorkflowError; ok: false };
 
-export type AuthSessionReplacementResult =
+export type AuthViewerReplacementResult =
   | { ok: true; viewer: AuthViewer }
   | { ok: false };
 
@@ -42,6 +41,10 @@ export type AuthWorkflowAdapters = {
   };
   session: {
     clearSession: () => Promise<void>;
+    replaceViewer: (
+      viewer: AuthViewer,
+      expectedViewerId: string,
+    ) => Promise<void>;
     restoreSession: () => Promise<AuthExchangeSession | null>;
     setSession: (session: AuthExchangeSession) => Promise<void>;
   };
@@ -80,29 +83,29 @@ export function createAuthWorkflow(adapters: AuthWorkflowAdapters) {
         },
         getPendingRecoverySession: () => pendingRecoverySession,
       }),
-    replaceSession: (
-      result: AuthExchangeResult,
+    replaceViewer: (
+      viewer: AuthViewer,
+      expectedViewerId: string,
       isCurrent: () => boolean = () => true,
-    ) => replaceSession(adapters, result, isCurrent),
+    ) => replaceViewer(adapters, viewer, expectedViewerId, isCurrent),
     refreshSession: (isCurrent: () => boolean = () => true) =>
       refreshSession(adapters, isCurrent),
     restoreSession: () => restoreSession(adapters),
   };
 }
 
-async function replaceSession(
+async function replaceViewer(
   adapters: AuthWorkflowAdapters,
-  result: AuthExchangeResult,
+  viewer: AuthViewer,
+  expectedViewerId: string,
   isCurrent: () => boolean,
-): Promise<AuthSessionReplacementResult> {
-  if (!isCurrent()) return { ok: false };
+): Promise<AuthViewerReplacementResult> {
+  if (!isCurrent() || viewer.id !== expectedViewerId) return { ok: false };
 
   try {
-    await adapters.session.setSession(
-      attachViewer(result.session, result.viewer),
-    );
+    await adapters.session.replaceViewer(viewer, expectedViewerId);
     if (!isCurrent()) return { ok: false };
-    return { ok: true, viewer: result.viewer };
+    return { ok: true, viewer };
   } catch {
     return { ok: false };
   }

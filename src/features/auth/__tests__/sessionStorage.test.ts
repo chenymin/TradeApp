@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   SessionStorageError,
   clearStoredSession,
+  replaceStoredSessionViewer,
   restoreStoredSession,
   setStoredSession,
 } from "../services/sessionStorage";
@@ -137,6 +138,83 @@ describe("sessionStorage", () => {
     ).rejects.toEqual(
       new SessionStorageError("session_storage_failed", { operation: "set_session" }),
     );
+  });
+
+  it("replaces only the Viewer while preserving every session credential", async () => {
+    const supabase = fakeSupabaseClient();
+    const session = {
+      accessToken: "access-token",
+      refreshToken: "refresh-token",
+      expiresAt: Math.floor(Date.now() / 1000) + 60,
+      viewer: {
+        email: "viewer@example.com",
+        id: "viewer-1",
+        walletAddress: "0xabc",
+      },
+    };
+    const secureStorage = fakeSecureStorage(JSON.stringify(session));
+    const replacementViewer = {
+      ...session.viewer,
+      walletAddress: "0xdef",
+    };
+
+    await replaceStoredSessionViewer({
+      expectedViewerId: "viewer-1",
+      secureStorage,
+      viewer: replacementViewer,
+    });
+
+    expect(supabase.auth.setSession).not.toHaveBeenCalled();
+    expect(secureStorage.setItemAsync).toHaveBeenCalledOnce();
+    expect(JSON.parse(secureStorage.setItemAsync.mock.calls[0][1])).toEqual({
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresAt: session.expiresAt,
+      viewer: replacementViewer,
+    });
+  });
+
+  it.each([
+    ["response account mismatch", "other-viewer", Math.floor(Date.now() / 1000) + 60],
+    ["expired session", "viewer-1", 1],
+  ])("rejects Viewer persistence for %s", async (_case, viewerId, expiresAt) => {
+    const session = {
+      accessToken: "access-token",
+      expiresAt,
+      viewer: { email: null, id: "viewer-1", walletAddress: "0xabc" },
+    };
+    const secureStorage = fakeSecureStorage(JSON.stringify(session));
+
+    await expect(replaceStoredSessionViewer({
+      expectedViewerId: "viewer-1",
+      secureStorage,
+      viewer: { email: null, id: viewerId, walletAddress: "0xdef" },
+    })).rejects.toEqual(
+      new SessionStorageError("session_storage_failed", {
+        operation: "replace_viewer",
+      }),
+    );
+    expect(secureStorage.setItemAsync).not.toHaveBeenCalled();
+  });
+
+  it("rejects Viewer persistence when the stored session belongs to another account", async () => {
+    const session = {
+      accessToken: "access-token",
+      expiresAt: Math.floor(Date.now() / 1000) + 60,
+      viewer: { email: null, id: "other-viewer", walletAddress: "0xabc" },
+    };
+    const secureStorage = fakeSecureStorage(JSON.stringify(session));
+
+    await expect(replaceStoredSessionViewer({
+      expectedViewerId: "viewer-1",
+      secureStorage,
+      viewer: { email: null, id: "viewer-1", walletAddress: "0xdef" },
+    })).rejects.toEqual(
+      new SessionStorageError("session_storage_failed", {
+        operation: "replace_viewer",
+      }),
+    );
+    expect(secureStorage.setItemAsync).not.toHaveBeenCalled();
   });
 });
 

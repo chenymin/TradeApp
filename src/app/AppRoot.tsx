@@ -205,7 +205,7 @@ function AuthGateRuntime({
     <WalletSelectionRuntime
       config={walletSelectionConfig}
       getAccessToken={getAccessToken}
-      replaceSession={actions.replaceSession}
+      replaceViewer={actions.replaceViewer}
       viewerId={state.viewer?.id ?? null}
     >
       {renderNavigator}

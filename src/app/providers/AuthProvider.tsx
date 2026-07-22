@@ -15,7 +15,6 @@ import type {
 } from "../../features/auth/workflow/authWorkflow";
 import type { AuthStatus } from "../../features/auth/workflow/authStateMachine";
 import type { AuthViewer } from "../../features/auth/domain/authViewer";
-import type { AuthExchangeResult } from "../../features/auth/services/authExchangeClient";
 
 export type AuthProviderState = {
   error?: AuthWorkflowResult["error"];
@@ -30,7 +29,7 @@ export type AuthProviderActions = {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   recoverAsInvestor: () => Promise<void>;
-  replaceSession: (result: AuthExchangeResult) => Promise<boolean>;
+  replaceViewer: (viewer: AuthViewer) => Promise<boolean>;
   refreshSession: () => Promise<boolean>;
   restoreSession: () => Promise<void>;
 };
@@ -113,10 +112,14 @@ export function AuthProvider({
     return true;
   }, [workflow]);
 
-  const replaceSession = useCallback(async (session: AuthExchangeResult) => {
+  const replaceViewer = useCallback(async (viewer: AuthViewer) => {
     const generation = authGeneration.current;
-    const result = await workflow.replaceSession(
-      session,
+    const expectedViewerId = state.viewer?.id;
+    if (!expectedViewerId || viewer.id !== expectedViewerId) return false;
+
+    const result = await workflow.replaceViewer(
+      viewer,
+      expectedViewerId,
       () => generation === authGeneration.current,
     );
     if (!result.ok || generation !== authGeneration.current) return false;
@@ -127,7 +130,7 @@ export function AuthProvider({
       viewer: result.viewer,
     });
     return true;
-  }, [workflow]);
+  }, [state.viewer?.id, workflow]);
 
   useEffect(() => {
     void restoreSession();
@@ -138,7 +141,7 @@ export function AuthProvider({
       login,
       logout,
       recoverAsInvestor,
-      replaceSession,
+      replaceViewer,
       refreshSession,
       restoreSession,
     }),
@@ -146,7 +149,7 @@ export function AuthProvider({
       login,
       logout,
       recoverAsInvestor,
-      replaceSession,
+      replaceViewer,
       refreshSession,
       restoreSession,
     ],

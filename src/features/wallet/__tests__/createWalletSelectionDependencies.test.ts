@@ -20,7 +20,7 @@ describe("createWalletSelectionDependencies", () => {
     await expect(confirmation).resolves.toBe(true);
   });
 
-  it("binds connection, SIWE, platform selection, and session persistence", async () => {
+  it("binds connection, SIWE, platform selection, and Viewer persistence", async () => {
     const input = bindings();
     const dependencies = createWalletSelectionDependencies(input);
     const wallet = await dependencies.connect(address(2));
@@ -34,7 +34,7 @@ describe("createWalletSelectionDependencies", () => {
       targetAddress: address(2),
     })).resolves.toEqual(input.selectionResult);
     await expect(
-      dependencies.persistSession(input.selectionResult),
+      dependencies.persistViewer(input.selectionResult.viewer),
     ).resolves.toBe(true);
 
     expect(input.connection.connect).toHaveBeenCalledWith(address(2));
@@ -43,7 +43,7 @@ describe("createWalletSelectionDependencies", () => {
       "https://test.artstarex.com",
     );
     expect(input.selectWallet).toHaveBeenCalledOnce();
-    expect(input.replaceSession).toHaveBeenCalledOnce();
+    expect(input.replaceViewer).toHaveBeenCalledOnce();
   });
 
   it("rejects a missing Privy access token", async () => {
@@ -67,8 +67,8 @@ function bindings() {
     signMessage: vi.fn().mockResolvedValue("0xsigned"),
   };
   const selectionResult = {
+    idempotent: false,
     operationId: "operation-1",
-    session: { accessToken: "replacement-token" },
     viewer: { email: null, id: "viewer-1", walletAddress: address(2) },
   };
 
@@ -88,7 +88,7 @@ function bindings() {
     },
     privyLink: { link: vi.fn().mockResolvedValue(undefined) },
     publicWebOrigin: "https://test.artstarex.com",
-    replaceSession: vi.fn().mockResolvedValue(true),
+    replaceViewer: vi.fn().mockResolvedValue(true),
     selectionResult,
     selectWallet: vi.fn().mockResolvedValue(selectionResult),
   };

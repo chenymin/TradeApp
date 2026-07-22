@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { AuthExchangeResult } from "../../auth/services/authExchangeClient";
 import type { ConnectedExternalWallet } from "../services/reownWalletConnectionAdapter";
 import {
   createWalletSelectionWorkflow,
@@ -25,7 +24,7 @@ describe("wallet selection workflow", () => {
       privyToken: "privy-token",
       targetAddress: address(2),
     });
-    expect(dependencies.persistSession).toHaveBeenCalledOnce();
+    expect(dependencies.persistViewer).toHaveBeenCalledOnce();
     expect(dependencies.operationStorage.clear).toHaveBeenCalledOnce();
   });
 
@@ -77,21 +76,21 @@ describe("wallet selection workflow", () => {
     expect(dependencies.newOperationId).toHaveBeenCalledOnce();
   });
 
-  it("retries only cached session persistence after platform success", async () => {
+  it("retries only cached Viewer persistence after platform success", async () => {
     const dependencies = fakeDependencies();
-    dependencies.persistSession
+    dependencies.persistViewer
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
     const workflow = createWalletSelectionWorkflow(dependencies);
 
     await expect(workflow.bindNew(address(1))).resolves.toMatchObject({
-      status: "session_sync_pending",
+      status: "viewer_sync_pending",
     });
     await expect(workflow.retry()).resolves.toMatchObject({ status: "complete" });
 
     expect(dependencies.link).toHaveBeenCalledOnce();
     expect(dependencies.select).toHaveBeenCalledOnce();
-    expect(dependencies.persistSession).toHaveBeenCalledTimes(2);
+    expect(dependencies.persistViewer).toHaveBeenCalledTimes(2);
   });
 
   it("restores a pending operation without reconnecting or linking again", async () => {
@@ -100,7 +99,7 @@ describe("wallet selection workflow", () => {
       mode: "bind",
       operationId: "operation-1",
       previousAddress: address(1),
-      stage: "session_sync_pending",
+      stage: "viewer_sync_pending",
       target: target(),
       timestamp: 90,
     });
@@ -108,7 +107,7 @@ describe("wallet selection workflow", () => {
 
     await expect(workflow.restore()).resolves.toMatchObject({
       operation: { operationId: "operation-1" },
-      status: "session_sync_pending",
+      status: "viewer_sync_pending",
     });
     await expect(workflow.retry()).resolves.toMatchObject({ status: "complete" });
 
@@ -151,7 +150,7 @@ describe("wallet selection workflow", () => {
       status: "consistency_error",
       target: { address: address(2) },
     });
-    expect(dependencies.persistSession).not.toHaveBeenCalled();
+    expect(dependencies.persistViewer).not.toHaveBeenCalled();
   });
 
   it("rejects a concurrent wallet mutation", async () => {
@@ -189,7 +188,7 @@ function fakeDependencies() {
       load: vi.fn().mockResolvedValue(null),
       save: vi.fn().mockResolvedValue(undefined),
     },
-    persistSession: vi.fn().mockResolvedValue(true),
+    persistViewer: vi.fn().mockResolvedValue(true),
     select: vi.fn().mockResolvedValue(result),
   } satisfies WalletSelectionDependencies;
 }
@@ -213,10 +212,10 @@ function target() {
   };
 }
 
-function selectionResult(): AuthExchangeResult & { operationId: string } {
+function selectionResult() {
   return {
+    idempotent: false,
     operationId: "operation-1",
-    session: { accessToken: "replacement-token" },
     viewer: {
       email: null,
       id: "viewer-1",

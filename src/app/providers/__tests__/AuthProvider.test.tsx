@@ -263,14 +263,14 @@ describe("AuthProvider", () => {
     });
   });
 
-  it("replaces the authenticated Viewer from a current wallet-select session", async () => {
+  it("replaces the authenticated Viewer without rotating the current session", async () => {
     const workflow = fakeWorkflow();
     const replacementViewer = { ...viewer(), walletAddress: "0xdef" };
     workflow.restoreSession.mockResolvedValue({
       status: "authenticated",
       viewer: viewer(),
     });
-    workflow.replaceSession.mockResolvedValue({
+    workflow.replaceViewer.mockResolvedValue({
       ok: true,
       viewer: replacementViewer,
     });
@@ -287,11 +287,14 @@ describe("AuthProvider", () => {
     });
 
     await act(async () => {
-      await expect(actions.replaceSession?.({
-        session: { accessToken: "replacement-token" },
-        viewer: replacementViewer,
-      })).resolves.toBe(true);
+      await expect(actions.replaceViewer?.(replacementViewer)).resolves.toBe(true);
     });
+
+    expect(workflow.replaceViewer).toHaveBeenCalledWith(
+      replacementViewer,
+      "viewer-1",
+      expect.any(Function),
+    );
 
     expect(snapshots.at(-1)).toEqual({
       isSessionReady: true,
@@ -300,7 +303,7 @@ describe("AuthProvider", () => {
     });
   });
 
-  it("ignores a wallet session replacement that completes after logout", async () => {
+  it("ignores a wallet Viewer replacement that completes after logout", async () => {
     let resolveReplacement: ((result: {
       ok: true;
       viewer: ReturnType<typeof viewer>;
@@ -310,7 +313,7 @@ describe("AuthProvider", () => {
       status: "authenticated",
       viewer: viewer(),
     });
-    workflow.replaceSession.mockReturnValue(new Promise((resolve) => {
+    workflow.replaceViewer.mockReturnValue(new Promise((resolve) => {
       resolveReplacement = resolve;
     }));
     const snapshots: Array<unknown> = [];
@@ -327,9 +330,9 @@ describe("AuthProvider", () => {
 
     let replacement: Promise<boolean> | undefined;
     await act(async () => {
-      replacement = actions.replaceSession?.({
-        session: { accessToken: "replacement-token" },
-        viewer: { ...viewer(), walletAddress: "0xdef" },
+      replacement = actions.replaceViewer?.({
+        ...viewer(),
+        walletAddress: "0xdef",
       });
       await actions.logout?.();
       resolveReplacement?.({
@@ -370,7 +373,7 @@ function fakeWorkflow() {
     login: vi.fn().mockResolvedValue({ status: "authenticated" }),
     logout: vi.fn().mockResolvedValue({ status: "logged_out" }),
     recoverAsInvestor: vi.fn().mockResolvedValue({ status: "authenticated" }),
-    replaceSession: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
+    replaceViewer: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
     refreshSession: vi.fn().mockResolvedValue({ ok: true, viewer: viewer() }),
     restoreSession: vi.fn().mockResolvedValue({ status: "logged_out" }),
   };

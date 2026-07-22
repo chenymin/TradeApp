@@ -1,5 +1,6 @@
 import type { AuthExchangeSession } from "./authExchangeClient";
 import { parseAuthViewer } from "../domain/authViewer";
+import type { AuthViewer } from "../domain/authViewer";
 
 export const SUPABASE_SESSION_STORAGE_KEY = "mytradeapp.supabase.session";
 
@@ -22,6 +23,7 @@ export type SecureSessionStorage = {
 export type SessionStorageOperation =
   | "restore_session"
   | "set_session"
+  | "replace_viewer"
   | "clear_session";
 
 export class SessionStorageError extends Error {
@@ -117,6 +119,40 @@ export async function clearStoredSession({
   } catch {
     throw new SessionStorageError("session_storage_failed", {
       operation: "clear_session",
+    });
+  }
+}
+
+export async function replaceStoredSessionViewer({
+  expectedViewerId,
+  secureStorage,
+  viewer,
+}: {
+  expectedViewerId: string;
+  secureStorage: SecureSessionStorage;
+  viewer: AuthViewer;
+}): Promise<void> {
+  try {
+    const session = parseStoredSession(
+      await secureStorage.getItemAsync(SUPABASE_SESSION_STORAGE_KEY),
+    );
+    if (
+      !session ||
+      isExpired(session) ||
+      !session.viewer ||
+      session.viewer.id !== expectedViewerId ||
+      viewer.id !== expectedViewerId
+    ) {
+      throw new Error("viewer_session_mismatch");
+    }
+
+    await secureStorage.setItemAsync(
+      SUPABASE_SESSION_STORAGE_KEY,
+      JSON.stringify({ ...session, viewer }),
+    );
+  } catch {
+    throw new SessionStorageError("session_storage_failed", {
+      operation: "replace_viewer",
     });
   }
 }

@@ -42,6 +42,22 @@ describe("wallet selection operation storage", () => {
     expect(expiredStorage.deleteItemAsync).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ["session_persisting", "viewer_persisting"],
+    ["session_sync_pending", "viewer_sync_pending"],
+  ] as const)("normalizes legacy %s recovery metadata", async (legacy, current) => {
+    const storage = secureStorage(JSON.stringify({
+      ...validOperation(),
+      stage: legacy,
+    }));
+    const operations = createWalletSelectionOperationStorage({
+      now: () => 1_000,
+      storage,
+    });
+
+    await expect(operations.load()).resolves.toMatchObject({ stage: current });
+  });
+
   it("removes recovery metadata on clear", async () => {
     const storage = secureStorage();
     const operations = createWalletSelectionOperationStorage({ storage });

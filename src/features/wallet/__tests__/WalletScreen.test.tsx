@@ -523,10 +523,10 @@ function walletSelectionDependencies(): WalletSelectionRuntimeDependencies {
         load: vi.fn().mockResolvedValue(null),
         save: vi.fn().mockResolvedValue(undefined),
       },
-      persistSession: vi.fn().mockResolvedValue(true),
+      persistViewer: vi.fn().mockResolvedValue(true),
       select: vi.fn().mockImplementation(async ({ operationId, targetAddress }) => ({
+        idempotent: false,
         operationId,
-        session: { accessToken: "replacement-token" },
         viewer: { email: null, id: "viewer-1", walletAddress: targetAddress },
       })),
     },

@@ -79,7 +79,7 @@ describe("WalletConnectionProvider configuration", () => {
     expect(source).toContain("createPrivyWalletLinkAdapter");
     expect(source).toContain("createWalletSelectionOperationStorage");
     expect(source).toContain("createWalletSelectionDependencies");
-    expect(source).toContain("selectWalletForSession");
+    expect(source).toContain("selectWalletForViewer");
     expect(appRoot).toContain("walletSelectionDependencies=");
   });
 });

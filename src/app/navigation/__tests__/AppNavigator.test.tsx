@@ -978,7 +978,7 @@ function createActions() {
     login: vi.fn().mockResolvedValue(undefined),
     logout: vi.fn().mockResolvedValue(undefined),
     recoverAsInvestor: vi.fn().mockResolvedValue(undefined),
-    replaceSession: vi.fn().mockResolvedValue(true),
+    replaceViewer: vi.fn().mockResolvedValue(true),
     refreshSession: vi.fn().mockResolvedValue(true),
     restoreSession: vi.fn().mockResolvedValue(undefined),
   };
@@ -1006,7 +1006,7 @@ function createSelectionDependencies(): WalletSelectionRuntimeDependencies {
         load: vi.fn().mockResolvedValue(null),
         save: vi.fn(),
       },
-      persistSession: vi.fn().mockResolvedValue(true),
+      persistViewer: vi.fn().mockResolvedValue(true),
       select: vi.fn(),
     },
   };

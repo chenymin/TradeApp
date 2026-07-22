@@ -205,7 +205,7 @@ export function WalletIdentitySection({
           </View>
         ) : null}
         {selectionState.status === "sync_error" ||
-        selectionState.status === "session_sync_pending" ? (
+        selectionState.status === "viewer_sync_pending" ? (
           <View style={styles.syncError}>
             <AppText style={styles.error} variant="caption">
               Wallet activation is pending
@@ -267,7 +267,7 @@ function isSelectionBusy(state: WalletSelectionState): boolean {
     state.status === "confirming_switch" ||
     state.status === "connecting" ||
     state.status === "platform_syncing" ||
-    state.status === "session_persisting";
+    state.status === "viewer_persisting";
 }
 
 function isSelectionMutationBlocked(state: WalletSelectionState): boolean {
@@ -275,7 +275,7 @@ function isSelectionMutationBlocked(state: WalletSelectionState): boolean {
     state.status === "complete" ||
     state.status === "conflict" ||
     state.status === "consistency_error" ||
-    state.status === "session_sync_pending" ||
+    state.status === "viewer_sync_pending" ||
     state.status === "sync_error";
 }
 
