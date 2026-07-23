@@ -187,10 +187,10 @@ export function createWalletSelectionWorkflow(
       try {
         wallet = await dependencies.connect();
       } catch (error) {
-        const code = errorCode(error);
-        return code === "address_mismatch"
-          ? update({ type: "consistency_failed", error: code })
-          : update({ type: "platform_failed", error: code, phase: "connect" });
+        return update({
+          type: "connection_failed",
+          error: errorCode(error),
+        });
       }
 
       const target = toTarget(wallet);
@@ -218,28 +218,30 @@ export function createWalletSelectionWorkflow(
     if (inFlight) return state;
     inFlight = true;
     retryIntent = { mode: "switch", previousAddress, target };
-    update({ type: "switch_requested", target });
 
     try {
-      if (!await dependencies.confirmSwitch(target)) {
-        retryIntent = null;
-        return update({ type: "reset" });
-      }
-
       if (target.kind === "external") {
         update({
           type: "connection_started",
           expectedAddress: target.address,
           mode: "switch",
+          target,
         });
         try {
           await dependencies.connect(target.address);
         } catch (error) {
-          const code = errorCode(error);
-          return code === "address_mismatch"
-            ? update({ type: "consistency_failed", error: code, target })
-            : update({ type: "platform_failed", error: code, phase: "connect" });
+          return update({
+            type: "connection_failed",
+            error: errorCode(error),
+            target,
+          });
         }
+      }
+
+      update({ type: "switch_requested", target });
+      if (!await dependencies.confirmSwitch(target)) {
+        retryIntent = null;
+        return update({ type: "reset" });
       }
 
       return syncPlatform(newOperation("switch", previousAddress, target));

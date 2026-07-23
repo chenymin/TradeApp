@@ -204,7 +204,21 @@ export function WalletIdentitySection({
             />
           </View>
         ) : null}
-        {selectionState.status === "sync_error" ||
+        {selectionState.status === "sync_error" &&
+        selectionState.phase === "binding" ? (
+          <View style={styles.syncError}>
+            <AppText style={styles.error} variant="caption">
+              {walletBindingErrorMessage(selectionState.error)}
+            </AppText>
+            <Button
+              accessibilityLabel="Retry wallet connection"
+              label="Retry"
+              onPress={() => onRetryWalletSelection?.()}
+            />
+          </View>
+        ) : null}
+        {(selectionState.status === "sync_error" &&
+          selectionState.phase !== "binding") ||
         selectionState.status === "viewer_sync_pending" ? (
           <View style={styles.syncError}>
             <AppText style={styles.error} variant="caption">
@@ -212,6 +226,24 @@ export function WalletIdentitySection({
             </AppText>
             <Button
               accessibilityLabel="Retry wallet selection"
+              label="Retry"
+              onPress={() => onRetryWalletSelection?.()}
+            />
+          </View>
+        ) : null}
+        {selectionState.status === "connect_error" ? (
+          <View style={styles.syncError}>
+            <AppText style={styles.error} variant="caption">
+              {selectionState.error === "address_mismatch"
+                ? "Connected wallet does not match this linked wallet"
+                : selectionState.error === "connection_timeout"
+                  ? `Wallet did not approve ${chainName} in time`
+                  : selectionState.error === "unsupported_chain"
+                    ? `Wallet is not connected to ${chainName}`
+                  : "Wallet connection was not completed"}
+            </AppText>
+            <Button
+              accessibilityLabel="Retry wallet connection"
               label="Retry"
               onPress={() => onRetryWalletSelection?.()}
             />
@@ -262,6 +294,28 @@ export function WalletIdentitySection({
   );
 }
 
+function walletBindingErrorMessage(error: string): string {
+  if (error === "session_expired") {
+    return "Wallet session expired. Reconnect the wallet";
+  }
+  if (error === "siwe_message_failed") {
+    return "Could not prepare wallet verification";
+  }
+  if (error === "privy_link_failed") {
+    return "Privy did not accept wallet verification";
+  }
+  if (error === "signature_failed") {
+    return "Wallet signature was not completed";
+  }
+  if (error === "linked_wallet_mismatch") {
+    return "Privy response did not include the connected wallet";
+  }
+  if (error === "invalid_origin") {
+    return "Wallet verification origin is invalid";
+  }
+  return "Wallet binding was not completed";
+}
+
 function isSelectionBusy(state: WalletSelectionState): boolean {
   return state.status === "binding" ||
     state.status === "confirming_switch" ||
@@ -273,6 +327,7 @@ function isSelectionBusy(state: WalletSelectionState): boolean {
 function isSelectionMutationBlocked(state: WalletSelectionState): boolean {
   return isSelectionBusy(state) ||
     state.status === "complete" ||
+    state.status === "connect_error" ||
     state.status === "conflict" ||
     state.status === "consistency_error" ||
     state.status === "viewer_sync_pending" ||

@@ -3,16 +3,16 @@ import { describe, expect, it } from "vitest";
 import { createDashboardMintEventsRepository } from "../services/dashboardMintEventsRepository";
 
 describe("dashboard mint events repository", () => {
-  it("reads the verified wallet events with associated asset metadata", async () => {
+  it("reads the investor events with associated asset metadata", async () => {
     const fake = createFakeClient([rawEvent()]);
 
     const events = await createDashboardMintEventsRepository(fake.client)
-      .fetchByWallet("0xABCDEF");
+      .fetchByInvestor("viewer-1");
 
     expect(fake.calls).toEqual([
       ["from", "mint_events"],
       ["select", expect.stringContaining("art_assets!asset_id")],
-      ["eq", "buyer_wallet", "0xabcdef"],
+      ["eq", "investor_id", "viewer-1"],
       ["eq", "is_deleted", false],
       ["order", "block_timestamp", { ascending: false }],
     ]);
@@ -39,7 +39,7 @@ describe("dashboard mint events repository", () => {
       createFakeClient(null, { message: "permission denied" }).client,
     );
 
-    await expect(repository.fetchByWallet("0xabcdef")).rejects.toThrow(
+    await expect(repository.fetchByInvestor("viewer-1")).rejects.toThrow(
       "Unable to load dashboard mint events: permission denied",
     );
   });

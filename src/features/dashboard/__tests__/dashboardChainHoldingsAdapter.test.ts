@@ -3,16 +3,18 @@ import { describe, expect, it, vi } from "vitest";
 import { createDashboardChainHoldingsAdapter } from "../services/dashboardChainHoldingsAdapter";
 
 describe("dashboard chain holdings adapter", () => {
-  it("groups assets by chain and formats balance and price with chain decimals", async () => {
+  it("groups assets by chain and sums balances across account wallets", async () => {
     const clients = new Map([
       [56, fakeClient([
         success(18),
         success(1_000_000_000_000_000_000n),
+        success(2_000_000_000_000_000_000n),
         success(3_000_000_000_000_000_000n),
       ])],
       [97, fakeClient([
         success(6),
         success(2_000_000_000_000_000_000n),
+        success(4_000_000_000_000_000_000n),
         success(2_500_000n),
       ])],
     ]);
@@ -23,24 +25,24 @@ describe("dashboard chain holdings adapter", () => {
 
     const states = await adapter.readHoldings({
       assets: [asset("asset-97", 97, 1), asset("asset-56", 56, 2)],
-      walletAddress: address(8),
+      walletAddresses: [address(8), address(9)],
     });
 
     expect(states).toEqual(new Map([
       ["asset-97", {
         currentPriceUsdt: "2.5",
-        currentShares: "2",
+        currentShares: "6",
         status: "ready",
       }],
       ["asset-56", {
         currentPriceUsdt: "3",
-        currentShares: "1",
+        currentShares: "3",
         status: "ready",
       }],
     ]));
     expect(clients.get(56)!.multicall.mock.calls[0][0].contracts
       .map((call: { functionName: string }) => call.functionName))
-      .toEqual(["decimals", "balanceOf", "priceUSDT"]);
+      .toEqual(["decimals", "balanceOf", "balanceOf", "priceUSDT"]);
     expect(clients.get(97)!.multicall).toHaveBeenCalledOnce();
   });
 
@@ -56,7 +58,7 @@ describe("dashboard chain holdings adapter", () => {
         asset("bad-address", 97, 1, "not-an-address"),
         asset("bad-chain", 1, 2),
       ],
-      walletAddress: address(8),
+      walletAddresses: [address(8)],
     });
 
     expect(states).toEqual(new Map([
@@ -72,7 +74,9 @@ describe("dashboard chain holdings adapter", () => {
       failure(),
       success(1_000_000_000_000_000_000n),
       failure(),
+      success(3_000_000n),
       success(2_000_000_000_000_000_000n),
+      success(1_000_000_000_000_000_000n),
       success(4_000_000n),
     ]);
     const adapter = createDashboardChainHoldingsAdapter({
@@ -86,13 +90,41 @@ describe("dashboard chain holdings adapter", () => {
         asset("asset-failed", 97, 2),
         asset("asset-ready", 97, 3),
       ],
-      walletAddress: address(8),
+      walletAddresses: [address(8), address(9)],
     });
 
     expect(states.get("chain-down")).toEqual({ status: "error" });
     expect(states.get("asset-failed")).toEqual({ status: "error" });
     expect(states.get("asset-ready")).toEqual({
       currentPriceUsdt: "4",
+      currentShares: "3",
+      status: "ready",
+    });
+  });
+
+  it("normalizes and deduplicates account wallet addresses", async () => {
+    const lower = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const checksummed = "0xaAaAaAaaAaAaAaaAaAAAAAAAAaaaAaAaAaaAaaAa";
+    const chain = fakeClient([
+      success(6),
+      success(2_000_000_000_000_000_000n),
+      success(5_000_000n),
+    ]);
+    const adapter = createDashboardChainHoldingsAdapter({
+      createClient: () => chain.client,
+      getUsdtAddress: () => address(9),
+    });
+
+    const states = await adapter.readHoldings({
+      assets: [asset("asset-1", 97, 1)],
+      walletAddresses: [lower, checksummed, "invalid"],
+    });
+
+    expect(chain.multicall.mock.calls[0][0].contracts
+      .map((call: { functionName: string }) => call.functionName))
+      .toEqual(["decimals", "balanceOf", "priceUSDT"]);
+    expect(states.get("asset-1")).toEqual({
+      currentPriceUsdt: "5",
       currentShares: "2",
       status: "ready",
     });

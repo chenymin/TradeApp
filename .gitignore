@@ -11,3 +11,5 @@ yarn-debug.log*
 yarn-error.log*
 .superpowers/brainstorm
 .gstack
+android
+ios

@@ -29,18 +29,18 @@ export type DashboardMintEventsClient = {
 };
 
 export type DashboardMintEventsRepository = {
-  fetchByWallet(walletAddress: string): Promise<DashboardMintEvent[]>;
+  fetchByInvestor(investorId: string): Promise<DashboardMintEvent[]>;
 };
 
 export function createDashboardMintEventsRepository(
   client: DashboardMintEventsClient,
 ): DashboardMintEventsRepository {
   return {
-    async fetchByWallet(walletAddress) {
+    async fetchByInvestor(investorId) {
       const response = await client
         .from("mint_events")
         .select(MINT_EVENTS_SELECT)
-        .eq("buyer_wallet", walletAddress.toLowerCase())
+        .eq("investor_id", investorId)
         .eq("is_deleted", false)
         .order("block_timestamp", { ascending: false });
 

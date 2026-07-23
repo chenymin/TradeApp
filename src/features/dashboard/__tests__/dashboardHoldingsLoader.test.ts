@@ -3,23 +3,33 @@ import { describe, expect, it, vi } from "vitest";
 import { createDashboardHoldingsLoader } from "../services/dashboardHoldingsLoader";
 
 describe("dashboard holdings loader", () => {
-  it("does not query until session and verified wallet are available", async () => {
-    const repository = { fetchByWallet: vi.fn() };
+  it("does not query until the investor session is available", async () => {
+    const eventsRepository = { fetchByInvestor: vi.fn() };
+    const walletsRepository = { fetchActiveEthereumByInvestor: vi.fn() };
     const chainAdapter = { readHoldings: vi.fn() };
-    const load = createDashboardHoldingsLoader({ chainAdapter, repository });
+    const load = createDashboardHoldingsLoader({
+      chainAdapter,
+      eventsRepository,
+      walletsRepository,
+    });
 
     await expect(load({ isSessionReady: false, viewer: viewer("0xabc") }))
       .resolves.toBeNull();
     await expect(load({ isSessionReady: true, viewer: null })).resolves.toBeNull();
-    await expect(load({ isSessionReady: true, viewer: viewer(null) }))
-      .resolves.toBeNull();
-    expect(repository.fetchByWallet).not.toHaveBeenCalled();
+    expect(eventsRepository.fetchByInvestor).not.toHaveBeenCalled();
+    expect(walletsRepository.fetchActiveEthereumByInvestor).not.toHaveBeenCalled();
     expect(chainAdapter.readHoldings).not.toHaveBeenCalled();
   });
 
-  it("loads events and chain states using only the verified viewer wallet", async () => {
+  it("loads investor events and aggregates every active Ethereum wallet", async () => {
     const events = [event("event-1"), event("event-2")];
-    const repository = { fetchByWallet: vi.fn().mockResolvedValue(events) };
+    const eventsRepository = {
+      fetchByInvestor: vi.fn().mockResolvedValue(events),
+    };
+    const walletAddresses = [address(8), address(9)];
+    const walletsRepository = {
+      fetchActiveEthereumByInvestor: vi.fn().mockResolvedValue(walletAddresses),
+    };
     const chainAdapter = {
       readHoldings: vi.fn().mockResolvedValue(new Map([
         ["asset-1", {
@@ -29,20 +39,41 @@ describe("dashboard holdings loader", () => {
         }],
       ])),
     };
-    const load = createDashboardHoldingsLoader({ chainAdapter, repository });
+    const load = createDashboardHoldingsLoader({
+      chainAdapter,
+      eventsRepository,
+      walletsRepository,
+    });
 
     const result = await load({
       isSessionReady: true,
-      viewer: viewer("0xABCDEF"),
+      viewer: viewer(null),
     });
 
-    expect(repository.fetchByWallet).toHaveBeenCalledWith("0xABCDEF");
+    expect(eventsRepository.fetchByInvestor).toHaveBeenCalledWith("viewer-1");
+    expect(walletsRepository.fetchActiveEthereumByInvestor)
+      .toHaveBeenCalledWith("viewer-1");
     expect(chainAdapter.readHoldings).toHaveBeenCalledWith({
       assets: [events[0].asset],
-      walletAddress: "0xABCDEF",
+      walletAddresses,
     });
     expect(result?.transactions).toHaveLength(2);
     expect(result?.holdings).toHaveLength(1);
+  });
+
+  it("propagates account wallet read failures instead of returning zero holdings", async () => {
+    const load = createDashboardHoldingsLoader({
+      chainAdapter: { readHoldings: vi.fn() },
+      eventsRepository: { fetchByInvestor: vi.fn().mockResolvedValue([]) },
+      walletsRepository: {
+        fetchActiveEthereumByInvestor: vi.fn().mockRejectedValue(
+          new Error("wallet read failed"),
+        ),
+      },
+    });
+
+    await expect(load({ isSessionReady: true, viewer: viewer(null) }))
+      .rejects.toThrow("wallet read failed");
   });
 });
 
@@ -67,4 +98,8 @@ function event(id: string) {
     shares: "2",
     txHash: `0x${"a".repeat(64)}`,
   };
+}
+
+function address(lastDigit: number): `0x${string}` {
+  return `0x${lastDigit.toString(16).padStart(40, "0")}`;
 }

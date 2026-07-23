@@ -639,6 +639,95 @@ Expected：FAIL，现有实现仍解析 AuthExchangeResult、替换 session并�
 
 运行 Machine Verification 表全部命令、`npm run ai:audit -- rn-wallet-switching`、`npm run ai:verify -- rn-wallet-switching --write`，并更新 verification artifact。安全 review确认 wallet-select无 JWT secret；数据 review确认 migration / RPC无变化；业务 review确认 investor / KYC /权益不变且钱包切换不延长登录生命周期。
 
+### Task 8：Android WalletConnect 配置链与失效 session 恢复
+
+- 业务场景：Android 测试环境使用支持 Chain 97 WalletConnect namespace 的 MetaMask绑定 external wallet；Rabby Mobile 0.6.81 的 WalletConnect 仅允许 mainnet，必须留到 Chain 56 环境验收，不能让测试环境降级到主网；MetaMask SIWE返回时还可能遇到 WalletConnect session topic失效，必须结束绑定、清理本地 connector并允许 fresh reconnect。
+- 范围内：AppKit 配置链的 default / supported network 约束、AppKit 官方 WalletConnect 依赖契约验证、外部钱包 handoff / timeout / stale-session 生命周期、准确错误反馈、provider 配置测试、Android Rabby / MetaMask 手动 QA。
+- 范围外：业务资产链切换、转账、购买、`wallet-select`、Privy / Supabase 权限与数据库 schema。
+- 预计影响文件：
+  - Modify: `src/app/providers/WalletConnectionProvider.tsx`
+  - Modify: `src/app/providers/__tests__/WalletConnectionProvider.test.ts`
+  - Modify: `src/features/wallet/components/WalletSelectionRuntime.tsx`
+  - Modify: `src/features/wallet/services/reownWalletConnectionAdapter.ts`
+  - Modify: focused tests under `src/features/wallet/__tests__`
+- 结构验收：配置链约束和 session cleanup 只存在于 Reown provider boundary；workflow、平台地址选择、余额 reader 和 receive copy 不读取 WalletConnect 内部 topic，也不重复推导链。
+- 可测试性验收：配置测试固定链 97 环境的 `defaultNetwork` 与 `networks` 都只包含 97；依赖检查固定 `@reown/appkit-react-native@2.0.6` 官方锁定的 Universal Provider 2.21.10，并允许 RN compat 2.23.10 独立存在；adapter 测试固定外部 handoff 不被 modal close 提前判失败、失效签名不继续 Privy / 平台调用；Android MetaMask QA证明 SIWE显示 Chain ID 97且失效 session后可重新连接，Android Rabby QA在 Chain 56环境单独执行。
+
+- [x] **Step 1：收集 Android 证据并定位边界**
+
+确认 Metro cwd 为当前仓库；Android activity 记录 Rabby `rabby://wc` 深链；Reown storage 存在 session；在同时请求 56 / 97 时 approved chain/account 只有 `eip155:56`；后续 SIWE 实际显示 `Chain ID: 56`，证明不能跨环境链降级。
+
+- [x] **Step 2：写 RED provider compatibility test**
+
+断言 provider 从 `chainId` 选择唯一 configured network；测试环境的 `defaultNetwork` 为 BSC Testnet 且 `networks` 仅含 BSC Testnet，生产环境对应仅含 BSC mainnet。
+
+- [x] **Step 3：实现 provider boundary 配置链约束并转绿**
+
+AppKit 使用 `chainId` 推导 `configuredNetwork`，同时赋给 `defaultNetwork` 与单元素 `networks`。不得修改 `PublicChainConfig`、余额 reader、receive 提示、Privy SIWE chain 传递或平台 payload。
+
+- [x] **Step 4：验证 AppKit 官方依赖契约并强化 stale-session cleanup**
+
+已验证 `@reown/appkit-react-native@2.0.6` 的官方依赖契约：Universal Provider 保持其精确锁定的 2.21.10，SignClient / Core 跟随该官方解析树，`@walletconnect/react-native-compat@2.23.10` 作为 RN shim / native compat 独立保留；2.23.10 provider override 已撤销。依赖契约回归、provider / wallet 聚焦测试、全量测试、typecheck、`git diff --check` 与 Android debug build 均通过。既有 lifecycle 行为保持：session topic 缺失映射为稳定 `session_expired`；绑定阶段失败显示 reconnect提示而非 activation pending；清理 single-flight先尝试正常 remote disconnect，再无条件完成 AppKit local cleanup；120秒 timeout、错误环境链 cleanup以及失败后不得调用 Privy link / `wallet-select`继续成立。
+
+- [ ] **Step 5：运行回归与 Android Rabby / MetaMask QA**
+
+先增加 WalletScreen 回归测试：一次选择成功且 authoritative Viewer切到目标地址后，selection state必须从 `complete`收敛到`idle`，非 active钱包的下一次`Use`和受控解绑按钮都恢复可操作；Viewer尚未收敛时仍保持锁定。实现只在Wallet页面状态协调层完成，不放宽in-flight、错误恢复或一致性失败的 mutation锁。
+
+随后运行 provider / adapter / Privy / workflow聚焦测试、typecheck、全量测试、Android debug build和AI Delivery audit；清理仅属于 MyTradeApp 的 Reown cache并在钱包端删除测试 session后重启。Chain 97使用 MetaMask，由用户本人批准 connection与SIWE，验证 session建立、SIWE Chain ID 97、新钱包自动 active、平台 Viewer收敛、下一次`Use`与受控解绑恢复可操作，且现有应用 token / expiry不变；另验证取消 / stale / timeout不进入平台调用且可 fresh reconnect。Rabby Mobile 0.6.81的公开源码与实机共同证明其 WalletConnect supported chains只包含mainnet，对 `eip155:97`返回 `No supported WalletConnect namespace to approve.`；因此 Rabby不再参与Chain 97 A/B，改在Chain 56环境使用同一官方依赖树完成独立验收。
+
+### Task 9：Dashboard 账户级多钱包持仓聚合
+
+- 业务场景：同一 investor 切换 active wallet 后，Dashboard 的 Portfolio、PnL、Holdings 和 Transactions 保持账户级结果；Wallet 页面仍展示单钱包余额。
+- 范围内：`mint_events` investor 查询、本人 active Ethereum wallet 列表读取、跨钱包链上余额聚合、部分失败 warning、Dashboard 聚焦测试。
+- 范围外：Token 迁移、解绑钱包余额继续聚合、Commission read-model gate、JWT / session、wallet-select、数据库 schema / RLS 写策略。
+- 预计影响文件：
+  - Modify: `src/features/dashboard/services/dashboardMintEventsRepository.ts`
+  - Create: `src/features/dashboard/services/dashboardInvestorWalletsRepository.ts`
+  - Modify: `src/features/dashboard/services/dashboardHoldingsLoader.ts`
+  - Modify: `src/features/dashboard/services/dashboardChainHoldingsAdapter.ts`
+  - Modify: `src/features/dashboard/services/createDefaultDashboardHoldingsLoader.ts`
+  - Modify: `src/features/dashboard/domain/holdings.ts`
+  - Modify: focused tests under `src/features/dashboard/__tests__`
+- 结构验收：repository 只负责本人数据库读取；chain adapter 只负责规范化地址、按链 multicall和资产余额求和；domain builder继续只计算展示模型；Screen不拼查询条件。
+- 权限验收：客户端传入 viewer id仅用于缩小查询，`mint_events`与`investor_wallets`仍由 `auth.uid()` RLS强制本人隔离；不新增service role、SECURITY DEFINER或直接写操作。
+
+- [x] **Step 1：写 RED repository / loader tests**
+
+断言 mint events使用 `investor_id`而非`buyer_wallet`；wallet repository只读取本人 active Ethereum rows并丢弃非法/重复地址；loader用同一 viewer id加载事件与钱包集合，并把全部地址交给chain adapter。数据库读取失败必须reject，不返回空持仓。
+
+- [x] **Step 2：运行 repository / loader RED**
+
+Run：
+
+```bash
+npm test -- --run src/features/dashboard/__tests__/dashboardMintEventsRepository.test.ts src/features/dashboard/__tests__/dashboardInvestorWalletsRepository.test.ts src/features/dashboard/__tests__/dashboardHoldingsLoader.test.ts
+```
+
+Expected：FAIL，现有repository仍按`buyer_wallet`查询，wallet repository不存在，loader只传单个`walletAddress`。
+
+- [x] **Step 3：实现账户读取边界并转绿**
+
+实现 `fetchByInvestor(investorId)` 与 `fetchActiveEthereumByInvestor(investorId)`；wallet rows必须通过Viem `isAddress/getAddress`规范化并按lowercase去重。loader在session / viewer缺失时返回null，认证状态有效时并行读取events与wallets，任一数据库读取失败向上抛出。
+
+- [x] **Step 4：写 RED 多钱包 chain adapter tests**
+
+覆盖两个钱包同一资产余额求和、重复地址只读一次、多chain分别multicall、一个资产调用失败产生warning且不伪造零余额、全部钱包余额为零时不展示holding。价格每资产每链只读取一次。
+
+- [x] **Step 5：实现按链批量余额聚合并转绿**
+
+将chain adapter输入改为`walletAddresses`；按chain分组构造`decimals + 每资产N个balanceOf + 每资产priceUSDT`调用，严格按布局解析并累加bigint，再交给现有`buildDashboardHoldings`。失败资产保持`error`，不参与Portfolio汇总且生成`chain_unavailable` warning。
+
+- [x] **Step 6：运行 Dashboard / Wallet 回归与门禁**
+
+```bash
+npm test -- --run src/features/dashboard src/features/wallet src/app/navigation src/app/providers
+npm run typecheck
+git diff --check
+npm run ai:audit -- rn-wallet-switching
+```
+
+Expected：PASS；切换active wallet前后Dashboard账户持仓fixture一致；Wallet单钱包余额测试不变；无客户端数据库写入或token变更。
+
 ## 业务追踪矩阵
 
 | 业务场景 | 实现位置 | 测试 / 验证 | 状态 |
@@ -657,9 +746,12 @@ Expected：FAIL，现有实现仍解析 AuthExchangeResult、替换 session并�
 | 幂等重试 | Task 1 operation ledger | SQL verification + service test | Planned |
 | 非 linked / 伪造目标 | Task 2 exact linked target | domain/service tests | Planned |
 | 状态一致性 | Task 1 RPC + Task 3 session + Task 5 UI | cross-layer tests + iOS QA | Planned |
-| 账户权益隔离 | Task 1 RPC column scope | SQL / business boundary review | Planned |
+| 账户权益隔离 | Task 1 RPC column scope + Task 9 Dashboard账户聚合 | SQL / business boundary review + multi-wallet holdings tests | Implemented |
+| 账户持仓部分失败 | Task 9 chain adapter错误隔离与domain warning | 多钱包单资产失败 / 多链部分失败 tests | Implemented |
 | 登出或账户变化 | Task 3 generation guard + Task 5 cleanup | AuthProvider/workflow tests | Planned |
-| Android 延后验证 | Task 6 verification artifact | release gate明确为 deferred | Planned |
+| Android 钱包配置链约束 | Task 8 provider boundary | provider regression + MetaMask Chain 97 QA + Rabby 0.6.81 Chain 97 不支持证据；Rabby Chain 56 QA待执行 | In progress |
+| WalletConnect session 失效 | Task 8 provider / adapter boundary | AppKit 官方依赖契约检查 + stale-signature / remote-disconnect / local-cleanup tests + Android MetaMask fresh reconnect QA | In progress |
+| Android 延后验证 | Task 6 verification artifact + Task 8 resumed QA | 原 deferred gate 已恢复执行，由 Task 8 完成 MetaMask Chain 97 与 Rabby Chain 56 的连接 / SIWE / active 收敛验证 | In progress |
 
 ## Final Verification Required
 

@@ -53,6 +53,7 @@ Feature slug：`rn-wallet-switching`
 - 不修改现有 `wallet-login` 的登录、钱包同步或 JWT 签发逻辑。
 - 不在本功能中实现历史重构文档中的完整 `sync-wallets` 服务；只增加完成 active 选择所需的最小 `wallet-select` 路径。
 - 不迁移或复制 KYC、积分、推荐关系、返佣、持仓和其他账户权益；切换钱包始终发生在同一个 investor / Privy 账户内。
+- 不把 Dashboard 账户级持仓降级为 active-wallet 单钱包视图；链上 Token 不迁移，但 Dashboard 必须聚合同一 investor 下全部 active Ethereum wallets 的实际余额。Wallet 页面继续只展示单钱包余额。
 - 不实现钱包解绑；受控解绑属于已完成的 Task 8D。
 - 不实现转账、提现、消息签名、链切换、合约调用、购买或资产写操作。
 - 不支持通过手工输入、粘贴地址、路由参数或二维码直接指定 active wallet。
@@ -65,6 +66,8 @@ Feature slug：`rn-wallet-switching`
 - active wallet 是平台级身份状态，不只是 Wallet 页面的展示选择。以下地址在成功完成后必须一致：本次外部连接器明确选中的地址（external wallet 场景）、Privy linked wallet 中的目标地址、`investor_wallets.is_primary` 对应地址、`investors.wallet_address`、`AuthViewer.walletAddress` 和本地持久化会话中的 Viewer 地址。
 - 新钱包绑定成功后立即成为 active。绑定流程不得停在“新钱包已在列表中，但仍以旧钱包为 active”的正常完成状态。
 - 新钱包绑定及已有钱包切换共用同一平台收敛流程：新钱包先完成 Privy SIWE 关联，已有 external wallet 先完成目标连接校验，随后调用 `wallet-select`，最后保留原会话凭据并持久化新 Viewer。
+- 外部钱包连接、Privy SIWE message 和应用配置链必须一致：测试环境固定 `eip155:97`，生产环境固定 `eip155:56`。Reown proposal 不得同时暴露其他环境的链让钱包自行选择；SIWE `Chain ID` 与实际连接 provider chain id 必须等于当前配置链。
+- WalletConnect session 在钱包端失效或本地恢复状态不完整时，客户端必须停止当前 SIWE，清理本地连接状态并允许重新连接；不得继续调用 Privy link 或 `wallet-select`，不得无限 loading，也不得把绑定阶段失败显示为平台 activation pending。
 - 绝不能在 Privy SIWE 绑定失败、连接取消或连接地址不匹配后调用平台 `wallet-select`。
 - `wallet-select` 不接受客户端提供的 `investor_id`。服务端必须从验证后的 Privy identity 推导 investor，并确认目标是当前 Privy 用户的 linked Ethereum wallet。
 - `wallet-select` 必须验证目标地址、当前平台地址和 `expectedPreviousAddress`。陈旧请求、跨账户目标、非 linked wallet、非 Ethereum wallet 或地址不匹配请求必须被拒绝。
@@ -82,6 +85,8 @@ Feature slug：`rn-wallet-switching`
 - 在连接器目标、平台 active 和 Viewer 地址不一致期间，Wallet 只能展示“正在同步 / 需要恢复”，不得允许绑定、切换、解绑、转账、购买或签名等依赖钱包身份的写操作。
 - 成功提示只允许在明确目标、`wallet-select` 响应 Viewer 和本地持久化 Viewer 三者一致后出现；重新读取的数据库状态作为服务端验收依据。
 - 登出、账户变化或认证代次改变时，必须使当前操作失效；旧异步结果不得覆盖新账户会话。
+- Dashboard 的交易记录按 `mint_events.investor_id` 读取；Portfolio / Holdings 以该 investor 的交易资产集合为候选资产，再对 `investor_wallets` 中全部 `status='active' AND chain_type='ethereum'` 的钱包执行链上余额聚合。不得使用 `AuthViewer.walletAddress` 作为账户持仓的唯一过滤条件。
+- 账户持仓聚合失败时不得静默显示为零资产。单钱包或单链读取失败必须产生部分不可用 warning；账户钱包列表或交易记录读取失败必须进入 Portfolio unavailable，避免把基础设施错误表述为无持仓。
 - 客户端、Edge Function、数据库日志和交付证据不得记录 Privy token、JWT、email、user id、完整 auth 响应或未脱敏的钱包地址集合。
 
 ## 状态模型
@@ -118,6 +123,8 @@ Feature slug：`rn-wallet-switching`
 - 外部连接器状态：provider 当前实际选择 / 连接的目标地址；这是设备级临时状态，必须规范化后与明确目标比较，不作为服务端钱包归属来源。
 - Privy access token：仅在内存中提交给 `wallet-select` 进行服务端验证，不得记录或持久化到业务文档。
 - `investor_wallets`：平台钱包归属、状态和 `is_primary` 的数据库事实来源。
+- `mint_events.investor_id`：账户购买 / 铸造事件的归属来源；`buyer_wallet` 只保留实际执行交易的钱包，不再作为 Dashboard 账户交易的唯一过滤条件。
+- active Ethereum `investor_wallets` + 链上 `balanceOf`：Dashboard 账户实时持仓来源；按资产汇总所有有效关联钱包的余额，不迁移或复制 Token。
 - `investors.wallet_address`：兼容现有业务查询的平台 active wallet 镜像，必须与 primary wallet 原子更新。
 - `wallet-select`：平台 active 切换的唯一新写入口，返回 authoritative `AuthViewer`、operation id、幂等标记和规范化目标地址，不返回 `access_token` 或 `expires_in`。
 - 客户端 Viewer persistence adapter：读取当前有效 session record，原样保留 token、refresh token 和过期时间，只替换 Viewer，并在成功后驱动全局 Viewer 刷新。
@@ -132,6 +139,7 @@ Feature slug：`rn-wallet-switching`
 | 切换未连接钱包 | 目标已关联但当前设备未连接 | 用户点击 `Connect` | 先连接并验证实际地址；匹配后才允许确认和切换，不匹配则停止且无平台写入 |
 | 取消已有钱包切换 | 目标符合切换条件 | 用户在原生确认中取消 | 不调用 `wallet-select` 或数据库写入，旧钱包保持 active |
 | Privy 绑定失败 | 用户开始绑定 | provider 拒绝、取消或网络失败 | 不调用 `wallet-select`，平台与 Viewer 保持旧地址，可重新开始绑定 |
+| WalletConnect session 失效 | 钱包返回签名或恢复旧连接 | provider 报 session topic 不存在，或连接等待超时 | 结束本次绑定、执行本地连接清理并显示重新连接提示；不调用 Privy link / `wallet-select` |
 | 连接或地址校验失败 | 目标已关联但当前设备未连接 | provider 取消、失败或返回其他地址 | 不调用 `wallet-select`，平台与会话保持不变，不显示成功 |
 | 平台同步失败 | 新钱包已 linked 或已有目标已确认，但 `wallet-select` 拒绝或失败 | 客户端保留恢复状态 | 平台仍以服务端返回 / 恢复查询为准；目标可保持 linked，用户可用同一 operation id 重试，不显示完整成功 |
 | 平台结果不确定 | 请求超时且无法判断事务是否提交 | 客户端使用 operation id 恢复查询 / 幂等重试 | 未对账前进入 `consistency_error` 并锁定钱包动作；不得基于超时直接判定旧地址或新地址成功 |
@@ -141,7 +149,8 @@ Feature slug：`rn-wallet-switching`
 | 幂等重试 | 同一 operation id 的平台响应丢失 | 客户端重试相同操作 | 服务端返回同一最终结果，不创建重复钱包、不翻转到错误地址、不重复迁移状态 |
 | 非 linked / 伪造目标 | 地址来自输入、路由或过期对象，不在验证后的 Privy linked wallets 中 | 尝试调用 `wallet-select` | 服务端拒绝，不发生数据库或会话变更 |
 | 状态一致性 | 绑定或切换完成 | 重新读取 Privy、Viewer、`investor_wallets` 和 investor mirror | 四个来源均指向同一规范化地址，且同一 investor 只有一个 primary |
-| 账户权益隔离 | 用户在同一账户切换 active wallet | 重新读取 KYC、积分、推荐、返佣和持仓 | investor id 与所有账户权益保持不变，只更新 active wallet 身份引用 |
+| 账户权益隔离 | 用户在同一账户切换 active wallet | 重新读取 KYC、积分、推荐、返佣和持仓 | investor id 与所有账户权益保持不变；Dashboard 交易按 investor 读取并聚合全部 active Ethereum wallets，Portfolio / Holdings 不因 active wallet 改变而清零；Wallet 页面仍显示单钱包余额 |
+| 账户持仓部分失败 | 同一 investor 有多个 active Ethereum wallets，至少一个钱包或链 RPC 暂时失败 | 刷新 Dashboard | 展示可确认的账户持仓并给出部分不可用 warning，不把失败钱包视为零余额；交易记录仍按 investor 展示 |
 | 登出或账户变化 | 操作正在执行 | 用户登出或认证代次变化 | 旧操作结果被丢弃，不能覆盖新会话；必要时下次登录触发只读对账与恢复提示 |
 | Android 延后验证 | 代码和自动化完成但 Android 环境尚未统一 | 阶段性验收 | 明确记录 Android 为发布前待验证门禁，不把跨平台真机 QA 表述为完成 |
 
@@ -155,6 +164,7 @@ Feature slug：`rn-wallet-switching`
 - 高风险：数据库必须通过单个原子函数同时更新 `investor_wallets.is_primary` 和 `investors.wallet_address`。方案阶段需确认函数签名、唯一约束、锁顺序、幂等记录和 RLS / service-role 边界。
 - 高风险：跨账户钱包唯一性冲突不能迁移 KYC 或权益，也不能自动解绑 provider。平台拒绝后只允许明确用户清理本次 Privy link。
 - 已确认：应用 JWT 仅包含 investor identity（`sub` / `email` / `role`），不包含 active wallet；钱包选择不得顺带续期。JWT 过期和 refresh 属于独立 auth 生命周期，Viewer-only 持久化失败不得修改现有 token。
+- 已确认：Dashboard 是 investor 账户级视图，Wallet 是单钱包视图。账户 Portfolio / Holdings 聚合全部 active Ethereum wallets；解绑后不再 active 的钱包不参与后续聚合，链上资产本身不会被移动。
 - 非阻塞：绑定 provider 在“linked”与“active”之间可能存在 SDK 短暂延迟。实现需以 SDK 确认的明确目标地址驱动，不依赖 linked wallet 数组顺序。
 - 已解决：当前 `@privy-io/expo@0.69.4` 提供 `useLinkWithSiwe`，但不提供 Web `useActiveWallet/setActiveWallet`。移动端使用 WalletConnect-compatible 连接器取得明确地址并完成 SIWE link，平台 `wallet-select` 持久化 active；不能静默降级为“仅绑定”。
 - 发布前阻塞：iOS 必须覆盖新绑定即 active、已有钱包切换、平台失败恢复和会话刷新；Android 环境按用户决定统一后续验证，但在 Android 通过前不得声明跨平台发布就绪。

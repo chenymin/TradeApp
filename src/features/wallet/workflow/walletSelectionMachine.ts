@@ -27,7 +27,9 @@ export type WalletSelectionState =
       expectedAddress?: `0x${string}`;
       mode: "bind" | "switch";
       status: "connecting";
+      target?: WalletSelectionTarget;
     }
+  | { error: string; status: "connect_error"; target?: WalletSelectionTarget }
   | { status: "binding"; target: WalletSelectionTarget }
   | { status: "confirming_switch"; target: WalletSelectionTarget }
   | { operation: WalletSelectionOperation; status: "platform_syncing" }
@@ -54,7 +56,13 @@ export type WalletSelectionState =
 
 export type WalletSelectionEvent =
   | { type: "bind_requested" }
-  | { type: "connection_started"; expectedAddress?: `0x${string}`; mode: "bind" | "switch" }
+  | {
+      type: "connection_started";
+      expectedAddress?: `0x${string}`;
+      mode: "bind" | "switch";
+      target?: WalletSelectionTarget;
+    }
+  | { type: "connection_failed"; error: string; target?: WalletSelectionTarget }
   | { type: "binding_started"; target: WalletSelectionTarget }
   | { type: "switch_requested"; target: WalletSelectionTarget }
   | { type: "platform_started"; operation: WalletSelectionOperation }
@@ -85,6 +93,13 @@ export function walletSelectionReducer(
           : {}),
         mode: event.mode,
         status: "connecting",
+        ...(event.target ? { target: event.target } : {}),
+      };
+    case "connection_failed":
+      return {
+        error: event.error,
+        status: "connect_error",
+        ...(event.target ? { target: event.target } : {}),
       };
     case "binding_started":
       return { status: "binding", target: event.target };

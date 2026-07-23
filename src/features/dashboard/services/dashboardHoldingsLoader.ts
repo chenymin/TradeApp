@@ -5,11 +5,12 @@ import {
   type DashboardHoldingAsset,
 } from "../domain/holdings";
 import type { DashboardMintEventsRepository } from "./dashboardMintEventsRepository";
+import type { DashboardInvestorWalletsRepository } from "./dashboardInvestorWalletsRepository";
 
 export type DashboardChainHoldingsAdapter = {
   readHoldings(input: {
     assets: DashboardHoldingAsset[];
-    walletAddress: string;
+    walletAddresses: string[];
   }): Promise<Map<string, DashboardChainHoldingState>>;
 };
 
@@ -23,33 +24,36 @@ export type DashboardHoldingsResult = NonNullable<
 
 export function createDashboardHoldingsLoader({
   chainAdapter,
-  repository,
+  eventsRepository,
+  walletsRepository,
 }: {
   chainAdapter: DashboardChainHoldingsAdapter;
-  repository: DashboardMintEventsRepository;
+  eventsRepository: DashboardMintEventsRepository;
+  walletsRepository: DashboardInvestorWalletsRepository;
 }) {
   return async function loadHoldings(state: {
     isSessionReady: boolean;
     viewer: AuthViewer | null;
   }) {
-    const walletAddress = state.viewer?.walletAddress;
-
-    if (!state.isSessionReady || !state.viewer || !walletAddress) {
+    if (!state.isSessionReady || !state.viewer) {
       return null;
     }
 
-    const events = await repository.fetchByWallet(walletAddress);
+    const [events, walletAddresses] = await Promise.all([
+      eventsRepository.fetchByInvestor(state.viewer.id),
+      walletsRepository.fetchActiveEthereumByInvestor(state.viewer.id),
+    ]);
     const assets = uniqueAssets(events);
     const chainStates = await chainAdapter.readHoldings({
       assets,
-      walletAddress,
+      walletAddresses,
     });
     return buildDashboardHoldings(events, chainStates);
   };
 }
 
 function uniqueAssets(
-  events: Awaited<ReturnType<DashboardMintEventsRepository["fetchByWallet"]>>,
+  events: Awaited<ReturnType<DashboardMintEventsRepository["fetchByInvestor"]>>,
 ): DashboardHoldingAsset[] {
   const assets = new Map<string, DashboardHoldingAsset>();
 

@@ -575,7 +575,7 @@ describe("AppNavigator", () => {
       .props.accessibilityState).toEqual({ selected: true });
   });
 
-  it("clears Wallet state when the verified address changes for the same viewer", async () => {
+  it("keeps the Wallet detail open when the active address changes for the same viewer", async () => {
     let renderer: ReactTestRenderer | undefined;
 
     await act(async () => {
@@ -608,10 +608,10 @@ describe("AppNavigator", () => {
       );
     });
 
-    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }))
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Wallet screen" }).length)
+      .toBeGreaterThan(0);
+    expect(renderer!.root.findAllByProps({ accessibilityLabel: "Tab My" }))
       .toHaveLength(0);
-    expect(renderer!.root.findByProps({ accessibilityLabel: "Tab My" })
-      .props.accessibilityState).toEqual({ selected: true });
   });
 
   it("renders profile as the container for wallet kyc invite settings and logout", async () => {

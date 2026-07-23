@@ -9,7 +9,12 @@ import {
   type AppKitNetwork,
   type Storage,
 } from "@reown/appkit-react-native";
-import { useMemo, type PropsWithChildren } from "react";
+import {
+  createContext,
+  useContext,
+  useMemo,
+  type PropsWithChildren,
+} from "react";
 import { bsc, bscTestnet as viemBscTestnet } from "viem/chains";
 
 const bscMainnet: AppKitNetwork = {
@@ -23,6 +28,21 @@ const bscTestnet: AppKitNetwork = {
   caipNetworkId: "eip155:97",
   chainNamespace: "eip155",
 };
+
+type WalletConnectionController = {
+  disconnect(): Promise<void>;
+};
+
+const WalletConnectionControllerContext =
+  createContext<WalletConnectionController | null>(null);
+
+export function useWalletConnectionController(): WalletConnectionController {
+  const controller = useContext(WalletConnectionControllerContext);
+  if (!controller) {
+    throw new Error("Wallet connection controller is unavailable");
+  }
+  return controller;
+}
 
 const appKitStorage: Storage = {
   async getEntries<T>() {
@@ -91,10 +111,11 @@ function EnabledWalletConnectionProvider({
 }>) {
   const instance = useMemo(() => {
     const webOrigin = publicWebOrigin ?? "https://artstarex.com";
+    const configuredNetwork = chainId === 56 ? bscMainnet : bscTestnet;
 
     return createAppKit({
       adapters: [new EthersAdapter()],
-      defaultNetwork: chainId === 56 ? bscMainnet : bscTestnet,
+      defaultNetwork: configuredNetwork,
       enableAnalytics: false,
       features: {
         onramp: false,
@@ -113,17 +134,25 @@ function EnabledWalletConnectionProvider({
         },
         url: webOrigin,
       },
-      networks: [bscMainnet, bscTestnet],
+      networks: [configuredNetwork],
       projectId,
       storage: appKitStorage,
       themeMode: "light",
     });
   }, [chainId, projectId, publicWebOrigin]);
+  const controller = useMemo<WalletConnectionController>(() => ({
+    async disconnect() {
+      await instance.disconnect("eip155");
+      await instance.disconnect("eip155", false);
+    },
+  }), [instance]);
 
   return (
-    <AppKitProvider instance={instance}>
-      {children}
-      <AppKit />
-    </AppKitProvider>
+    <WalletConnectionControllerContext.Provider value={controller}>
+      <AppKitProvider instance={instance}>
+        {children}
+        <AppKit />
+      </AppKitProvider>
+    </WalletConnectionControllerContext.Provider>
   );
 }

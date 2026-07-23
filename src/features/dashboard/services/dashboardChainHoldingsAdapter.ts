@@ -1,4 +1,4 @@
-import { formatUnits, isAddress } from "viem";
+import { formatUnits, getAddress, isAddress } from "viem";
 
 import type {
   DashboardChainHoldingState,
@@ -32,14 +32,8 @@ export function createDashboardChainHoldingsAdapter({
   getUsdtAddress(chainId: number): string | null;
 }): DashboardChainHoldingsAdapter {
   return {
-    async readHoldings({ assets, walletAddress }) {
-      if (!isAddress(walletAddress)) {
-        return new Map(assets.map((asset) => [
-          asset.id,
-          { status: "unsupported" } as const,
-        ]));
-      }
-
+    async readHoldings({ assets, walletAddresses }) {
+      const wallets = normalizeWalletAddresses(walletAddresses);
       const states = new Map<string, DashboardChainHoldingState>();
       const groups = new Map<56 | 97, DashboardHoldingAsset[]>();
 
@@ -54,6 +48,19 @@ export function createDashboardChainHoldingsAdapter({
         groups.set(asset.chainId, group);
       }
 
+      if (wallets.length === 0) {
+        for (const chainAssets of groups.values()) {
+          for (const asset of chainAssets) {
+            states.set(asset.id, {
+              currentPriceUsdt: "0",
+              currentShares: "0",
+              status: "ready",
+            });
+          }
+        }
+        return states;
+      }
+
       await Promise.all([...groups].map(async ([chainId, chainAssets]) => {
         const usdtAddress = getUsdtAddress(chainId);
         if (!validAddress(usdtAddress)) {
@@ -66,7 +73,9 @@ export function createDashboardChainHoldingsAdapter({
           ...chainAssets.flatMap((asset) => {
             const address = asset.contractAddress as `0x${string}`;
             return [
-              erc20Call(address, "balanceOf", [walletAddress as `0x${string}`]),
+              ...wallets.map((wallet) =>
+                erc20Call(address, "balanceOf", [wallet])
+              ),
               assetPriceCall(address),
             ];
           }),
@@ -79,14 +88,24 @@ export function createDashboardChainHoldingsAdapter({
           });
           const decimals = readDecimals(results[0]);
 
-          chainAssets.forEach((asset, index) => {
-            const balance = readBigInt(results[index * 2 + 1]);
-            const price = readBigInt(results[index * 2 + 2]);
+          let resultIndex = 1;
+          chainAssets.forEach((asset) => {
+            const balances = results
+              .slice(resultIndex, resultIndex + wallets.length)
+              .map(readBigInt);
+            resultIndex += wallets.length;
+            const price = readBigInt(results[resultIndex]);
+            resultIndex += 1;
 
-            if (balance === null || price === null) {
+            if (!allBalancesReady(balances) || price === null) {
               states.set(asset.id, { status: "error" });
               return;
             }
+
+            const balance = balances.reduce(
+              (total, value) => total + value,
+              0n,
+            );
 
             states.set(asset.id, {
               currentPriceUsdt: formatUnits(price, decimals),
@@ -102,6 +121,22 @@ export function createDashboardChainHoldingsAdapter({
       return states;
     },
   };
+}
+
+function normalizeWalletAddresses(values: string[]): `0x${string}`[] {
+  const wallets = new Map<string, `0x${string}`>();
+  for (const value of values) {
+    if (!isAddress(value)) continue;
+    const address = getAddress(value);
+    wallets.set(address.toLowerCase(), address);
+  }
+  return [...wallets.values()];
+}
+
+function allBalancesReady(
+  values: Array<bigint | null>,
+): values is bigint[] {
+  return values.every((value): value is bigint => value !== null);
 }
 
 function setGroupState(

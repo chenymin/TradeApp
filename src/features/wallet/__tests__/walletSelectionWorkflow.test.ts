@@ -28,7 +28,21 @@ describe("wallet selection workflow", () => {
     expect(dependencies.operationStorage.clear).toHaveBeenCalledOnce();
   });
 
-  it("does not connect or select when an existing switch is cancelled", async () => {
+  it("keeps a failed bind connection recoverable before linking", async () => {
+    const dependencies = fakeDependencies();
+    dependencies.connect.mockRejectedValue({ code: "connection_failed" });
+    const workflow = createWalletSelectionWorkflow(dependencies);
+
+    await expect(workflow.bindNew(address(1))).resolves.toMatchObject({
+      error: "connection_failed",
+      status: "connect_error",
+    });
+
+    expect(dependencies.link).not.toHaveBeenCalled();
+    expect(dependencies.select).not.toHaveBeenCalled();
+  });
+
+  it("does not select when an existing external switch is cancelled", async () => {
     const dependencies = fakeDependencies();
     dependencies.confirmSwitch.mockResolvedValue(false);
     const workflow = createWalletSelectionWorkflow(dependencies);
@@ -37,11 +51,33 @@ describe("wallet selection workflow", () => {
       workflow.selectExisting(target(), address(1)),
     ).resolves.toEqual({ status: "idle" });
 
-    expect(dependencies.connect).not.toHaveBeenCalled();
+    expect(dependencies.connect).toHaveBeenCalledOnce();
     expect(dependencies.select).not.toHaveBeenCalled();
   });
 
-  it("does not call the platform after an external connection mismatch", async () => {
+  it("connects an external wallet before asking to confirm the switch", async () => {
+    const dependencies = fakeDependencies();
+    const callOrder: string[] = [];
+    dependencies.connect.mockImplementation(async () => {
+      callOrder.push("connect");
+      return connectedWallet();
+    });
+    dependencies.confirmSwitch.mockImplementation(async () => {
+      callOrder.push("confirm");
+      return true;
+    });
+    dependencies.select.mockImplementation(async () => {
+      callOrder.push("select");
+      return selectionResult();
+    });
+    const workflow = createWalletSelectionWorkflow(dependencies);
+
+    await workflow.selectExisting(target(), address(1));
+
+    expect(callOrder).toEqual(["connect", "confirm", "select"]);
+  });
+
+  it("keeps an external address mismatch recoverable without confirmation", async () => {
     const dependencies = fakeDependencies();
     dependencies.connect.mockRejectedValue({ code: "address_mismatch" });
     const workflow = createWalletSelectionWorkflow(dependencies);
@@ -50,8 +86,9 @@ describe("wallet selection workflow", () => {
       workflow.selectExisting(target(), address(1)),
     ).resolves.toMatchObject({
       error: "address_mismatch",
-      status: "consistency_error",
+      status: "connect_error",
     });
+    expect(dependencies.confirmSwitch).not.toHaveBeenCalled();
     expect(dependencies.select).not.toHaveBeenCalled();
   });
 

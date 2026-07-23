@@ -1,10 +1,13 @@
 import { isAddress } from "viem";
+import type { WalletClientType } from "@privy-io/expo";
 
 import type { ConnectedExternalWallet } from "./reownWalletConnectionAdapter";
 
 export type PrivyWalletLinkErrorCode =
   | "invalid_origin"
-  | "linked_wallet_mismatch";
+  | "linked_wallet_mismatch"
+  | "privy_link_failed"
+  | "siwe_message_failed";
 
 export class PrivyWalletLinkError extends Error {
   readonly code: PrivyWalletLinkErrorCode;
@@ -36,9 +39,16 @@ export type PrivyWalletLinkAdapter = {
   link(wallet: ConnectedExternalWallet, origin: string): Promise<void>;
 };
 
+export type PrivyWalletLinkFailure = {
+  providerCode?: string;
+  providerStatus?: number;
+  stage: "link_with_siwe";
+};
+
 export function createPrivyWalletLinkAdapter(dependencies: {
   generateSiweMessage: GenerateSiweMessage;
   linkWithSiwe: LinkWithSiwe;
+  reportFailure?: (failure: PrivyWalletLinkFailure) => void;
 }): PrivyWalletLinkAdapter {
   return {
     async link(wallet, origin) {
@@ -47,33 +57,72 @@ export function createPrivyWalletLinkAdapter(dependencies: {
         throw new PrivyWalletLinkError("invalid_origin");
       }
 
-      const message = await dependencies.generateSiweMessage({
-        from: {
-          domain: parsedOrigin.host,
-          uri: parsedOrigin.origin,
-        },
-        wallet: {
-          address: wallet.address,
-          chainId: wallet.chainId,
-          connectorType: wallet.connectorType,
-          meta: {
-            id: wallet.providerLabel,
-            name: wallet.providerLabel,
+      let message: string;
+      try {
+        message = await dependencies.generateSiweMessage({
+          from: {
+            domain: parsedOrigin.host,
+            uri: parsedOrigin.origin,
           },
-          walletClientType: wallet.providerLabel,
-        },
-      });
+          wallet: {
+            address: wallet.address,
+            chainId: wallet.chainId,
+            connectorType: wallet.connectorType,
+            meta: {
+              id: wallet.providerLabel,
+              name: wallet.providerLabel,
+          },
+            walletClientType: toPrivyWalletClientType(wallet.providerLabel),
+          },
+        });
+      } catch {
+        throw new PrivyWalletLinkError("siwe_message_failed");
+      }
       const signature = await wallet.signMessage(message);
-      const user = await dependencies.linkWithSiwe({
-        messageOverride: message,
-        signature,
-      });
+      let user: unknown;
+      try {
+        user = await dependencies.linkWithSiwe({
+          messageOverride: message,
+          signature,
+        });
+      } catch (error) {
+        dependencies.reportFailure?.(toSafeLinkFailure(error));
+        throw new PrivyWalletLinkError("privy_link_failed");
+      }
 
       if (!hasLinkedEthereumWallet(user, wallet.address)) {
         throw new PrivyWalletLinkError("linked_wallet_mismatch");
       }
     },
   };
+}
+
+function toPrivyWalletClientType(providerLabel: string): WalletClientType {
+  return providerLabel.trim().toLowerCase() === "metamask"
+    ? "metamask"
+    : "unknown";
+}
+
+function toSafeLinkFailure(error: unknown): PrivyWalletLinkFailure {
+  const failure: PrivyWalletLinkFailure = { stage: "link_with_siwe" };
+  if (!error || typeof error !== "object") return failure;
+
+  const candidate = error as Record<string, unknown>;
+  if (
+    typeof candidate.code === "string" &&
+    /^[a-z0-9_-]{1,80}$/i.test(candidate.code)
+  ) {
+    failure.providerCode = candidate.code;
+  }
+  if (
+    typeof candidate.status === "number" &&
+    Number.isInteger(candidate.status) &&
+    candidate.status >= 100 &&
+    candidate.status <= 599
+  ) {
+    failure.providerStatus = candidate.status;
+  }
+  return failure;
 }
 
 function parseSecureOrigin(value: string): URL | null {

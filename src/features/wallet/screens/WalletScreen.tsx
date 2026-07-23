@@ -131,6 +131,17 @@ export function WalletScreen({
 
   useEffect(() => {
     if (
+      selectionWorkflow &&
+      selectionState.status === "complete" &&
+      identity &&
+      sameAddress(identity.activeAddress, selectionState.target.address)
+    ) {
+      selectionWorkflow.reset();
+    }
+  }, [identity?.activeAddress, selectionState, selectionWorkflow]);
+
+  useEffect(() => {
+    if (
       unlinkState.status === "complete" &&
       identity &&
       !identity.wallets.some((wallet) =>

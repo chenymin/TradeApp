@@ -66,6 +66,7 @@ export function AppRoot() {
             publicConfig.config.reownProjectId &&
               publicConfig.config.publicWebOrigin
               ? {
+                  chainId: publicConfig.config.chainId,
                   endpoint: new URL(
                     publicConfig.config.walletSelectPath,
                     publicConfig.config.supabaseUrl,

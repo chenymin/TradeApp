@@ -21,6 +21,20 @@ describe("WalletConnectionProvider configuration", () => {
     expect(source).toContain("if (!projectId)");
   });
 
+  it("scopes wallet connection to the configured environment chain", () => {
+    const source = readFileSync(
+      resolve(root, "src/app/providers/WalletConnectionProvider.tsx"),
+      "utf8",
+    );
+
+    expect(source).toContain(
+      "const configuredNetwork = chainId === 56 ? bscMainnet : bscTestnet",
+    );
+    expect(source).toContain("defaultNetwork: configuredNetwork");
+    expect(source).toContain("networks: [configuredNetwork]");
+    expect(source).not.toContain("walletIdentityProofNetwork");
+  });
+
   it("disables non-wallet features and uses the native redirect", () => {
     const source = readFileSync(
       resolve(root, "src/app/providers/WalletConnectionProvider.tsx"),
@@ -61,6 +75,77 @@ describe("WalletConnectionProvider configuration", () => {
     expect(podfileLock).toContain("react-native-netinfo (12.0.1)");
   });
 
+  it("follows AppKit's protocol dependency while keeping RN compat independent", () => {
+    const packageJson = JSON.parse(
+      readFileSync(resolve(root, "package.json"), "utf8"),
+    );
+    const packageLock = JSON.parse(
+      readFileSync(resolve(root, "package-lock.json"), "utf8"),
+    );
+    const resolvedVersions = (packageName: string) => Object.entries(
+      packageLock.packages as Record<string, { version?: string }>,
+    ).flatMap(([path, metadata]) => path.endsWith(`node_modules/${packageName}`)
+      ? [metadata.version]
+      : []);
+
+    expect(packageJson.dependencies["@walletconnect/universal-provider"])
+      .toBeUndefined();
+    expect(packageJson.overrides?.["@walletconnect/universal-provider"])
+      .toBeUndefined();
+    expect(packageLock.packages["node_modules/@reown/appkit-react-native"]
+      .dependencies["@walletconnect/universal-provider"])
+      .toBe("2.21.10");
+    expect(resolvedVersions("@walletconnect/universal-provider"))
+      .toEqual(["2.21.10"]);
+    expect(resolvedVersions("@walletconnect/sign-client"))
+      .toEqual(["2.21.10"]);
+    expect(resolvedVersions("@walletconnect/core"))
+      .toEqual(["2.21.10"]);
+    expect(resolvedVersions("@walletconnect/react-native-compat"))
+      .toEqual(["2.23.10"]);
+  });
+
+  it("finishes local cleanup when a wallet session is already stale", () => {
+    const provider = readFileSync(
+      resolve(root, "src/app/providers/WalletConnectionProvider.tsx"),
+      "utf8",
+    );
+    const runtime = readFileSync(
+      resolve(root, "src/features/wallet/components/WalletSelectionRuntime.tsx"),
+      "utf8",
+    );
+
+    expect(provider).toContain('await instance.disconnect("eip155")');
+    expect(provider).toContain('await instance.disconnect("eip155", false)');
+    expect(runtime).toContain("useWalletConnectionController");
+  });
+
+  it("bounds a wallet handoff that never approves or rejects", () => {
+    const runtime = readFileSync(
+      resolve(root, "src/features/wallet/components/WalletSelectionRuntime.tsx"),
+      "utf8",
+    );
+
+    expect(runtime).toContain("REOWN_CONNECTION_TIMEOUT_MS = 120_000");
+    expect(runtime).toContain("setTimeout(");
+    expect(runtime).toContain("clearTimeout(");
+    expect(runtime).toContain('failPendingConnection("connection_timeout")');
+    expect(runtime).toContain("createReownCleanupCoordinator");
+  });
+
+  it("passes the configured chain into the wallet selection runtime", () => {
+    const appRoot = readFileSync(resolve(root, "src/app/AppRoot.tsx"), "utf8");
+    const runtime = readFileSync(
+      resolve(root, "src/features/wallet/components/WalletSelectionRuntime.tsx"),
+      "utf8",
+    );
+
+    expect(appRoot).toContain("chainId: publicConfig.config.chainId");
+    expect(runtime).toContain("useReownConnectionAdapter(config.chainId)");
+    expect(runtime).toContain("isReownConnectionOnChain");
+    expect(runtime).toContain('failPendingConnection("unsupported_chain")');
+  });
+
   it("composes Reown, Privy SIWE, wallet selection, and secure recovery", () => {
     const appRoot = readFileSync(resolve(root, "src/app/AppRoot.tsx"), "utf8");
     const runtime = readFileSync(
@@ -77,6 +162,7 @@ describe("WalletConnectionProvider configuration", () => {
     expect(source).toContain("useLinkWithSiwe");
     expect(source).toContain("createReownWalletConnectionAdapter");
     expect(source).toContain("createPrivyWalletLinkAdapter");
+    expect(source).toContain("reportFailure: reportPrivyWalletLinkFailure");
     expect(source).toContain("createWalletSelectionOperationStorage");
     expect(source).toContain("createWalletSelectionDependencies");
     expect(source).toContain("selectWalletForViewer");

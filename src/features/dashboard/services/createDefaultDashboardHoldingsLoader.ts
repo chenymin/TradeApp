@@ -9,6 +9,10 @@ import {
   createDashboardMintEventsRepository,
   type DashboardMintEventsClient,
 } from "./dashboardMintEventsRepository";
+import {
+  createDashboardInvestorWalletsRepository,
+  type DashboardInvestorWalletsClient,
+} from "./dashboardInvestorWalletsRepository";
 
 export function createDefaultDashboardHoldingsLoader() {
   return createDashboardHoldingsLoader({
@@ -17,8 +21,11 @@ export function createDefaultDashboardHoldingsLoader() {
         getPublicChainClient<DashboardHoldingsReadClient>(chainId),
       getUsdtAddress,
     }),
-    repository: createDashboardMintEventsRepository(
+    eventsRepository: createDashboardMintEventsRepository(
       supabase as unknown as DashboardMintEventsClient,
+    ),
+    walletsRepository: createDashboardInvestorWalletsRepository(
+      supabase as unknown as DashboardInvestorWalletsClient,
     ),
   });
 }

@@ -2,6 +2,7 @@ import { useLinkWithSiwe } from "@privy-io/expo";
 import {
   useAccount,
   useAppKit,
+  useAppKitEventSubscription,
   useAppKitState,
   useProvider,
   useWalletInfo,
@@ -16,10 +17,19 @@ import {
 } from "react";
 import { Alert } from "react-native";
 
+import { useWalletConnectionController } from "../../../app/providers/WalletConnectionProvider";
 import { expoSecureSessionStorage } from "../../auth/services/expoSecureSessionStorage";
-import { createPrivyWalletLinkAdapter } from "../services/privyWalletLinkAdapter";
 import {
+  createPrivyWalletLinkAdapter,
+  type PrivyWalletLinkFailure,
+} from "../services/privyWalletLinkAdapter";
+import {
+  createReownCleanupCoordinator,
   createReownWalletConnectionAdapter,
+  isReownConnectionOnChain,
+  openReownConnectionSelector,
+  shouldRejectClosedReownSelector,
+  shouldReuseReownConnection,
   type ReownConnectionSnapshot,
   WalletConnectionError,
 } from "../services/reownWalletConnectionAdapter";
@@ -32,16 +42,27 @@ import type {
 } from "../workflow/walletSelectionWorkflow";
 
 export type WalletSelectionRuntimeConfig = {
+  chainId: 56 | 97;
   endpoint: string;
   publicWebOrigin: string;
   supabasePublicKey: string;
 };
+
+const REOWN_CONNECTION_TIMEOUT_MS = 120_000;
+
+function reportPrivyWalletLinkFailure(
+  failure: PrivyWalletLinkFailure,
+): void {
+  console.warn("[wallet-link] Privy SIWE link failed", failure);
+}
 
 type PendingConnection = {
   promise: Promise<ReownConnectionSnapshot>;
   reject(error: Error): void;
   resolve(snapshot: ReownConnectionSnapshot): void;
   sawModal: boolean;
+  selectedWallet: boolean;
+  timeoutId: ReturnType<typeof setTimeout>;
 };
 
 export function WalletSelectionRuntime({
@@ -57,10 +78,14 @@ export function WalletSelectionRuntime({
   replaceViewer: WalletSelectionDependencies["persistViewer"];
   viewerId: string | null;
 }) {
-  const connection = useReownConnectionAdapter();
+  const connection = useReownConnectionAdapter(config.chainId);
   const { generateSiweMessage, linkWithSiwe } = useLinkWithSiwe();
   const privyLink = useMemo(
-    () => createPrivyWalletLinkAdapter({ generateSiweMessage, linkWithSiwe }),
+    () => createPrivyWalletLinkAdapter({
+      generateSiweMessage,
+      linkWithSiwe,
+      reportFailure: reportPrivyWalletLinkFailure,
+    }),
     [generateSiweMessage, linkWithSiwe],
   );
   const operationStorage = useMemo(
@@ -118,16 +143,17 @@ export function WalletSelectionRuntime({
   return children(dependencies);
 }
 
-function useReownConnectionAdapter(): {
+function useReownConnectionAdapter(configuredChainId: 56 | 97): {
   adapter: ReturnType<typeof createReownWalletConnectionAdapter>;
   connectedAddress?: `0x${string}`;
 } {
-  const { disconnect, open } = useAppKit();
+  const { open } = useAppKit();
+  const { disconnect } = useWalletConnectionController();
   const account = useAccount();
   const { provider } = useProvider();
   const { walletInfo } = useWalletInfo();
   const { isLoading, isOpen } = useAppKitState();
-  const snapshot = useMemo(
+  const rawSnapshot = useMemo(
     () => toConnectionSnapshot({
       address: account.address,
       chainId: account.chainId,
@@ -143,42 +169,86 @@ function useReownConnectionAdapter(): {
       walletInfo?.name,
     ],
   );
+  const snapshot = rawSnapshot &&
+      isReownConnectionOnChain(rawSnapshot, configuredChainId)
+    ? rawSnapshot
+    : null;
   const snapshotRef = useRef(snapshot);
+  const unexpectedChainRef = useRef(Boolean(rawSnapshot && !snapshot));
   const pendingRef = useRef<PendingConnection | null>(null);
   snapshotRef.current = snapshot;
+  unexpectedChainRef.current = Boolean(rawSnapshot && !snapshot);
+  const cleanup = useMemo(
+    () => createReownCleanupCoordinator(disconnect),
+    [disconnect],
+  );
+
+  const failPendingConnection = useCallback((
+    code: "connection_failed" | "connection_timeout" | "unsupported_chain",
+  ) => {
+    const pending = pendingRef.current;
+    if (!pending) return;
+    pendingRef.current = null;
+    clearTimeout(pending.timeoutId);
+    pending.reject(new WalletConnectionError(code));
+  }, []);
+
+  const rejectPendingConnection = useCallback(() => {
+    failPendingConnection("connection_failed");
+  }, [failPendingConnection]);
+
+  const markWalletSelected = useCallback(() => {
+    if (pendingRef.current) pendingRef.current.selectedWallet = true;
+  }, []);
+
+  useAppKitEventSubscription("SELECT_WALLET", markWalletSelected);
+  useAppKitEventSubscription("CONNECT_ERROR", rejectPendingConnection);
+  useAppKitEventSubscription("USER_REJECTED", rejectPendingConnection);
 
   useEffect(() => {
     if (!snapshot || !pendingRef.current) return;
     const pending = pendingRef.current;
     pendingRef.current = null;
+    clearTimeout(pending.timeoutId);
     pending.resolve(snapshot);
   }, [snapshot]);
+
+  useEffect(() => {
+    if (!rawSnapshot || snapshot || !pendingRef.current) return;
+    void cleanup.start();
+    failPendingConnection("unsupported_chain");
+  }, [cleanup, failPendingConnection, rawSnapshot, snapshot]);
 
   useEffect(() => {
     const pending = pendingRef.current;
     if (!pending) return;
     if (isOpen) pending.sawModal = true;
-    if (pending.sawModal && !isOpen && !isLoading && !snapshotRef.current) {
-      pendingRef.current = null;
-      pending.reject(new WalletConnectionError("connection_failed"));
+    if (shouldRejectClosedReownSelector({
+      hasSnapshot: Boolean(snapshotRef.current),
+      isLoading,
+      isOpen,
+      sawModal: pending.sawModal,
+      selectedWallet: pending.selectedWallet,
+    })) {
+      rejectPendingConnection();
     }
-  }, [isLoading, isOpen]);
+  }, [isLoading, isOpen, rejectPendingConnection]);
 
   useEffect(() => () => {
-    pendingRef.current?.reject(new WalletConnectionError("connection_failed"));
-    pendingRef.current = null;
-  }, []);
+    failPendingConnection("connection_failed");
+  }, [failPendingConnection]);
 
   const connect = useCallback(async (expectedAddress?: `0x${string}`) => {
+    await cleanup.wait();
+
     const current = snapshotRef.current;
-    if (current && (
-      !expectedAddress || current.address.toLowerCase() === expectedAddress.toLowerCase()
-    )) {
+    if (current && shouldReuseReownConnection(current.address, expectedAddress)) {
       return current;
     }
-    if (current) {
-      await Promise.resolve(disconnect("eip155"));
+    if (current || unexpectedChainRef.current) {
+      await cleanup.start();
       snapshotRef.current = null;
+      unexpectedChainRef.current = false;
     }
     if (pendingRef.current) return pendingRef.current.promise;
 
@@ -188,20 +258,30 @@ function useReownConnectionAdapter(): {
       resolve = resolvePromise;
       reject = rejectPromise;
     });
-    pendingRef.current = { promise, reject, resolve, sawModal: false };
+    const timeoutId = setTimeout(() => {
+      void cleanup.start();
+      failPendingConnection("connection_timeout");
+    }, REOWN_CONNECTION_TIMEOUT_MS);
+    pendingRef.current = {
+      promise,
+      reject,
+      resolve,
+      sawModal: false,
+      selectedWallet: false,
+      timeoutId,
+    };
     try {
-      open();
+      openReownConnectionSelector(open);
     } catch {
-      pendingRef.current = null;
-      reject(new WalletConnectionError("connection_failed"));
+      failPendingConnection("connection_failed");
     }
     return promise;
-  }, [disconnect, open]);
+  }, [cleanup, failPendingConnection, open]);
 
   const adapter = useMemo(
     () => createReownWalletConnectionAdapter({
       connect,
-      disconnect: () => Promise.resolve(disconnect("eip155")),
+      disconnect,
     }),
     [connect, disconnect],
   );

@@ -51,6 +51,8 @@ export function AuthProvider({
     viewer: null,
   });
   const authGeneration = useRef(0);
+  const workflowRef = useRef(workflow);
+  workflowRef.current = workflow;
 
   const applyResult = useCallback((result: AuthWorkflowResult) => {
     setState({
@@ -68,8 +70,8 @@ export function AuthProvider({
       status: "restoring_session",
       viewer: null,
     });
-    applyResult(await workflow.restoreSession());
-  }, [applyResult, workflow]);
+    applyResult(await workflowRef.current.restoreSession());
+  }, [applyResult]);
 
   const login = useCallback(async () => {
     authGeneration.current += 1;
@@ -78,14 +80,14 @@ export function AuthProvider({
       status: "privy_authenticating",
       viewer: null,
     });
-    applyResult(await workflow.login());
-  }, [applyResult, workflow]);
+    applyResult(await workflowRef.current.login());
+  }, [applyResult]);
 
   const logout = useCallback(async () => {
     authGeneration.current += 1;
     setState({ isSessionReady: false, status: "logging_out", viewer: null });
-    applyResult(await workflow.logout());
-  }, [applyResult, workflow]);
+    applyResult(await workflowRef.current.logout());
+  }, [applyResult]);
 
   const recoverAsInvestor = useCallback(async () => {
     authGeneration.current += 1;
@@ -94,12 +96,12 @@ export function AuthProvider({
       status: "exchanging_session",
       viewer: null,
     });
-    applyResult(await workflow.recoverAsInvestor());
-  }, [applyResult, workflow]);
+    applyResult(await workflowRef.current.recoverAsInvestor());
+  }, [applyResult]);
 
   const refreshSession = useCallback(async () => {
     const generation = authGeneration.current;
-    const result = await workflow.refreshSession(
+    const result = await workflowRef.current.refreshSession(
       () => generation === authGeneration.current,
     );
     if (!result.ok || generation !== authGeneration.current) return false;
@@ -110,14 +112,14 @@ export function AuthProvider({
       viewer: result.viewer,
     });
     return true;
-  }, [workflow]);
+  }, []);
 
   const replaceViewer = useCallback(async (viewer: AuthViewer) => {
     const generation = authGeneration.current;
     const expectedViewerId = state.viewer?.id;
     if (!expectedViewerId || viewer.id !== expectedViewerId) return false;
 
-    const result = await workflow.replaceViewer(
+    const result = await workflowRef.current.replaceViewer(
       viewer,
       expectedViewerId,
       () => generation === authGeneration.current,
@@ -130,7 +132,7 @@ export function AuthProvider({
       viewer: result.viewer,
     });
     return true;
-  }, [state.viewer?.id, workflow]);
+  }, [state.viewer?.id]);
 
   useEffect(() => {
     void restoreSession();

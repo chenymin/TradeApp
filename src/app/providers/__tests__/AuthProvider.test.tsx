@@ -303,6 +303,59 @@ describe("AuthProvider", () => {
     });
   });
 
+  it("preserves auth state when the runtime workflow adapter changes", async () => {
+    const initialWorkflow = fakeWorkflow();
+    initialWorkflow.restoreSession.mockResolvedValue({
+      status: "authenticated",
+      viewer: viewer(),
+    });
+    const nextWorkflow = fakeWorkflow();
+    nextWorkflow.restoreSession.mockResolvedValue({ status: "logged_out" });
+    const refreshedViewer = { ...viewer(), walletAddress: "0xdef" };
+    nextWorkflow.refreshSession.mockResolvedValue({
+      ok: true,
+      viewer: refreshedViewer,
+    });
+    const snapshots: Array<unknown> = [];
+    const actions: Partial<ReturnType<typeof useAuthActions>> = {};
+    let renderer: ReturnType<typeof create> | undefined;
+
+    await act(async () => {
+      renderer = create(
+        <AuthProvider workflow={initialWorkflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    await act(async () => {
+      renderer!.update(
+        <AuthProvider workflow={nextWorkflow}>
+          <ActionProbe actions={actions} />
+          <StateProbe snapshots={snapshots} />
+        </AuthProvider>,
+      );
+    });
+
+    expect(nextWorkflow.restoreSession).not.toHaveBeenCalled();
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: viewer(),
+    });
+
+    await act(async () => {
+      await expect(actions.refreshSession?.()).resolves.toBe(true);
+    });
+    expect(nextWorkflow.refreshSession).toHaveBeenCalledOnce();
+    expect(snapshots.at(-1)).toEqual({
+      isSessionReady: true,
+      status: "authenticated",
+      viewer: refreshedViewer,
+    });
+  });
+
   it("ignores a wallet Viewer replacement that completes after logout", async () => {
     let resolveReplacement: ((result: {
       ok: true;

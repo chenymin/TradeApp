@@ -1,4 +1,4 @@
-import { isAddress, stringToHex } from "viem";
+import { getAddress, isAddress, isAddressEqual, stringToHex } from "viem";
 
 export type Eip1193Provider = {
   request(input: { method: string; params?: unknown[] }): Promise<unknown>;
@@ -22,8 +22,10 @@ export type ReownConnectionSnapshot = {
 
 export type WalletConnectionErrorCode =
   | "address_mismatch"
+  | "connection_timeout"
   | "connection_failed"
   | "invalid_address"
+  | "session_expired"
   | "signature_failed"
   | "unsupported_chain";
 
@@ -35,6 +37,74 @@ export class WalletConnectionError extends Error {
     this.name = "WalletConnectionError";
     this.code = code;
   }
+}
+
+export function createReownCleanupCoordinator(
+  disconnect: () => Promise<void> | void,
+): {
+  start(): Promise<void>;
+  wait(): Promise<void>;
+} {
+  let inFlight: Promise<void> | null = null;
+
+  const start = () => {
+    if (inFlight) return inFlight;
+
+    let tracked: Promise<void>;
+    tracked = Promise.resolve()
+      .then(() => disconnect())
+      .catch(() => undefined)
+      .finally(() => {
+        if (inFlight === tracked) inFlight = null;
+      });
+    inFlight = tracked;
+    return tracked;
+  };
+
+  return {
+    start,
+    wait: () => inFlight ?? Promise.resolve(),
+  };
+}
+
+export function shouldReuseReownConnection(
+  currentAddress: string,
+  expectedAddress?: `0x${string}`,
+): boolean {
+  return Boolean(
+    expectedAddress &&
+      currentAddress.toLowerCase() === expectedAddress.toLowerCase(),
+  );
+}
+
+export function isReownConnectionOnChain(
+  connection: { chainId: string },
+  configuredChainId: number,
+): boolean {
+  const rawChainId = connection.chainId.includes(":")
+    ? connection.chainId.slice(connection.chainId.lastIndexOf(":") + 1)
+    : connection.chainId;
+  return Number(rawChainId) === configuredChainId;
+}
+
+export function openReownConnectionSelector(
+  open: (options: { view: "Connect" }) => void,
+): void {
+  open({ view: "Connect" });
+}
+
+export function shouldRejectClosedReownSelector(input: {
+  hasSnapshot: boolean;
+  isLoading: boolean;
+  isOpen: boolean;
+  sawModal: boolean;
+  selectedWallet: boolean;
+}): boolean {
+  return input.sawModal &&
+    !input.isOpen &&
+    !input.isLoading &&
+    !input.hasSnapshot &&
+    !input.selectedWallet;
 }
 
 export function createReownWalletConnectionAdapter(dependencies: {
@@ -66,8 +136,8 @@ export function createReownWalletConnectionAdapter(dependencies: {
         throw new WalletConnectionError("unsupported_chain");
       }
 
-      const address = connection.address.toLowerCase() as `0x${string}`;
-      if (expectedAddress && expectedAddress.toLowerCase() !== address) {
+      const address = getAddress(connection.address) as `0x${string}`;
+      if (expectedAddress && !isAddressEqual(expectedAddress, address)) {
         await Promise.resolve(dependencies.disconnect()).catch(() => undefined);
         throw new WalletConnectionError("address_mismatch");
       }
@@ -87,7 +157,11 @@ export function createReownWalletConnectionAdapter(dependencies: {
               throw new Error("invalid signature");
             }
             return signature;
-          } catch {
+          } catch (error) {
+            if (isExpiredSessionError(error)) {
+              await Promise.resolve(dependencies.disconnect()).catch(() => undefined);
+              throw new WalletConnectionError("session_expired");
+            }
             throw new WalletConnectionError("signature_failed");
           }
         },
@@ -95,4 +169,9 @@ export function createReownWalletConnectionAdapter(dependencies: {
     },
     disconnect: dependencies.disconnect,
   };
+}
+
+function isExpiredSessionError(error: unknown): boolean {
+  return error instanceof Error &&
+    error.message.toLowerCase().includes("session topic doesn't exist");
 }

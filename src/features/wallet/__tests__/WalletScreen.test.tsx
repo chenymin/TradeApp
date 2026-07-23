@@ -205,6 +205,64 @@ describe("WalletScreen", () => {
     });
   });
 
+  it("unlocks the next wallet selection and unlink after Viewer convergence", async () => {
+    const dependencies = walletDependencies();
+    const metadata = linkedWalletMetadata();
+    const selectionDependencies = {
+      ...walletSelectionDependencies(),
+      connectedExternalAddress: address(9),
+    };
+    const unlinkDependencies = walletUnlinkDependencies();
+    const renderer = await renderWallet({
+      dependencies,
+      metadata,
+      selectionDependencies,
+      unlinkDependencies,
+      walletAddress: address(9),
+    });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(8))}`,
+      }).props.onPress();
+    });
+
+    expect(selectionDependencies.workflow.select).toHaveBeenCalledOnce();
+    expect(renderer.root.findByProps({
+      accessibilityLabel: `Use wallet ${shortAddress(address(8))}`,
+    }).props.disabled).toBe(true);
+    await act(async () => {
+      renderer.update(
+        <WalletScreen
+          chain={CHAIN}
+          dependencies={dependencies}
+          privyWalletMetadata={metadata}
+          selectionDependencies={selectionDependencies}
+          unlinkDependencies={unlinkDependencies}
+          viewerState={{
+            isSessionReady: true,
+            viewer: { email: null, id: "viewer-1", walletAddress: address(8) },
+          }}
+        />,
+      );
+      await Promise.resolve();
+    });
+
+    const nextSelection = renderer.root.findByProps({
+      accessibilityLabel: `Use wallet ${shortAddress(address(9))}`,
+    });
+    const unlink = renderer.root.findByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    });
+    expect(nextSelection.props.disabled).toBe(false);
+    expect(unlink.props.disabled).toBe(false);
+
+    await act(async () => {
+      await nextSelection.props.onPress();
+    });
+    expect(selectionDependencies.workflow.select).toHaveBeenCalledTimes(2);
+  });
+
   it("shows Retry after platform failure and Remove link for a conflict", async () => {
     const failed = walletSelectionDependencies();
     failed.workflow.select = vi.fn().mockRejectedValueOnce({ code: "server_unavailable" });
@@ -250,6 +308,176 @@ describe("WalletScreen", () => {
     }).props.disabled).toBe(false);
     expect(conflictRenderer.root.findByProps({ accessibilityLabel: "Bind wallet" })
       .props.disabled).toBe(true);
+  });
+
+  it("shows an actionable message after an external wallet address mismatch", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.connect = vi.fn().mockRejectedValue({
+      code: "address_mismatch",
+    });
+    const renderer = await renderWallet({
+      metadata: linkedWalletMetadata(),
+      selectionDependencies,
+    });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Connect wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Connected wallet does not match this linked wallet",
+    );
+    expect(renderer.root.findByProps({
+      accessibilityLabel: "Retry wallet connection",
+    })).toBeTruthy();
+    expect(selectionDependencies.workflow.confirmSwitch).not.toHaveBeenCalled();
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("shows an actionable message when binding cannot connect a wallet", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.connect = vi.fn().mockRejectedValue({
+      code: "connection_failed",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain("Wallet connection was not completed");
+    expect(renderer.root.findByProps({
+      accessibilityLabel: "Retry wallet connection",
+    })).toBeTruthy();
+    expect(selectionDependencies.workflow.link).not.toHaveBeenCalled();
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("stops an unapproved BSC Testnet handoff before Privy or platform writes", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.connect = vi.fn().mockRejectedValue({
+      code: "connection_timeout",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Wallet did not approve BNB Smart Chain Testnet in time",
+    );
+    expect(selectionDependencies.workflow.link).not.toHaveBeenCalled();
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("stops a wallet connected on the wrong environment chain", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.connect = vi.fn().mockRejectedValue({
+      code: "unsupported_chain",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Wallet is not connected to BNB Smart Chain Testnet",
+    );
+    expect(selectionDependencies.workflow.link).not.toHaveBeenCalled();
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("asks for a fresh connection when the binding session expires", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.link = vi.fn().mockRejectedValue({
+      code: "session_expired",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Wallet session expired. Reconnect the wallet",
+    );
+    expect(output(renderer)).not.toContain("Wallet activation is pending");
+    expect(renderer.root.findByProps({
+      accessibilityLabel: "Retry wallet connection",
+    })).toBeTruthy();
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("identifies a failure before the wallet signature request", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.link = vi.fn().mockRejectedValue({
+      code: "siwe_message_failed",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Could not prepare wallet verification",
+    );
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it("identifies a failure after the wallet signature request", async () => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.link = vi.fn().mockRejectedValue({
+      code: "privy_link_failed",
+    });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(
+      "Privy did not accept wallet verification",
+    );
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["signature_failed", "Wallet signature was not completed"],
+    [
+      "linked_wallet_mismatch",
+      "Privy response did not include the connected wallet",
+    ],
+    ["invalid_origin", "Wallet verification origin is invalid"],
+  ])("shows the %s binding failure", async (code, message) => {
+    const selectionDependencies = walletSelectionDependencies();
+    selectionDependencies.workflow.link = vi.fn().mockRejectedValue({ code });
+    const renderer = await renderWallet({ selectionDependencies });
+
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: "Bind wallet",
+      }).props.onPress();
+    });
+
+    expect(output(renderer)).toContain(message);
+    expect(selectionDependencies.workflow.select).not.toHaveBeenCalled();
   });
 
   it("offers unlink only for a linked external wallet and suppresses it after success", async () => {

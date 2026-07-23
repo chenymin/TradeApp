@@ -46,9 +46,14 @@ Task 8E 要在移动端增加 external wallet 绑定和平台 active wallet 切�
 | ---- | ---- | ---- |
 | 平台 primary / Viewer 是持久化 active 的权威来源 | Expo SDK 无服务端持久化的 active-wallet API；Web `useActiveWallet` 是连接器状态 | UI 始终以 Viewer 标记 `Active`；connector 只决定 `Connect` / `Use` 可用性 |
 | 新钱包绑定即自动平台选择 | 与用户确认的 Web 交互口径一致 | SIWE link 后不返回 idle，直接调用 `wallet-select`；完整成功前锁定钱包动作 |
+| 成功状态只锁定到 authoritative Viewer 收敛 | `wallet-select` 成功后的 `complete` 是一次操作的终态，不是后续钱包操作的永久锁 | Viewer active address 与完成目标一致后将 selection workflow 重置为 `idle`；随后允许下一次 `Use`、解绑或绑定，未收敛前继续阻止并发 mutation |
 | 使用 Reown AppKit adapter，不把 Reown 状态扩散到领域层 | 当前项目没有 external wallet connector，Reown 2.x 支持当前 RN / React / Viem 范围 | provider、deep link 和包依赖集中在 adapter / provider boundary；workflow 只接收接口 |
+| WalletConnect proposal 只包含当前应用配置链 | Android 测试发现同时提供链 56 与 97 时，Rabby 可只批准 56，导致测试环境生成错误的 SIWE `Chain ID: 56` | 测试环境的 AppKit `defaultNetwork` 和 `networks` 均只使用链 97；生产环境均只使用链 56；不接受跨环境链降级 |
+| 钱包自身的 WalletConnect 支持链必须覆盖当前配置链 | Rabby Mobile 0.6.81 的 `getWalletConnectSupportedChains()` 只返回 `getChainList('mainnet')`；手动添加 BNB Testnet 不会让 WalletConnect 批准 `eip155:97`，而是返回 `No supported WalletConnect namespace to approve.` | Chain 97 人工验收使用支持该 namespace 的 MetaMask；Rabby 只在 Chain 56 环境验收。客户端不得为了兼容钱包而在测试环境加入或降级到 56 |
+| WalletConnect 协议实现遵循 AppKit 2.0.6 官方依赖契约，失效 session 由 lifecycle cleanup 恢复 | `@reown/appkit-react-native@2.0.6` 精确依赖 `@walletconnect/universal-provider@2.21.10`；`@walletconnect/react-native-compat@2.23.10` 是独立的 RN shim / native compat，版本不同不等同于协议栈混用 | Universal Provider 及其 SignClient / Core 传递依赖遵循 AppKit 官方锁定树，不用 override 强升到未经该版本 AppKit 支持的 2.23.10；RN compat 2.23.10 独立保留；正常断开失败后仍强制完成 AppKit 本地连接清理，失效签名返回稳定错误并允许 fresh connect |
 | `wallet-select` 独立于 `wallet-login` | 现有登录函数按数组首项选 primary，且用户要求暂不改其逻辑 | 新函数必须自行验证 Privy、调用原子 RPC并返回 authoritative Viewer；不复用错误的 primary 选择，也不承担 session renewal |
 | 钱包选择不轮换 JWT | JWT 只包含 investor identity，active wallet 是数据库业务状态 | Edge Function 不依赖 `SUPA_JWT_SECRET`；移动端保留原 token / expiry，只持久化经过账户和目标校验的 Viewer |
+| Dashboard 持仓保持账户级 | `mint_events` 已有 `investor_id`，`investor_wallets` 已有本人只读 RLS；active wallet 只代表当前操作身份 | 交易按 investor 读取；链上余额按全部 active Ethereum wallets 批量读取并按资产求和；Wallet 页面保留单钱包语义 |
 | 数据库使用 operation ledger + 原子 RPC | 需要处理响应丢失、重复提交、唯一冲突和跨表镜像 | 新增只允许 service role 访问的 operation 表与函数；重试同一 operation id 返回同一最终地址 |
 | 移除 authenticated 对 `investors` 的直接 UPDATE | 现有 self-update policy 只校验本人行，无法阻止客户端直接改 `wallet_address` | migration revoke 表级 UPDATE 并 drop 宽泛 policy；昵称仍走既有 `update_my_nickname` RPC |
 | 平台失败采用 forward recovery，不回滚不存在的 Privy active | Expo SDK 没有 `setActiveWallet`；已完成的 SIWE link 可安全保留 | UI 将目标显示为 linked，提供 `Retry` / `Use`；只有确定的跨账户冲突提供显式 unlink 清理 |
@@ -86,17 +91,28 @@ Task 8E 要在移动端增加 external wallet 绑定和平台 active wallet 切�
 
 ## 数据流
 
+### Dashboard 账户级持仓
+
+1. 客户端使用现有应用 session；JWT `sub` 继续标识同一 investor，不因 active wallet 切换而变化。
+2. `DashboardMintEventsRepository` 按 `mint_events.investor_id = viewer.id` 读取本人购买事件；RLS 继续以 `auth.uid()` 限制跨账户读取。
+3. `DashboardInvestorWalletsRepository` 从 `investor_wallets` 读取同一 investor 下 `status='active' AND chain_type='ethereum'` 的钱包地址，规范化、校验并去重。
+4. 候选资产来自该 investor 的购买事件；chain adapter 按资产 chain id 分组，对每个资产和每个有效钱包执行 `balanceOf`，每个资产价格只读取一次，并将所有钱包余额求和。
+5. `buildDashboardHoldings` 使用账户级事件成本和聚合后的实时余额计算 Portfolio、PnL、Holdings 和 Transactions。切换 active wallet 只触发普通刷新，不改变查询归属。
+6. 某钱包或链 RPC 失败时对应资产进入部分不可用 warning，不把失败余额当作零；数据库账户事件或钱包集合读取失败时整个 Portfolio 标记 unavailable。
+
+该读取路径不新增写入、RPC 或 service-role 能力，不信任客户端地址决定归属，也不迁移链上 Token。解绑后 `status!='active'` 的钱包退出账户聚合；Wallet 页面仍使用当前单钱包地址读取余额。
+
 ### 新 external wallet 绑定并立即 active
 
 1. 用户点击 `Bind wallet`；single-flight 锁阻止并发 wallet mutation。
-2. Reown modal 返回 checksum address、CAIP-2 chain id、wallet metadata 和签名能力。
+2. Reown modal 只请求当前应用配置链并返回 checksum address、CAIP-2 chain id、wallet metadata 和签名能力；测试环境必须返回链 97，生产环境必须返回链 56，后续 SIWE 使用同一 chain id。
 3. workflow 使用配置的 HTTPS public origin 生成 Privy SIWE message，并请求钱包原生签名。
 4. `linkWithSiwe` 成功后，校验返回 linked accounts 包含同一 target；失败或不匹配时停止，绝不调用平台。
 5. 生成 operation id，记录 `expectedPreviousAddress = viewer.walletAddress`，调用 `wallet-select`。
 6. Edge Function 验证 Privy token并重新读取 current user；按 target 地址匹配 Ethereum linked account，从 `privy_user_id` 推导 investor。
 7. Edge Function 调用 RPC。RPC 锁 investor，检查 operation / previous，upsert target，切 primary，更新 mirror，写 completed operation 后提交。
 8. Edge Function按 RPC 最终地址返回 operation id、幂等标记与 authoritative Viewer，不返回 token 或 expiry。
-9. 移动端校验 Viewer id 等于当前 investor、Viewer address 等于明确目标；随后在 secure storage 中保留现有 access token、refresh token 与 expiry，只替换 Viewer。AuthProvider 更新内存 Viewer，地址一致后显示 `Active`。
+9. 移动端校验 Viewer id 等于当前 investor、Viewer address 等于明确目标；随后在 secure storage 中保留现有 access token、refresh token 与 expiry，只替换 Viewer。AuthProvider 更新内存 Viewer，地址一致后显示 `Active`，并将 selection workflow 从 `complete` 重置为 `idle`，恢复后续 `Use`、解绑与绑定操作。
 
 ### 已有钱包切换
 
@@ -161,6 +177,8 @@ RPC `select_investor_wallet(...)`：
 | 失败情况 | 用户影响 | 处理方式 |
 | -------- | -------- | -------- |
 | Reown 未配置或 connector unavailable | 无法绑定 / 连接 external wallet | Wallet 仍可只读；隐藏可达写入口并显示非敏感 unavailable 状态 |
+| 钱包未批准当前应用配置链 | WalletConnect 无法提供可信的当前链 account，不能继续 SIWE | proposal 只请求当前配置链；钱包不支持时显示连接失败并停止，不降级到其他环境的链 |
+| WalletConnect session topic 已失效 | 钱包返回后无法完成 SIWE，旧 connector snapshot 可能仍存在 | 将 session-expired 映射为绑定失败；不调用 Privy link / `wallet-select`；先尝试通知远端断开，再强制完成本地 AppKit cleanup，下一次操作创建 fresh connection |
 | 连接取消、网络失败或地址不匹配 | active 不变 | 不调用 Privy link / `wallet-select`；返回 idle 或 connect_error |
 | SIWE 生成、签名或 Privy link 失败 | 新钱包未绑定或结果不可信 | 不调用平台；保留旧 Viewer，可重新开始 |
 | Privy link 成功但返回 metadata 暂未包含 target | 不能证明归属 | 不调用平台；刷新 Privy user / token 后允许 retry，超时进入 bind_error |
@@ -194,6 +212,9 @@ RPC `select_investor_wallet(...)`：
 | 绑定后仅加入列表，要求再次点击 `Use` | Rejected | 与用户确认的 Web 交互口径不一致，并增加半完成状态 |
 | Privy SIWE + `wallet-select` + 原子 RPC | Accepted | 明确目标、最小后端新增、可幂等恢复，并保持账户 / KYC / 权益隔离 |
 | `wallet-select` 每次重新签发同账户 JWT | Rejected | JWT 不含 active wallet，轮换不能增强一致性，反而耦合业务写入与 auth renewal并意外延长登录生命周期 |
+| Dashboard 只显示 active wallet | Rejected | 会把同一 investor 旧钱包中的真实资产显示为消失，与账户权益隔离验收冲突 |
+| 只按 `mint_events.investor_id` 展示累计购买份额 | Rejected | 无法反映转出、销毁或其他链上余额变化；交易归属必须与全部 active Ethereum wallets 的实时 `balanceOf` 结合 |
+| 新增 Edge Function 聚合全部持仓 | Deferred | 当前 RLS 已允许本人读取 `mint_events` / `investor_wallets`，客户端可用现有 multicall 完成只读聚合；规模或 RPC 性能成为瓶颈时再提升为服务端 read model |
 
 ## 评审决策记录
 
@@ -205,6 +226,9 @@ RPC `select_investor_wallet(...)`：
 | 2026-07-20 | Expo 不模拟 Web `setActiveWallet` | 已安装 SDK 类型确认 API 不存在，且 Web active 属于连接器状态 | 需求技术表述修正为 connector target + Privy linked + platform primary |
 | 2026-07-20 | 平台失败保留 linked wallet并 forward retry | 没有可回滚的 Privy active，自动 unlink 又是破坏性写入 | 使用 operation id 恢复；跨账户冲突由用户明确清理 |
 | 2026-07-22 | `wallet-select` 改为 Viewer-only 响应 | 同一 investor 的 identity-only JWT 无需因 active wallet 变化而轮换 | 移除 Edge JWT signer；客户端保留 token / expiry，只持久化 authoritative Viewer；auth refresh 独立处理 |
+| 2026-07-22 | WalletConnect 与 SIWE 必须使用当前应用配置链 | Android Rabby 在 `[56, 97]` proposal 中只批准 56，实际 SIWE 显示错误的 `Chain ID: 56` | AppKit `defaultNetwork` 和 `networks` 均按环境收窄为单一链；测试 97、生产 56，不允许跨环境降级 |
+| 2026-07-23 | 协议实现跟随 AppKit 2.0.6 官方锁定的 Universal Provider 2.21.10，失效 session 在 provider boundary 恢复 | AppKit 精确依赖 Universal Provider 2.21.10；RN compat 2.23.10 只提供 RN shim / native compat，不能作为升级 Universal Provider / SignClient / Core 的依据 | RN compat 2.23.10 独立保留，不用 override 强制未经支持的 provider 版本；stale-session 恢复依赖远端 disconnect 加本地强制 cleanup、single-flight 和 timeout；等待 Android MetaMask 人工验收 |
+| 2026-07-23 | Rabby Mobile 0.6.81 不作为 Chain 97 WalletConnect 验收钱包 | 同版本公开源码的 `getWalletConnectSupportedChains()` 仅枚举 mainnet；实机对 `eip155:97` proposal 返回 `No supported WalletConnect namespace to approve.` | 测试环境保持 97 单链并用 MetaMask验收；Rabby移到 Chain 56 环境验收，不增加双链 proposal，不把钱包限制误判为 Reown timeout或 SIWE问题 |
 
 ## Consistency Check
 
