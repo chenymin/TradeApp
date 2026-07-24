@@ -70,6 +70,53 @@ export function View({ children, ...props }: Props) {
   return React.createElement("View", props, children);
 }
 
+export const AccessibilityInfo = {
+  addEventListener() {
+    return { remove() {} };
+  },
+  async isReduceMotionEnabled() {
+    return false;
+  },
+  async isReduceTransparencyEnabled() {
+    return false;
+  },
+};
+
+class AnimatedValue {
+  constructor(public value: number) {}
+}
+
+function AnimatedView({ children, ...props }: Props) {
+  return React.createElement("AnimatedView", props, children);
+}
+
+function animation() {
+  return {
+    start() {},
+    stop() {},
+  };
+}
+
+export const Animated = {
+  Value: AnimatedValue,
+  View: AnimatedView,
+  loop: animation,
+  sequence: animation,
+  timing: animation,
+};
+
+export const Easing = {
+  inOut(value: unknown) {
+    return value;
+  },
+  ease: "ease",
+};
+
+export const Platform = {
+  OS: "ios",
+  Version: 26,
+};
+
 export const StyleSheet = {
   create<T extends Record<string, unknown>>(styles: T): T {
     return styles;

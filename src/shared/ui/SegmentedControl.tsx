@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors } from "./theme";
+import { GlassSurface } from "./GlassSurface";
 
 export type SegmentedControlOption<TValue extends string> = {
   accessibilityLabel?: string;
@@ -12,15 +13,17 @@ export function SegmentedControl<TValue extends string>({
   compact = false,
   onChange,
   options,
+  surface = "solid",
   value,
 }: {
   compact?: boolean;
   onChange: (value: TValue) => void;
   options: SegmentedControlOption<TValue>[];
+  surface?: "glass" | "solid";
   value: TValue;
 }) {
-  return (
-    <View style={styles.root}>
+  const optionsContent = (
+    <>
       {options.map((option) => {
         const selected = option.value === value;
         return (
@@ -49,8 +52,18 @@ export function SegmentedControl<TValue extends string>({
           </Pressable>
         );
       })}
-    </View>
+    </>
   );
+
+  if (surface === "glass") {
+    return (
+      <GlassSurface style={styles.root} variant="control">
+        {optionsContent}
+      </GlassSurface>
+    );
+  }
+
+  return <View style={[styles.root, styles.solid]}>{optionsContent}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -73,10 +86,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   root: {
-    backgroundColor: "#ECEFEB",
     borderRadius: 8,
     flexDirection: "row",
     padding: 4,
+  },
+  solid: {
+    backgroundColor: colors.surfaceSubtle,
   },
   selected: {
     backgroundColor: colors.surface,

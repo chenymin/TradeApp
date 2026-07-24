@@ -3,8 +3,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
+      "expo-blur": "/test/mocks/expo-blur.tsx",
       "expo-clipboard": "/test/mocks/expo-clipboard.ts",
       "expo-file-system/legacy": "/test/mocks/expo-file-system-legacy.ts",
+      "expo-glass-effect": "/test/mocks/expo-glass-effect.tsx",
       "expo-sharing": "/test/mocks/expo-sharing.ts",
       "lucide-react-native": "/test/mocks/lucide-react-native.tsx",
       "react-native": "/test/mocks/react-native.tsx",

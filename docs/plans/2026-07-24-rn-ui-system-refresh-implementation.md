@@ -257,7 +257,7 @@ git commit -m "feat: define institutional mobile design tokens"
 - 内聚与可测试性：selectors 纯函数，native modules 可 mock；block 没有 timer。
 - 可追溯：需求“克制玻璃跨平台”“内容同形骨架”“Reduce Motion/Transparency”“性能风险”。
 
-- [ ] **Step 1：写 selector 与 skeleton RED tests**
+- [x] **Step 1：写 selector 与 skeleton RED tests**
 
 ```ts
 expect(selectGlassPresentation({
@@ -283,12 +283,12 @@ expect(getSkeletonAnimationMode(true)).toBe("static");
 
 渲染一个 group 内三个 block，断言只有 group 具有 `accessibilityRole="progressbar"`，block 都使用同一个 injected opacity。
 
-- [ ] **Step 2：运行 RED test**
+- [x] **Step 2：运行 RED test**
 
 Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`  
 Expected: FAIL，模块不存在。
 
-- [ ] **Step 3：实现 pure selectors 与 accessibility preference cleanup**
+- [x] **Step 3：实现 pure selectors 与 accessibility preference cleanup**
 
 ```ts
 export function selectGlassPresentation(input: GlassCapabilityInput): GlassPresentation {
@@ -307,11 +307,11 @@ export function getSkeletonAnimationMode(reduceMotion: boolean) {
 
 AccessibilityInfo event subscriptions must return cleanup functions; failure to query preferences defaults to opaque/static-safe presentation, not a crash.
 
-- [ ] **Step 4：实现 GlassSurface adapter**
+- [x] **Step 4：实现 GlassSurface adapter**
 
 `variant` 只允许 `header | navigation | control | overlay`。Native Liquid Glass、BlurView、translucent View 和 opaque View 必须共享同一 outer layout style；danger/data/QR variants 不存在。
 
-- [ ] **Step 5：实现 SkeletonGroup/SkeletonBlock**
+- [x] **Step 5：实现 SkeletonGroup/SkeletonBlock**
 
 ```tsx
 <SkeletonGroup accessibilityLabel="Wallet balances loading">
@@ -322,16 +322,16 @@ AccessibilityInfo event subscriptions must return cleanup functions; failure to 
 
 一个 group 创建并 cleanup 一个 `Animated.loop`; static mode 不启动 loop；block 通过 context 消费 opacity。
 
-- [ ] **Step 6：给 SegmentedControl 增加 opt-in glass**
+- [x] **Step 6：给 SegmentedControl 增加 opt-in glass**
 
 新增 `surface?: "solid" | "glass"`，默认 `solid`。只在 `surface === "glass"` 时用 `GlassSurface variant="control"` 包裹，options/value/onChange/key/accessibility contract 完全不变。
 
-- [ ] **Step 7：运行 GREEN、单入口与 cleanup tests**
+- [x] **Step 7：运行 GREEN、单入口与 cleanup tests**
 
 Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck`  
 Expected: PASS；unmount 后 animation/listener cleanup spy 各调用一次。
 
-- [ ] **Step 8：提交 Task 2**
+- [x] **Step 8：提交 Task 2**
 
 ```bash
 git add src/shared/ui/GlassSurface.tsx src/shared/ui/Skeleton.tsx src/shared/ui/SegmentedControl.tsx src/shared/ui/index.ts src/shared/ui/__tests__/visualPrimitives.test.tsx
