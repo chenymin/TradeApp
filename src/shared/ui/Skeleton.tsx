@@ -1,3 +1,22 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import {
+  AccessibilityInfo,
+  Animated,
+  Easing,
+  StyleSheet,
+  View,
+  type ViewStyle,
+} from "react-native";
+
+import { colors, motion } from "./theme";
+
 export type SkeletonAnimationMode = "pulse" | "static";
 
 export function getSkeletonAnimationMode(
@@ -20,7 +39,11 @@ export function SkeletonGroup({
   style?: ViewStyle;
 }) {
   const systemReduceMotion = useReduceMotion(reduceMotion);
-  const opacity = useRef(new Animated.Value(0.52)).current;
+  const opacityRef = useRef<Animated.Value | null>(null);
+  if (!opacityRef.current) {
+    opacityRef.current = new Animated.Value(0.52);
+  }
+  const opacity = opacityRef.current;
 
   useEffect(() => {
     if (getSkeletonAnimationMode(systemReduceMotion) === "static") return;
@@ -122,21 +145,3 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
   },
 });
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  StyleSheet,
-  View,
-  type ViewStyle,
-} from "react-native";
-
-import { colors, motion } from "./theme";

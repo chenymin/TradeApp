@@ -1,3 +1,17 @@
+import { BlurView } from "expo-blur";
+import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
+import { forwardRef, useEffect, useState, type ReactNode, type Ref } from "react";
+import {
+  AccessibilityInfo,
+  Platform,
+  StyleSheet,
+  View,
+  type ViewProps,
+  type ViewStyle,
+} from "react-native";
+
+import { colors, radii } from "./theme";
+
 export type GlassPresentation =
   | "blur"
   | "native_glass"
@@ -199,16 +213,3 @@ const styles = StyleSheet.create({
     backgroundColor: colors.glassFill,
   },
 });
-import { BlurView } from "expo-blur";
-import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
-import { forwardRef, useEffect, useState, type ReactNode, type Ref } from "react";
-import {
-  AccessibilityInfo,
-  Platform,
-  StyleSheet,
-  View,
-  type ViewProps,
-  type ViewStyle,
-} from "react-native";
-
-import { colors, radii } from "./theme";
