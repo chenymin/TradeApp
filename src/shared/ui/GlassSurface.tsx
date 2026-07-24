@@ -83,6 +83,7 @@ export function GlassSurfaceView({
   forwardedRef,
   presentation,
   style,
+  testID: callerTestID,
   variant,
   ...props
 }: GlassSurfaceProps & {
@@ -90,7 +91,7 @@ export function GlassSurfaceView({
   presentation: GlassPresentation;
 }) {
   const surfaceStyle = [styles.base, styles[variant], style];
-  const testID = `glass-surface-${presentation}`;
+  const testID = callerTestID ?? `glass-surface-${presentation}`;
 
   if (presentation === "native_glass") {
     return (

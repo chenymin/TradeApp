@@ -70,6 +70,7 @@ export function SkeletonGroup({
   return (
     <SkeletonOpacityContext.Provider value={opacity}>
       <View
+        accessible
         accessibilityLabel={accessibilityLabel}
         accessibilityRole="progressbar"
         style={style}

@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   solid: {
-    backgroundColor: colors.surfaceSubtle,
+    backgroundColor: "#ECEFEB",
   },
   selected: {
     backgroundColor: colors.surface,

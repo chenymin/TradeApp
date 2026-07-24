@@ -59,6 +59,26 @@ describe("visual primitives", () => {
     expect(getSkeletonAnimationMode(false)).toBe("pulse");
   });
 
+  it("exposes a skeleton group to VoiceOver as one progress indicator", async () => {
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <SkeletonGroup accessibilityLabel="Portfolio loading" reduceMotion>
+          <SkeletonBlock height={16} width="40%" />
+        </SkeletonGroup>,
+      );
+    });
+
+    expect(renderer!.root.find((node) => (
+      String(node.type) === "View" && node.props.accessibilityLabel === "Portfolio loading"
+    )).props).toMatchObject({
+      accessible: true,
+      accessibilityRole: "progressbar",
+    });
+    await act(async () => renderer!.unmount());
+  });
+
   it.each(["native_glass", "blur", "translucent", "opaque"] as const)(
     "renders the %s glass presentation with a stable outer contract",
     (presentation) => {
@@ -72,6 +92,20 @@ describe("visual primitives", () => {
         .toBeTruthy();
     },
   );
+
+  it("preserves a caller-supplied glass surface test ID", () => {
+    const tree = renderElement(
+      <GlassSurfaceView
+        presentation="opaque"
+        testID="app-header-glass"
+        variant="header"
+      >
+        Header content
+      </GlassSurfaceView>,
+    );
+
+    expect(findByProps(tree, { testID: "app-header-glass" })).toBeTruthy();
+  });
 
   it("keeps an opaque glass fallback and cleans up when preference lookup fails", async () => {
     const remove = vi.fn();
@@ -178,6 +212,27 @@ describe("visual primitives", () => {
       .toEqual({ selected: true });
     await getPressHandler(tree, "Transactions")();
     expect(onChange).toHaveBeenCalledWith("transactions");
+  });
+
+  it("preserves the default solid segmented control background", () => {
+    const tree = renderElement(
+      <SegmentedControl
+        onChange={vi.fn()}
+        options={[
+          { label: "Holdings", value: "holdings" },
+          { label: "Transactions", value: "transactions" },
+        ]}
+        value="holdings"
+      />,
+    );
+
+    expect(tree).toMatchObject({
+      props: {
+        style: expect.arrayContaining([
+          expect.objectContaining({ backgroundColor: "#ECEFEB" }),
+        ]),
+      },
+    });
   });
 
   it("exposes the institutional color and spacing tokens", () => {
