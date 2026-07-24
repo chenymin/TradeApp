@@ -10,8 +10,8 @@
 
 ---
 
-日期：2026-07-24  
-Feature slug：`rn-ui-system-refresh`  
+日期：2026-07-24
+Feature slug：`rn-ui-system-refresh`
 状态：已规划
 
 ## 输入文档
@@ -25,6 +25,7 @@ Feature slug：`rn-ui-system-refresh`
 | 决策 | 来源 | 实现影响 |
 | ---- | ---- | -------- |
 | `Institutional Clarity` + `Restrained Apple Glass` | 用户确认 | 核心数据用实色高对比；glass 仅用于 Header、BottomTabBar、Dashboard segmented control 和 overlay 外层 |
+| Dashboard Tab 选中态使用深绿实色 | 2026-07-24 设备 QA 与用户选择 A | 选中 option 使用 `colors.primary` 实色底和白字；未选中保持透明灰字，不改 value/onChange |
 | 共享层只包含 theme/AppText/GlassSurface/Skeleton | 工程评审选择 A | 不新增通用 `IconButton`、`SectionHeader`、金融数据行或业务摘要；现有 Button/Pressable 继续使用 |
 | iOS 26 native glass，旧 iOS blur，Android static translucent | 方案设计 | 所有平台走一个 `GlassSurface` adapter；业务页面不得出现 Platform/native capability 分支 |
 | 页面 skeleton 留在 feature 内 | 需求与方案 | `SkeletonGroup` 只管理一个动画值；具体摘要和行轮廓由 Dashboard/Wallet 自己表达 |
@@ -139,7 +140,7 @@ Feature slug：`rn-ui-system-refresh`
 | 无 index key | `! rg -n 'key=\\{.*index' src --glob '*.tsx'` | 无匹配 |
 | native glass 单入口 | `test "$(rg -l 'expo-glass-effect|expo-blur' src --glob '*.ts' --glob '*.tsx' | wc -l | tr -d ' ')" = "1" && rg -l 'expo-glass-effect|expo-blur' src --glob '*.ts' --glob '*.tsx' | rg 'src/shared/ui/GlassSurface.tsx'` | 只有 GlassSurface 匹配 |
 | 无新共享过度抽象 | `test ! -e src/shared/ui/IconButton.tsx && test ! -e src/shared/ui/SectionHeader.tsx && test ! -e src/shared/ui/FinancialRow.tsx` | exit 0 |
-| 无 UI 直写数据 | `! rg -n '\\.(insert|upsert|update|delete)\\(' src/shared/ui src/app/navigation src/features/dashboard/components src/features/dashboard/screens src/features/wallet/components src/features/wallet/screens` | 无匹配 |
+| 无 UI 直写数据 | `! rg -n '\\.(insert|upsert|update|delete)\\(' src/shared/ui src/app/navigation src/features/dashboard/components src/features/dashboard/screens src/features/wallet/components src/features/wallet/screens --glob '!**/__tests__/**'` | 无匹配 |
 | 无 auth/provider 进入 shared | `! rg -n 'supabase|Privy|Reown|AuthViewer|SecureStore|accessToken|sessionToken' src/shared/ui --glob '*.ts' --glob '*.tsx'` | 无匹配 |
 | 无敏感日志 | `! rg -n 'console\\.(log|error).*?(token|session|signature|siwe|topic|wallet)' src/shared/ui src/app/navigation src/features/dashboard src/features/wallet --glob '*.ts' --glob '*.tsx'` | 无新增敏感匹配 |
 | workflow/domain 未改 | `git diff --exit-code HEAD -- src/features/wallet/workflow src/features/wallet/services src/features/dashboard/domain src/features/dashboard/services src/app/auth src/lib/supabase` | 空输出；若基线含用户既有改动，改用任务起始 commit |
@@ -198,12 +199,12 @@ expect(spacing).toMatchObject({ page: 20, section: 24 });
 
 - [x] **Step 2：运行 RED test**
 
-Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`  
+Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`
 Expected: FAIL，缺少新 variants/tokens。
 
 - [x] **Step 3：安装 Expo 对齐模块**
 
-Run: `npx expo install expo-glass-effect expo-blur`  
+Run: `npx expo install expo-glass-effect expo-blur`
 Expected: `package.json` 与 lockfile 新增 Expo 57 兼容版本，不出现第二套 UI/skeleton/font dependency。
 
 - [x] **Step 4：实现 theme 与兼容 AppText API**
@@ -234,7 +235,7 @@ export const typography = {
 
 - [x] **Step 6：运行 GREEN 与依赖检查**
 
-Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck && npx expo install --check`  
+Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck && npx expo install --check`
 Expected: PASS；Expo 依赖对齐。
 
 执行记录：focused test、全量 test 与 typecheck 均通过；新增 `expo-glass-effect` / `expo-blur` 与 Expo 57 对齐。`expo install --check` 仍报告主分支已存在的 `react-native-get-random-values@2.0.0` 与 `react-native-webview@14.0.1` 偏差，已在未包含本 Task 改动的主目录复现，因此本 Task 不擅自调整 wallet connector 依赖。
@@ -285,7 +286,7 @@ expect(getSkeletonAnimationMode(true)).toBe("static");
 
 - [x] **Step 2：运行 RED test**
 
-Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`  
+Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`
 Expected: FAIL，模块不存在。
 
 - [x] **Step 3：实现 pure selectors 与 accessibility preference cleanup**
@@ -328,7 +329,7 @@ AccessibilityInfo event subscriptions must return cleanup functions; failure to 
 
 - [x] **Step 7：运行 GREEN、单入口与 cleanup tests**
 
-Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck`  
+Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck`
 Expected: PASS；unmount 后 animation/listener cleanup spy 各调用一次。
 
 - [x] **Step 8：提交 Task 2**
@@ -365,7 +366,7 @@ expect(findByProps(tree, { accessibilityLabel: "Back" }).props.style)
 
 - [x] **Step 2：运行 RED navigation tests**
 
-Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts`  
+Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts`
 Expected: FAIL，缺少 brand/glass presentation。
 
 - [x] **Step 3：实现 Header variant 和 glass surface**
@@ -378,7 +379,7 @@ Header props新增 `variant: "brand" | "routeTitle"`；brand 显示 `ARTSTAR`，
 
 - [x] **Step 5：运行 GREEN 与 AppNavigator 回归**
 
-Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts src/app/navigation/__tests__/AppNavigator.test.tsx`  
+Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts src/app/navigation/__tests__/AppNavigator.test.tsx`
 Expected: PASS；protected/public route 和 detail back 全部不变。
 
 - [x] **Step 6：提交 Task 3**
@@ -405,7 +406,7 @@ git commit -m "feat: refresh application navigation chrome"
 
 - [x] **Step 2：运行 RED Dashboard tests**
 
-Run: `npm test -- --run src/features/dashboard/__tests__/DashboardScreen.test.tsx`  
+Run: `npm test -- --run src/features/dashboard/__tests__/DashboardScreen.test.tsx`
 Expected: FAIL，当前 loading 显示 `Loading dashboard...` 且 summary 使用零值。
 
 - [x] **Step 3：实现 Dashboard content-shaped skeletons**
@@ -422,7 +423,7 @@ FlatList 的 `data/keyExtractor/onRefresh/refreshing/renderItem` 保持；loadin
 
 - [x] **Step 6：运行 GREEN 与 Dashboard 关联测试**
 
-Run: `npm test -- --run src/features/dashboard`  
+Run: `npm test -- --run src/features/dashboard`
 Expected: PASS；nickname、holdings、KYC、commission 和 explorer tests 全部通过。
 
 - [x] **Step 7：提交 Task 4**
@@ -449,7 +450,7 @@ git commit -m "feat: refresh dashboard information hierarchy"
 
 - [x] **Step 2：运行 RED Wallet tests**
 
-Run: `npm test -- --run src/features/wallet/__tests__/WalletScreen.test.tsx`  
+Run: `npm test -- --run src/features/wallet/__tests__/WalletScreen.test.tsx`
 Expected: FAIL，当前 balance loading 是三个 64px block，层级与新结构不符。
 
 - [x] **Step 3：实现 WalletBalanceSkeleton 与扁平余额行**
@@ -470,7 +471,7 @@ phone 顺序为 active → balances → linked → Receive；`width >= 768` 的�
 
 - [x] **Step 7：运行 GREEN 与连续 wallet suite**
 
-Run: `npm test -- --run src/features/wallet`  
+Run: `npm test -- --run src/features/wallet`
 Expected: PASS；selection machine/workflow/unlink/receive/balance/adapters 全部通过。
 
 - [x] **Step 8：提交 Task 5**
@@ -497,17 +498,17 @@ git commit -m "feat: refresh wallet presentation and loading states"
 
 - [ ] **Step 2：运行全量测试与 Expo dependency check**
 
-Run: `npm test -- --run && npx expo install --check && git diff --check`  
+Run: `npm test -- --run && npx expo install --check && git diff --check`
 Expected: 全部通过。
 
 - [ ] **Step 3：同步并构建 iOS native project**
 
-Run: `npx pod-install ios && npx expo run:ios --no-bundler`  
+Run: `npx pod-install ios && npx expo run:ios --no-bundler`
 Expected: Debug build成功；若 development team 是唯一阻塞，记录 owner=human、证据=Xcode signing error、next action=选择 Team，不把 warning 当代码失败。
 
 - [ ] **Step 4：构建 Android（集中到全部 Task 完成后）**
 
-Run: `npx expo run:android --no-bundler`  
+Run: `npx expo run:android --no-bundler`
 Expected: Debug build成功；Android 使用 static translucent/opaque fallback，没有 live blur。
 
 - [ ] **Step 5：执行设备视觉与交互矩阵**
@@ -518,9 +519,15 @@ Expected: Debug build成功；Android 使用 static translucent/opaque fallback�
 
 在 verification 文档记录命令、exit status、截图相对路径、残余风险、glass opaque rollback、人工 stop boundary。不得包含完整钱包地址、邮箱或敏感 provider 信息。
 
+- [x] **Step 6A：修复设备 QA 发现的 Dashboard Tab 低对比选中态**
+
+先在 `visualPrimitives.test.tsx` 断言 glass segmented control 的选中 option 使用 `colors.primary` 实色底，选中文字使用白色，未选中 option 不使用该实色底；确认 RED 后只修改 `SegmentedControl` presentation，再运行 shared、Dashboard、typecheck 和全量回归。
+
+执行记录：RED 明确显示选中 option 仍使用 `#FFFFFF`；改为 `colors.primary` 与 `colors.surface` 白字后，shared 26 tests、Dashboard 97 tests、全量 564 tests 和 typecheck 均通过。`accessibilityState` 与 `onChange` 回归断言保留。
+
 - [ ] **Step 7：运行 AI Delivery audit**
 
-Run: `npm run ai:audit -- rn-ui-system-refresh`  
+Run: `npm run ai:audit -- rn-ui-system-refresh`
 Expected: audit 通过；只有通过后才允许推进阶段。
 
 - [ ] **Step 8：提交验证记录**
@@ -616,9 +623,9 @@ Critical gaps：0。Native材质、Dynamic Type 和设备滚动无法完全由 N
 | Wallet | `src/features/wallet/` | Foundation, Navigation |
 | Verification | tests/docs/native projects | Dashboard, Wallet |
 
-Lane A：Foundation → Navigation。  
-Lane B：Dashboard（等待 Lane A）。  
-Lane C：Wallet（等待 Lane A，可与 Lane B 并行）。  
+Lane A：Foundation → Navigation。
+Lane B：Dashboard（等待 Lane A）。
+Lane C：Wallet（等待 Lane A，可与 Lane B 并行）。
 Lane D：Verification（等待 B + C）。
 
 冲突提示：Dashboard 与 Wallet 并行 lane 都不得修改 `src/shared/ui/`；需要 shared API 调整时停止并回到 Lane A 串行修改。

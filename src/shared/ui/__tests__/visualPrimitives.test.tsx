@@ -208,8 +208,23 @@ describe("visual primitives", () => {
     );
 
     expect(findByProps(tree, { variant: "control" })).toBeTruthy();
-    expect(findByProps(tree, { accessibilityLabel: "Holdings" }).props.accessibilityState)
-      .toEqual({ selected: true });
+    const selectedOption = findByProps(tree, { accessibilityLabel: "Holdings" });
+    const unselectedOption = findByProps(tree, { accessibilityLabel: "Transactions" });
+
+    expect(selectedOption.props.accessibilityState).toEqual({ selected: true });
+    expect(selectedOption.props.style).toEqual(expect.arrayContaining([
+      expect.objectContaining({ backgroundColor: colors.primary }),
+    ]));
+    expect(selectedOption.children[0]).toMatchObject({
+      props: {
+        style: expect.arrayContaining([
+          expect.objectContaining({ color: colors.surface }),
+        ]),
+      },
+    });
+    expect(unselectedOption.props.style).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ backgroundColor: colors.primary }),
+    ]));
     await getPressHandler(tree, "Transactions")();
     expect(onChange).toHaveBeenCalledWith("transactions");
   });

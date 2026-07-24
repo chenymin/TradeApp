@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#ECEFEB",
   },
   selected: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.primary,
   },
   selectedLabel: {
-    color: colors.text,
+    color: colors.surface,
   },
 });

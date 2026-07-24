@@ -31,7 +31,7 @@ Feature slug：`rn-ui-system-refresh`
 
 1. 每个页面只有一个主视觉焦点。Dashboard 为 portfolio value；Wallet 为 active wallet identity。
 2. 信息通过字号、字重、留白和分隔线建立层级，不通过反复套卡片建立层级。
-3. 颜色必须表达含义。祖母绿表示主操作、选中或正向状态；危险色只表示失败和破坏性操作。
+3. 颜色必须表达含义。祖母绿表示主操作、选中或正向状态；危险色只表示失败和破坏性操作。高频切换控件的当前选项使用 `primary` 实色底与白字，不用白底叠白色玻璃的低对比组合。
 4. 玻璃是 chrome，不是内容容器。数据可读性始终优先于材质效果。
 5. loading UI 必须预告真实布局，不能用匿名小方块占位。
 
@@ -139,7 +139,7 @@ Dashboard loading 不再用 `$0.00` 冒充已加载值，也不再只显示 `Loa
 2. 内容身份区显示 `Dashboard`、nickname/email 和 refresh；移除公共 `Home` + 内部 `Dashboard` 的重复标题语义。
 3. 全宽实色深墨 summary 显示 portfolio value 与 PnL。
 4. Tier/points、KYC、commission、asset count 使用两列扁平指标，不再使用四个同权卡片和独立 commission 卡。
-5. 四个既有业务 Tab 使用玻璃 `SegmentedControl`，value 和 route 行为保持不变。
+5. 四个既有业务 Tab 使用玻璃 `SegmentedControl`，当前选项使用 `primary` 实色底与白字，其他选项保持透明灰字；value 和 route 行为保持不变。
 6. holdings / transactions 保留 `FlatList` 和既有 key，列表改为分隔行；empty、partial warning 和 refresh 行为保留。
 7. Whitelist 与 Rewards 的业务内容本轮不重排，只消费更新后的公共 header、tabs 和 token；其完整页面迁移仍在范围外。
 
@@ -391,4 +391,3 @@ Device QA
 - [x] 失败模式、错误反馈、重试、降级和 stop-for-human 已说明。
 - [x] 入口层、领域逻辑和副作用边界明确。
 - [x] 核心 selector 可脱离 UI 和真实 native module 测试；每个验收场景有自动化或设备 QA 路径。
-
