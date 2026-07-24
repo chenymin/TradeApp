@@ -183,7 +183,7 @@ Task 6 cross-platform and final verification
 - 内聚与可测试性：variant 映射可直接渲染和 flatten style 断言。
 - 可追溯：需求“全 App 视觉规范”“长金额”“不新增字体 bundle”；方案 Color/Typography/Spacing/Motion。
 
-- [ ] **Step 1：写 theme/AppText RED tests**
+- [x] **Step 1：写 theme/AppText RED tests**
 
 在 `visualPrimitives.test.tsx` 断言 `display/pageTitle/sectionTitle/body/label/caption/micro/numberRow` 可渲染，并验证数字 variant：
 
@@ -196,17 +196,17 @@ expect(colors).toMatchObject({ ink: "#172421", primary: "#176B58" });
 expect(spacing).toMatchObject({ page: 20, section: 24 });
 ```
 
-- [ ] **Step 2：运行 RED test**
+- [x] **Step 2：运行 RED test**
 
 Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx`  
 Expected: FAIL，缺少新 variants/tokens。
 
-- [ ] **Step 3：安装 Expo 对齐模块**
+- [x] **Step 3：安装 Expo 对齐模块**
 
 Run: `npx expo install expo-glass-effect expo-blur`  
 Expected: `package.json` 与 lockfile 新增 Expo 57 兼容版本，不出现第二套 UI/skeleton/font dependency。
 
-- [ ] **Step 4：实现 theme 与兼容 AppText API**
+- [x] **Step 4：实现 theme 与兼容 AppText API**
 
 保持旧 `title/subtitle` 为兼容 alias，新增稳定 variant 与 `numeric`：
 
@@ -228,16 +228,18 @@ export const typography = {
 } as const;
 ```
 
-- [ ] **Step 5：写 `DESIGN.md`**
+- [x] **Step 5：写 `DESIGN.md`**
 
 记录 token 值、一个焦点、glass allow/deny list、44x44、内容同形 skeleton、Reduce Motion/Transparency、Android opaque/translucent fallback、feature-local row 原则。不得包含实现进度或账号数据。
 
-- [ ] **Step 6：运行 GREEN 与依赖检查**
+- [x] **Step 6：运行 GREEN 与依赖检查**
 
 Run: `npm test -- --run src/shared/ui/__tests__/visualPrimitives.test.tsx && npm run typecheck && npx expo install --check`  
 Expected: PASS；Expo 依赖对齐。
 
-- [ ] **Step 7：提交 Task 1**
+执行记录：focused test、全量 test 与 typecheck 均通过；新增 `expo-glass-effect` / `expo-blur` 与 Expo 57 对齐。`expo install --check` 仍报告主分支已存在的 `react-native-get-random-values@2.0.0` 与 `react-native-webview@14.0.1` 偏差，已在未包含本 Task 改动的主目录复现，因此本 Task 不擅自调整 wallet connector 依赖。
+
+- [x] **Step 7：提交 Task 1**
 
 ```bash
 git add DESIGN.md package.json package-lock.json src/shared/ui/theme.ts src/shared/ui/AppText.tsx src/shared/ui/__tests__/visualPrimitives.test.tsx
@@ -641,4 +643,3 @@ Lane D：Verification（等待 B + C）。
 4. iOS/Android 脱敏设备 QA：布局、滚动、Dynamic Type、Reduce Motion/Transparency、五 tab、Wallet sequential journey。
 5. 残余风险：native material差异、设备性能、未迁移页面；回滚先把 GlassSurface 切 opaque，再按 Wallet→Dashboard→navigation→foundation 逆序回滚。
 6. `npm run ai:audit -- rn-ui-system-refresh` 通过后才能推进阶段。
-

@@ -6,22 +6,34 @@ import {
   type TextStyle,
 } from "react-native";
 
-import { colors } from "./theme";
+import { colors, typography } from "./theme";
 
-type AppTextVariant = "body" | "caption" | "subtitle" | "title";
+export type AppTextVariant =
+  | "body"
+  | "caption"
+  | "display"
+  | "label"
+  | "micro"
+  | "numberRow"
+  | "pageTitle"
+  | "sectionTitle"
+  | "subtitle"
+  | "title";
 
 export function AppText({
   children,
+  numeric = false,
   style,
   variant = "body",
   ...props
 }: {
   children: React.ReactNode;
+  numeric?: boolean;
   style?: StyleProp<TextStyle>;
   variant?: AppTextVariant;
 } & Omit<TextProps, "style">) {
   return (
-    <Text {...props} style={[styles[variant], style]}>
+    <Text {...props} style={[styles[variant], numeric ? styles.numeric : null, style]}>
       {children}
     </Text>
   );
@@ -30,21 +42,47 @@ export function AppText({
 const styles = StyleSheet.create({
   body: {
     color: colors.text,
-    fontSize: 16,
+    ...typography.body,
   },
   caption: {
     color: colors.muted,
-    fontSize: 12,
+    ...typography.caption,
+  },
+  display: {
+    color: colors.text,
+    ...typography.display,
+  },
+  label: {
+    color: colors.text,
+    ...typography.label,
+  },
+  micro: {
+    color: colors.muted,
+    ...typography.micro,
+  },
+  numberRow: {
+    color: colors.text,
+    ...typography.numberRow,
+  },
+  numeric: {
+    fontVariant: ["tabular-nums"],
+  },
+  pageTitle: {
+    color: colors.text,
+    ...typography.pageTitle,
+  },
+  sectionTitle: {
+    color: colors.text,
+    ...typography.sectionTitle,
   },
   subtitle: {
     color: colors.muted,
-    fontSize: 16,
+    ...typography.body,
     textAlign: "center",
   },
   title: {
     color: colors.text,
-    fontSize: 32,
-    fontWeight: "800",
+    ...typography.display,
     textAlign: "center",
   },
 });
