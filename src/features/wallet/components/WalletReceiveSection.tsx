@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import QRCodeStyled from "react-native-qrcode-styled";
 
 import type { PublicChainConfig } from "../../../lib/chain/publicChainRegistry";
-import { AppText, colors, spacing } from "../../../shared/ui";
+import { AppText, colors, radii, spacing } from "../../../shared/ui";
 import {
   copyWalletAddress,
   shareWalletAddress,
@@ -64,7 +64,7 @@ export function WalletReceiveSection({
 
   return (
     <View accessibilityLabel="Receive wallet assets" style={styles.section}>
-      <AppText style={styles.heading} variant="body">Receive</AppText>
+      <AppText variant="sectionTitle">Receive</AppText>
       <AppText variant="caption">{chain.name} only</AppText>
       <View style={styles.qrFrame}>
         <QRCodeStyled
@@ -154,6 +154,8 @@ function IconAction({
 const styles = StyleSheet.create({
   action: {
     alignItems: "center",
+    backgroundColor: colors.surfaceSubtle,
+    borderRadius: radii.md,
     height: 44,
     justifyContent: "center",
     width: 44,
@@ -165,14 +167,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   address: {
+    flexShrink: 1,
     textAlign: "center",
+    width: "100%",
   },
   error: {
     color: colors.danger,
     textAlign: "center",
-  },
-  heading: {
-    fontWeight: "800",
   },
   qr: {
     backgroundColor: colors.surface,
@@ -183,12 +184,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignSelf: "center",
     backgroundColor: colors.surface,
+    borderRadius: radii.md,
     height: 244,
     justifyContent: "center",
     width: 244,
   },
   section: {
     backgroundColor: colors.surface,
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
     gap: spacing.sm,
     padding: spacing.md,
   },

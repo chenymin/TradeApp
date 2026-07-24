@@ -443,37 +443,37 @@ git commit -m "feat: refresh dashboard information hierarchy"
 - 内聚与可测试性：balance skeleton纯展示；existing workflow fakes cover sequential journeys；no real wallet app in component tests。
 - 可追溯：Wallet normal/mutation/failure recovery/content skeleton/long content/behavior regression 验收场景。
 
-- [ ] **Step 1：扩展 Wallet RED tests**
+- [x] **Step 1：扩展 Wallet RED tests**
 
 保留现有 action label/testID 断言，并新增：balance loading 每行含 identity/subtitle/amount shapes；active hero 不使用 glass；error/recovery/danger 保持 solid；长地址 flex shrink；bind→switch→switch back→unlink→reload→repeat action 均能 dispatch。
 
-- [ ] **Step 2：运行 RED Wallet tests**
+- [x] **Step 2：运行 RED Wallet tests**
 
 Run: `npm test -- --run src/features/wallet/__tests__/WalletScreen.test.tsx`  
 Expected: FAIL，当前 balance loading 是三个 64px block，层级与新结构不符。
 
-- [ ] **Step 3：实现 WalletBalanceSkeleton 与扁平余额行**
+- [x] **Step 3：实现 WalletBalanceSkeleton 与扁平余额行**
 
 每行固定 identity column、辅助 contract/native column、amount column；loading/ready/unavailable 使用同一 row metrics。Refresh 继续调用原 callback；partial token failure 不遮挡成功 rows。
 
-- [ ] **Step 4：重排 active hero 与 linked wallet rows**
+- [x] **Step 4：重排 active hero 与 linked wallet rows**
 
 active hero 使用 `ink` 实色；linked row 保持 identity/selection/unlink 三个稳定 slot。复制现有 `disabled`, `pendingTarget`, `Retry`, `Remove link`, confirmation 和 spinner mapping，不把它们重新推导为新 booleans。
 
-- [ ] **Step 5：整理 Bind 与 Receive**
+- [x] **Step 5：整理 Bind 与 Receive**
 
 Bind 保持主命令和既有 lock；Receive 的 QR 保持纯白背景、完整地址可选择、copy/text/image share 回调原样。图标 Pressable 增加 44x44 命中区但不改 label。
 
-- [ ] **Step 6：保持 phone/wide layout 与 screen workflow effects**
+- [x] **Step 6：保持 phone/wide layout 与 screen workflow effects**
 
 phone 顺序为 active → balances → linked → Receive；`width >= 768` 的现有双列仍工作。只修改 JSX grouping/style，不重写 selection/unlink hooks/effects/ref convergence。
 
-- [ ] **Step 7：运行 GREEN 与连续 wallet suite**
+- [x] **Step 7：运行 GREEN 与连续 wallet suite**
 
 Run: `npm test -- --run src/features/wallet`  
 Expected: PASS；selection machine/workflow/unlink/receive/balance/adapters 全部通过。
 
-- [ ] **Step 8：提交 Task 5**
+- [x] **Step 8：提交 Task 5**
 
 ```bash
 git add src/features/wallet/components src/features/wallet/screens/WalletScreen.tsx src/features/wallet/__tests__/WalletScreen.test.tsx

@@ -28,18 +28,25 @@ describe("WalletScreen", () => {
     expect(dependencies.loadBalances).not.toHaveBeenCalled();
   });
 
-  it("shows fixed skeleton rows during initial load", async () => {
+  it("shows content-shaped balance rows during initial load", async () => {
     const dependencies = walletDependencies();
     dependencies.loadBalances = vi.fn().mockReturnValue(
       new Promise<never>(() => undefined),
     );
     const renderer = await renderWallet({ dependencies });
 
-    expect(renderer.root.findByProps({ accessibilityLabel: "Wallet balances loading" }))
-      .toBeTruthy();
-    expect(renderer.root.findAll((node) => (
-      String(node.type) === "View" && node.props.testID === "wallet-balance-skeleton"
-    ))).toHaveLength(3);
+    const loadingSurface = renderer.root.find((node) => (
+      typeof node.type === "string" &&
+      node.props.accessibilityLabel === "Wallet balances loading"
+    ));
+    expect(loadingSurface.props.accessibilityRole).toBe("progressbar");
+    const nativeSkeletons = (testID: string) => renderer.root.findAll((node) => (
+      typeof node.type === "string" && node.props.testID === testID
+    ));
+    expect(nativeSkeletons("wallet-balance-skeleton-row")).toHaveLength(3);
+    expect(nativeSkeletons("wallet-balance-skeleton-identity")).toHaveLength(3);
+    expect(nativeSkeletons("wallet-balance-skeleton-subtitle")).toHaveLength(3);
+    expect(nativeSkeletons("wallet-balance-skeleton-amount")).toHaveLength(3);
   });
 
   it("shows successful rows beside a failed token and retries", async () => {
@@ -83,6 +90,12 @@ describe("WalletScreen", () => {
     expect(output(renderer)).toContain("External");
     expect(output(renderer)).toContain("Passkey MFA enabled");
     expect(output(renderer)).toContain("Transfers are unavailable");
+    expect(flattenStyle(renderer.root.findByProps({
+      accessibilityLabel: "Wallet active identity",
+    }).props.style)).toMatchObject({ backgroundColor: "#172421" });
+    expect(renderer.root.findByProps({
+      accessibilityLabel: `Active wallet address ${address(8)}`,
+    }).props).toMatchObject({ numberOfLines: 1 });
   });
 
   it("offers stable wallet selection actions and a bind command", async () => {
@@ -263,6 +276,83 @@ describe("WalletScreen", () => {
     expect(selectionDependencies.workflow.select).toHaveBeenCalledTimes(2);
   });
 
+  it("keeps bind, switch, unlink, reload, and repeat actions operable in sequence", async () => {
+    const dependencies = walletDependencies();
+    const metadata = linkedWalletMetadata();
+    const selectionDependencies = {
+      ...walletSelectionDependencies(),
+      connectedExternalAddress: address(9),
+    };
+    const unlinkDependencies = walletUnlinkDependencies();
+    const renderer = await renderWallet({
+      dependencies,
+      metadata,
+      selectionDependencies,
+      unlinkDependencies,
+    });
+    const updateViewer = async (
+      walletAddress: `0x${string}`,
+      nextMetadata = metadata,
+    ) => {
+      await act(async () => {
+        renderer.update(
+          <WalletScreen
+            chain={CHAIN}
+            dependencies={dependencies}
+            privyWalletMetadata={nextMetadata}
+            selectionDependencies={selectionDependencies}
+            unlinkDependencies={unlinkDependencies}
+            viewerState={{
+              isSessionReady: true,
+              viewer: { email: null, id: "viewer-1", walletAddress },
+            }}
+          />,
+        );
+        await Promise.resolve();
+      });
+    };
+
+    await act(async () => {
+      await renderer.root.findByProps({ accessibilityLabel: "Bind wallet" })
+        .props.onPress();
+    });
+    expect(selectionDependencies.workflow.link).toHaveBeenCalledOnce();
+    expect(selectionDependencies.workflow.select).toHaveBeenCalledOnce();
+
+    await updateViewer(address(9));
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Use wallet ${shortAddress(address(8))}`,
+      }).props.onPress();
+    });
+    expect(selectionDependencies.workflow.select).toHaveBeenCalledTimes(2);
+
+    await updateViewer(address(8));
+    await act(async () => {
+      await renderer.root.findByProps({
+        accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+      }).props.onPress();
+    });
+    expect(unlinkDependencies.unlink).toHaveBeenCalledWith(address(9));
+
+    const reloadedMetadata = {
+      ...metadata,
+      wallets: metadata.wallets.filter((wallet) => wallet.address !== address(9)),
+    };
+    await updateViewer(address(8), reloadedMetadata);
+    expect(renderer.root.findAllByProps({
+      accessibilityLabel: `Unlink wallet ${shortAddress(address(9))}`,
+    })).toHaveLength(0);
+
+    const repeatBind = renderer.root.findByProps({ accessibilityLabel: "Bind wallet" });
+    expect(repeatBind.props.disabled).toBe(false);
+    await act(async () => {
+      await repeatBind.props.onPress();
+    });
+    expect(selectionDependencies.workflow.link).toHaveBeenCalledTimes(2);
+    expect(selectionDependencies.workflow.select).toHaveBeenCalledTimes(3);
+  });
+
   it("shows Retry after platform failure and Remove link for a conflict", async () => {
     const failed = walletSelectionDependencies();
     failed.workflow.select = vi.fn().mockRejectedValueOnce({ code: "server_unavailable" });
@@ -280,6 +370,9 @@ describe("WalletScreen", () => {
     expect(failedRenderer.root.findByProps({
       accessibilityLabel: "Retry wallet selection",
     })).toBeTruthy();
+    expect(flattenStyle(failedRenderer.root.findByProps({
+      accessibilityLabel: "Wallet recovery panel",
+    }).props.style)).toMatchObject({ backgroundColor: "#F7E7E3" });
     expect(failedRenderer.root.findByProps({ accessibilityLabel: "Bind wallet" })
       .props.disabled).toBe(true);
     expect(failedRenderer.root.findByProps({
@@ -643,6 +736,27 @@ describe("WalletScreen", () => {
     vi.restoreAllMocks();
   });
 
+  it("orders phone content as active wallet, balances, linked wallets, then receive", async () => {
+    vi.spyOn(ReactNative, "useWindowDimensions").mockReturnValue({
+      fontScale: 1,
+      height: 844,
+      scale: 3,
+      width: 390,
+    });
+    const renderer = await renderWallet({ metadata: linkedWalletMetadata() });
+    const rendered = output(renderer);
+    const positions = [
+      rendered.indexOf("Wallet active identity"),
+      rendered.indexOf("Wallet balances"),
+      rendered.indexOf("Linked wallets"),
+      rendered.indexOf("Receive wallet assets"),
+    ];
+
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((left, right) => left - right));
+    vi.restoreAllMocks();
+  });
+
   it("renders the authoritative address in QR, copy, and text share actions", async () => {
     const dependencies = walletDependencies();
     const renderer = await renderWallet({ dependencies });
@@ -799,6 +913,13 @@ function instanceText(node: TestRenderer.ReactTestInstance): string {
   return node.children.map((child) => (
     typeof child === "string" ? child : instanceText(child)
   )).join("");
+}
+
+function flattenStyle(style: unknown): Record<string, unknown> {
+  if (!Array.isArray(style)) {
+    return style && typeof style === "object" ? style as Record<string, unknown> : {};
+  }
+  return Object.assign({}, ...style.map(flattenStyle));
 }
 
 function ready(

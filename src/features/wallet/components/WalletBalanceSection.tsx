@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppText, colors, spacing } from "../../../shared/ui";
 import type { WalletBalanceLoadResult } from "../domain/walletModels";
+import { WalletBalanceSkeleton } from "./WalletBalanceSkeleton";
 
 export type WalletLoadState =
   | { status: "unavailable" }
@@ -20,7 +21,7 @@ export function WalletBalanceSection({
   return (
     <View accessibilityLabel="Wallet balances" style={styles.section}>
       <View style={styles.header}>
-        <AppText style={styles.heading} variant="body">Balances</AppText>
+        <AppText variant="sectionTitle">Balances</AppText>
         {state.status === "ready" || state.status === "error" ? (
           <Pressable
             accessibilityLabel="Refresh wallet balances"
@@ -33,15 +34,7 @@ export function WalletBalanceSection({
       </View>
 
       {state.status === "loading" ? (
-        <View
-          accessibilityLabel="Wallet balances loading"
-          accessibilityRole="progressbar"
-          style={styles.rows}
-        >
-          {["native", "usdt", "art"].map((id) => (
-            <View key={id} testID="wallet-balance-skeleton" style={styles.skeleton} />
-          ))}
-        </View>
+        <WalletBalanceSkeleton />
       ) : state.status === "error" ? (
         <AppText variant="body">Balances unavailable</AppText>
       ) : state.status === "ready" ? (
@@ -60,8 +53,9 @@ export function WalletBalanceSection({
                 adjustsFontSizeToFit
                 minimumFontScale={0.68}
                 numberOfLines={1}
+                numeric
                 style={styles.amount}
-                variant="body"
+                variant="numberRow"
               >
                 {row.status === "ready" ? row.displayAmount : "Unavailable"}
               </AppText>
@@ -91,15 +85,13 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    minHeight: 64,
+    minHeight: 72,
+    paddingVertical: spacing.sm,
   },
   header: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-  },
-  heading: {
-    fontWeight: "800",
   },
   refresh: {
     alignItems: "center",
@@ -111,13 +103,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   section: {
-    backgroundColor: colors.surface,
     gap: spacing.sm,
-    padding: spacing.md,
-  },
-  skeleton: {
-    backgroundColor: colors.border,
-    height: 64,
   },
   symbol: {
     fontWeight: "800",

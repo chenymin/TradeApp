@@ -155,7 +155,7 @@ export function WalletScreen({
   if (!identity) {
     return (
       <View accessibilityLabel="Wallet screen" style={styles.unavailable}>
-        <AppText style={styles.pageTitle} variant="title">Wallet</AppText>
+        <AppText accessibilityRole="header" variant="pageTitle">Wallet</AppText>
         <AppText variant="body">Wallet unavailable</AppText>
         <AppText variant="caption">
           Sign in again to restore a verified wallet address.
@@ -256,6 +256,13 @@ export function WalletScreen({
     }
   };
 
+  const balanceSection = (
+    <WalletBalanceSection
+      onRefresh={() => setRequestVersion((value) => value + 1)}
+      state={loadState}
+    />
+  );
+
   return (
     <ScrollView
       accessibilityLabel="Wallet screen"
@@ -263,7 +270,7 @@ export function WalletScreen({
     >
       <View style={styles.titleRow}>
         <View>
-          <AppText style={styles.pageTitle} variant="title">Wallet</AppText>
+          <AppText accessibilityRole="header" variant="pageTitle">Wallet</AppText>
           <AppText variant="caption">{chain.name}</AppText>
         </View>
         <AppText style={styles.chainBadge} variant="caption">
@@ -277,6 +284,7 @@ export function WalletScreen({
       >
         <View style={styles.column}>
           <WalletIdentitySection
+            balanceContent={wide ? undefined : balanceSection}
             chainName={chain.name}
             connectedExternalAddress={
               selectionDependencies?.connectedExternalAddress
@@ -295,10 +303,7 @@ export function WalletScreen({
           />
         </View>
         <View style={styles.column}>
-          <WalletBalanceSection
-            onRefresh={() => setRequestVersion((value) => value + 1)}
-            state={loadState}
-          />
+          {wide ? balanceSection : null}
           <WalletReceiveSection
             address={identity.activeAddress}
             chain={chain}
@@ -344,16 +349,12 @@ const styles = StyleSheet.create({
   layout: {
     gap: spacing.lg,
   },
-  pageTitle: {
-    fontSize: 24,
-    textAlign: "left",
-  },
   phoneLayout: {
     flexDirection: "column",
   },
   scrollContent: {
     gap: spacing.lg,
-    padding: spacing.lg,
+    padding: spacing.page,
   },
   titleRow: {
     alignItems: "center",

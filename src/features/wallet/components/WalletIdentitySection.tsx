@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react-native";
+import type { ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -6,7 +7,7 @@ import {
   View,
 } from "react-native";
 
-import { AppText, Button, colors, spacing } from "../../../shared/ui";
+import { AppText, Button, colors, radii, spacing } from "../../../shared/ui";
 import { getWalletSelectionAction } from "../domain/walletIdentity";
 import type { WalletIdentity } from "../domain/walletModels";
 import type {
@@ -32,6 +33,7 @@ export type WalletUnlinkPresentation =
     };
 
 export function WalletIdentitySection({
+  balanceContent,
   chainName,
   connectedExternalAddress,
   identity,
@@ -46,6 +48,7 @@ export function WalletIdentitySection({
   unlinkEnabled = false,
   unlinkState = { status: "idle" },
 }: {
+  balanceContent?: ReactNode;
   chainName: string;
   connectedExternalAddress?: `0x${string}`;
   identity: WalletIdentity;
@@ -65,24 +68,38 @@ export function WalletIdentitySection({
     unlinkState.status === "syncing";
   const selectionBusy = isSelectionBusy(selectionState);
   const operationBusy = unlinkBusy || isSelectionMutationBlocked(selectionState);
+  const activeWallet = identity.wallets.find((wallet) => wallet.status === "active");
 
   return (
     <View accessibilityLabel="Wallet identity and security" style={styles.group}>
-      <View style={styles.section}>
-        <AppText style={styles.heading} variant="body">Verified wallet</AppText>
-        <AppText variant="caption">{chainName}</AppText>
+      <View accessibilityLabel="Wallet active identity" style={styles.activeHero}>
+        <View style={styles.activeHeading}>
+          <AppText style={styles.activeLabel} variant="label">Active wallet</AppText>
+          <AppText style={styles.activeStatus} variant="micro">Active</AppText>
+        </View>
+        <AppText style={styles.activeMuted} variant="caption">{chainName}</AppText>
         <AppText
           accessibilityLabel={`Active wallet address ${identity.activeAddress}`}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
           numberOfLines={1}
-          style={styles.address}
-          variant="body"
+          numeric
+          style={styles.activeAddress}
+          variant="numberRow"
         >
           {shortAddress(identity.activeAddress)}
         </AppText>
+        <AppText style={styles.activeMuted} variant="caption">
+          {activeWallet
+            ? `${activeWallet.providerLabel} · ${activeWallet.kind === "embedded" ? "Embedded" : "External"}`
+            : "Verified wallet"}
+        </AppText>
       </View>
 
-      <View style={styles.section}>
-        <AppText style={styles.heading} variant="body">Linked wallets</AppText>
+      {balanceContent}
+
+      <View style={styles.linkedSection}>
+        <AppText variant="sectionTitle">Linked wallets</AppText>
         {identity.wallets.map((wallet) => {
           const eligible = unlinkEnabled &&
             canUnlinkWallet(identity, wallet);
@@ -134,6 +151,7 @@ export function WalletIdentitySection({
                     onPress={() => onRemoveConflictLink?.(wallet)}
                     style={({ pressed }) => [
                       styles.selectionButton,
+                      styles.dangerSelectionButton,
                       pressed ? styles.unlinkActionPressed : null,
                     ]}
                   >
@@ -188,12 +206,14 @@ export function WalletIdentitySection({
           );
         })}
         {unlinkState.status === "unlink_error" ? (
-          <AppText style={styles.error} variant="caption">
-            Wallet could not be unlinked
-          </AppText>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
+            <AppText style={styles.error} variant="caption">
+              Wallet could not be unlinked
+            </AppText>
+          </View>
         ) : null}
         {unlinkState.status === "sync_error" ? (
-          <View style={styles.syncError}>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
             <AppText style={styles.error} variant="caption">
               Wallet removed; sync pending
             </AppText>
@@ -206,7 +226,7 @@ export function WalletIdentitySection({
         ) : null}
         {selectionState.status === "sync_error" &&
         selectionState.phase === "binding" ? (
-          <View style={styles.syncError}>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
             <AppText style={styles.error} variant="caption">
               {walletBindingErrorMessage(selectionState.error)}
             </AppText>
@@ -220,7 +240,7 @@ export function WalletIdentitySection({
         {(selectionState.status === "sync_error" &&
           selectionState.phase !== "binding") ||
         selectionState.status === "viewer_sync_pending" ? (
-          <View style={styles.syncError}>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
             <AppText style={styles.error} variant="caption">
               Wallet activation is pending
             </AppText>
@@ -232,7 +252,7 @@ export function WalletIdentitySection({
           </View>
         ) : null}
         {selectionState.status === "connect_error" ? (
-          <View style={styles.syncError}>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
             <AppText style={styles.error} variant="caption">
               {selectionState.error === "address_mismatch"
                 ? "Connected wallet does not match this linked wallet"
@@ -250,9 +270,11 @@ export function WalletIdentitySection({
           </View>
         ) : null}
         {selectionState.status === "consistency_error" ? (
-          <AppText style={styles.error} variant="caption">
-            Wallet state needs attention before another change
-          </AppText>
+          <View accessibilityLabel="Wallet recovery panel" style={styles.recoveryPanel}>
+            <AppText style={styles.error} variant="caption">
+              Wallet state needs attention before another change
+            </AppText>
+          </View>
         ) : null}
         {selectionEnabled ? (
           <View style={styles.bindActionSlot}>
@@ -279,8 +301,8 @@ export function WalletIdentitySection({
         ) : null}
       </View>
 
-      <View style={styles.section}>
-        <AppText style={styles.heading} variant="body">Wallet security</AppText>
+      <View style={styles.securitySection}>
+        <AppText variant="sectionTitle">Wallet security</AppText>
         <AppText variant="body">
           {identity.passkeyMfaEnabled
             ? "Passkey MFA enabled"
@@ -351,8 +373,35 @@ function sameAddress(left: string, right: string): boolean {
 }
 
 const styles = StyleSheet.create({
-  address: {
+  activeAddress: {
+    color: colors.surface,
     fontWeight: "800",
+  },
+  activeHeading: {
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  activeHero: {
+    backgroundColor: colors.ink,
+    borderRadius: radii.lg,
+    gap: spacing.sm,
+    minHeight: 148,
+    padding: spacing.lg,
+  },
+  activeLabel: {
+    color: colors.primaryMuted,
+  },
+  activeMuted: {
+    color: colors.primaryMuted,
+  },
+  activeStatus: {
+    backgroundColor: colors.primary,
+    borderRadius: radii.full,
+    color: colors.surface,
+    overflow: "hidden",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   bindActionSlot: {
     alignItems: "center",
@@ -360,6 +409,9 @@ const styles = StyleSheet.create({
   },
   bindButton: {
     alignItems: "center",
+    borderColor: colors.primary,
+    borderRadius: radii.md,
+    borderWidth: 1,
     flexDirection: "row",
     gap: spacing.sm,
     justifyContent: "center",
@@ -370,15 +422,16 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontWeight: "700",
   },
+  dangerSelectionButton: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radii.md,
+  },
   error: {
     color: colors.danger,
     fontWeight: "700",
   },
   group: {
     gap: spacing.md,
-  },
-  heading: {
-    fontWeight: "800",
   },
   label: {
     backgroundColor: colors.primarySoft,
@@ -392,12 +445,23 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: spacing.xs,
   },
-  section: {
-    backgroundColor: colors.surface,
+  linkedSection: {
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
     gap: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  recoveryPanel: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radii.md,
+    gap: spacing.sm,
     padding: spacing.md,
+  },
+  securitySection: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    gap: spacing.sm,
+    paddingTop: spacing.md,
   },
   selectionAction: {
     alignItems: "center",
@@ -415,9 +479,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: 80,
   },
-  syncError: {
-    gap: spacing.sm,
-  },
   unlinkAction: {
     alignItems: "center",
     height: 44,
@@ -429,6 +490,8 @@ const styles = StyleSheet.create({
   },
   unlinkButton: {
     alignItems: "center",
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radii.md,
     height: 44,
     justifyContent: "center",
     width: 44,
@@ -440,8 +503,11 @@ const styles = StyleSheet.create({
   },
   walletRow: {
     alignItems: "center",
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
     flexDirection: "row",
     gap: spacing.sm,
-    minHeight: 64,
+    minHeight: 72,
+    paddingVertical: spacing.xs,
   },
 });
