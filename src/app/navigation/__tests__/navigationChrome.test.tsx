@@ -9,12 +9,19 @@ import {
 import { AppHeader } from "../components/AppHeader";
 import { BottomTabBar } from "../components/BottomTabBar";
 import { RoutePlaceholder } from "../components/RoutePlaceholder";
+import { getTabRoutes } from "../navigationState";
 
 describe("navigation chrome", () => {
   it("renders a compact header with an optional action", async () => {
     const onLogin = vi.fn();
     const tree = renderElement(
-      <AppHeader action="login" eyebrow="Public" onLogin={onLogin} title="Launchpad" />,
+      <AppHeader
+        action="login"
+        eyebrow="Public"
+        onLogin={onLogin}
+        title="Launchpad"
+        variant="routeTitle"
+      />,
     );
 
     expect(textContent(tree)).not.toContain("Public");
@@ -44,7 +51,7 @@ describe("navigation chrome", () => {
       borderRadius: 18,
       borderWidth: 1,
       flexDirection: "row",
-      minHeight: 36,
+      minHeight: 44,
       minWidth: 92,
     });
     expect(findByProps(tree, { accessibilityLabel: "Sign in icon" }).props).toMatchObject({
@@ -57,6 +64,30 @@ describe("navigation chrome", () => {
     await getPressHandler(tree, "Sign in")();
 
     expect(onLogin).toHaveBeenCalledOnce();
+  });
+
+  it("uses the ARTSTAR brand header without changing the Back command", async () => {
+    const onBack = vi.fn();
+    const tree = renderElement(
+      <AppHeader
+        action="walletStatus"
+        eyebrow="Assets"
+        onBack={onBack}
+        title="Wallet"
+        variant="brand"
+      />,
+    );
+
+    expect(textContent(tree)).toContain("ARTSTAR");
+    expect(textContent(tree)).not.toContain("Wallet");
+    expect(findByProps(tree, { accessibilityLabel: "Header title ARTSTAR" }))
+      .toBeTruthy();
+    expect(findByProps(tree, { variant: "header" })).toBeTruthy();
+    expect(findByProps(tree, { accessibilityLabel: "Back" }).props.style)
+      .toMatchObject({ minHeight: 44, minWidth: 44 });
+
+    await getPressHandler(tree, "Back")();
+    expect(onBack).toHaveBeenCalledOnce();
   });
 
   it("marks exactly one bottom tab as selected", () => {
@@ -91,6 +122,31 @@ describe("navigation chrome", () => {
     });
     expect(textContent(findByProps(tree, { accessibilityLabel: "Tab Dashboard icon" }))).toBe("");
     expect(textContent(findByProps(tree, { accessibilityLabel: "Tab My icon" }))).toBe("");
+  });
+
+  it("keeps all five tab routes and dispatches the selected route once", async () => {
+    const onSelect = vi.fn();
+    const tabs = getTabRoutes();
+    const tree = renderElement(
+      <BottomTabBar
+        activeRouteName="launchpad"
+        onSelect={onSelect}
+        tabs={tabs}
+      />,
+    );
+
+    expect(tabs.map(({ routeName }) => routeName)).toEqual([
+      "launchpad",
+      "market",
+      "referralPublic",
+      "dashboard",
+      "profile",
+    ]);
+    expect(findByProps(tree, { variant: "navigation" })).toBeTruthy();
+
+    await getPressHandler(tree, "Tab Dashboard")();
+    expect(onSelect).toHaveBeenCalledOnce();
+    expect(onSelect).toHaveBeenCalledWith("dashboard");
   });
 
   it("renders placeholders without pretending real feature data exists", () => {

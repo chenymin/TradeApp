@@ -84,11 +84,25 @@ describe("navigationState", () => {
       action: "login",
       eyebrow: "Public",
       title: "Launchpad",
+      variant: "routeTitle",
     });
     expect(getHeaderConfig("home", "authenticated")).toEqual({
       action: "walletStatus",
       eyebrow: "Portfolio",
       title: "Home",
+      variant: "routeTitle",
+    });
+    expect(getHeaderConfig("dashboard", "authenticated")).toEqual({
+      action: "walletStatus",
+      eyebrow: "Portfolio",
+      title: "Home",
+      variant: "brand",
+    });
+    expect(getHeaderConfig("wallet", "authenticated")).toEqual({
+      action: "walletStatus",
+      eyebrow: "Assets",
+      title: "Wallet",
+      variant: "brand",
     });
   });
 });

@@ -36,6 +36,7 @@ export function AppShell({
         onBack={onBack}
         onLogin={onLogin}
         title={header.title}
+        variant={header.variant}
       />
       <View style={styles.content}>{children}</View>
       {tabs && activeRouteName && onTabSelect ? (

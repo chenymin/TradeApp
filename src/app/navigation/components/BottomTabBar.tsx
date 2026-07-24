@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 import {
   Home,
   LayoutDashboard,
@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react-native";
 
-import { colors, radii, spacing } from "../../../shared/ui";
+import { colors, GlassSurface, radii, spacing } from "../../../shared/ui";
 import type { MainTabRouteName, TabIconName, TabRoute } from "../navigationState";
 
 export function BottomTabBar({
@@ -21,7 +21,7 @@ export function BottomTabBar({
   tabs: TabRoute[];
 }) {
   return (
-    <View style={styles.root}>
+    <GlassSurface style={styles.root} variant="navigation">
       {tabs.map((tab) => {
         const selected = tab.routeName === activeRouteName;
         return (
@@ -46,7 +46,7 @@ export function BottomTabBar({
           </Pressable>
         );
       })}
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -109,7 +109,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   root: {
-    backgroundColor: colors.surface,
     borderTopColor: colors.border,
     borderTopWidth: 1,
     flexDirection: "row",

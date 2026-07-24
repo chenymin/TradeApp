@@ -2,8 +2,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ArrowLeft, LogIn } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, radii, spacing } from "../../../shared/ui";
-import type { HeaderAction } from "../navigationState";
+import { colors, GlassSurface, radii, spacing } from "../../../shared/ui";
+import type { HeaderAction, HeaderVariant } from "../navigationState";
 
 export function AppHeader({
   action,
@@ -11,18 +11,21 @@ export function AppHeader({
   onBack,
   onLogin,
   title,
+  variant,
 }: {
   action: HeaderAction;
   eyebrow: string;
   onBack?: () => void;
   onLogin?: () => Promise<void> | void;
   title: string;
+  variant: HeaderVariant;
 }) {
   const insets = useSafeAreaInsets();
   const topPadding = Math.max(spacing.md, insets.top + spacing.sm);
+  const visibleTitle = variant === "brand" ? "ARTSTAR" : title;
 
   return (
-    <View
+    <GlassSurface
       accessibilityLabel="App header"
       style={[
         styles.header,
@@ -31,6 +34,7 @@ export function AppHeader({
           paddingTop: topPadding,
         },
       ]}
+      variant="header"
     >
       <View accessibilityLabel="Header side slot" style={styles.sideSlot}>
         {onBack ? (
@@ -41,11 +45,11 @@ export function AppHeader({
       </View>
       <View accessibilityLabel="Header title group" style={styles.titleGroup}>
         <Text
-          accessibilityLabel={`Header title ${title}`}
+          accessibilityLabel={`Header title ${visibleTitle}`}
           numberOfLines={1}
-          style={styles.title}
+          style={variant === "brand" ? [styles.title, styles.brandTitle] : styles.title}
         >
-          {title}
+          {visibleTitle}
         </Text>
       </View>
       <View accessibilityLabel="Header action slot" style={styles.actionSlot}>
@@ -66,7 +70,7 @@ export function AppHeader({
           </View>
         ) : null}
       </View>
-    </View>
+    </GlassSurface>
   );
 }
 
@@ -78,13 +82,17 @@ const styles = StyleSheet.create({
   backButton: {
     alignItems: "center",
     borderRadius: radii.md,
-    height: 40,
+    height: 44,
     justifyContent: "center",
-    width: 40,
+    minHeight: 44,
+    minWidth: 44,
+    width: 44,
+  },
+  brandTitle: {
+    color: colors.ink,
   },
   header: {
     alignItems: "center",
-    backgroundColor: colors.surface,
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
     flexDirection: "row",
@@ -102,7 +110,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.xs,
     justifyContent: "center",
-    minHeight: 36,
+    minHeight: 44,
     minWidth: 92,
     paddingHorizontal: spacing.md,
     shadowColor: colors.primary,

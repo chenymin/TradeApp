@@ -281,7 +281,7 @@ describe("AppNavigator", () => {
     expect(treeText).not.toContain("Tab Wallet");
     expect(treeText).toContain("My");
     expect(treeText).toContain("Portfolio value");
-    expect(testRenderer.root.findByProps({ accessibilityLabel: "Header title Home" })).toBeTruthy();
+    expect(testRenderer.root.findByProps({ accessibilityLabel: "Header title ARTSTAR" })).toBeTruthy();
     expect(testRenderer.root.findByProps({ accessibilityLabel: "Wallet status" })).toBeTruthy();
     expect(testRenderer.root.findByProps({ accessibilityLabel: "Tab Dashboard" }).props.accessibilityState).toEqual({
       selected: true,
@@ -462,7 +462,7 @@ describe("AppNavigator", () => {
 
     expect(renderer!.root.findByProps({ accessibilityLabel: "Wallet screen" }))
       .toBeTruthy();
-    expect(renderer!.root.findByProps({ accessibilityLabel: "Header title Wallet" }))
+    expect(renderer!.root.findByProps({ accessibilityLabel: "Header title ARTSTAR" }))
       .toBeTruthy();
     expect(renderer!.root.findAllByProps({ accessibilityLabel: "Tab My" }))
       .toHaveLength(0);

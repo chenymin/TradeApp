@@ -349,7 +349,7 @@ git commit -m "feat: add restrained glass and skeleton primitives"
 - 内聚与可测试性：presentation metadata 由 navigationState 确定；components 只渲染与 dispatch props。
 - 可追溯：需求“标题重复”“导航不变”“克制玻璃”“44x44”。
 
-- [ ] **Step 1：写 navigation RED tests**
+- [x] **Step 1：写 navigation RED tests**
 
 断言 Dashboard header 使用 `ARTSTAR` brand variant、Wallet 保留 Back、其他 route 保留 title；五 tab 精确顺序和一次 callback：
 
@@ -363,25 +363,25 @@ expect(findByProps(tree, { accessibilityLabel: "Back" }).props.style)
   .toEqual(expect.arrayContaining([expect.objectContaining({ minHeight: 44, minWidth: 44 })]));
 ```
 
-- [ ] **Step 2：运行 RED navigation tests**
+- [x] **Step 2：运行 RED navigation tests**
 
 Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts`  
 Expected: FAIL，缺少 brand/glass presentation。
 
-- [ ] **Step 3：实现 Header variant 和 glass surface**
+- [x] **Step 3：实现 Header variant 和 glass surface**
 
 Header props新增 `variant: "brand" | "routeTitle"`；brand 显示 `ARTSTAR`，routeTitle 显示原 title。side/action slot 使用稳定宽度，Back/Login/Wallet status 语义不变。
 
-- [ ] **Step 4：实现 BottomTabBar restrained glass**
+- [x] **Step 4：实现 BottomTabBar restrained glass**
 
 用 `GlassSurface variant="navigation"` 替换 root surface；保留 route map/key/onPress。选中态只使用 primary icon/text 与 restrained fill，不改变 item 稳定尺寸。
 
-- [ ] **Step 5：运行 GREEN 与 AppNavigator 回归**
+- [x] **Step 5：运行 GREEN 与 AppNavigator 回归**
 
 Run: `npm test -- --run src/app/navigation/__tests__/navigationChrome.test.tsx src/app/navigation/__tests__/navigationState.test.ts src/app/navigation/__tests__/AppNavigator.test.tsx`  
 Expected: PASS；protected/public route 和 detail back 全部不变。
 
-- [ ] **Step 6：提交 Task 3**
+- [x] **Step 6：提交 Task 3**
 
 ```bash
 git add src/app/navigation/components/AppHeader.tsx src/app/navigation/components/BottomTabBar.tsx src/app/navigation/navigationState.ts src/app/navigation/__tests__

@@ -19,10 +19,13 @@ export type AppRouteName =
 
 export type HeaderAction = "login" | "none" | "walletStatus";
 
+export type HeaderVariant = "brand" | "routeTitle";
+
 export type HeaderConfig = {
   action: HeaderAction;
   eyebrow: string;
   title: string;
+  variant: HeaderVariant;
 };
 
 export type TabIconName =
@@ -72,7 +75,10 @@ const MAIN_TABS: TabRoute[] = [
   { icon: "profile", label: "My", requiresAuth: false, routeName: "profile" },
 ];
 
-const HEADER_CONFIGS: Record<AppRouteName, Omit<HeaderConfig, "action">> = {
+const HEADER_CONFIGS: Record<
+  AppRouteName,
+  Omit<HeaderConfig, "action" | "variant">
+> = {
   accountDisabled: { eyebrow: "Account", title: "Unavailable" },
   assetDetail: { eyebrow: "Asset", title: "Details" },
   dashboard: { eyebrow: "Portfolio", title: "Home" },
@@ -113,6 +119,9 @@ export function getHeaderConfig(
   return {
     ...HEADER_CONFIGS[routeName],
     action: getHeaderAction(routeName, authStatus),
+    variant: routeName === "dashboard" || routeName === "wallet"
+      ? "brand"
+      : "routeTitle",
   };
 }
 
