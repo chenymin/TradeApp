@@ -16,6 +16,7 @@ import type { DashboardCommissionResult } from "../services/dashboardCommissionR
 import type { DashboardHoldingsResult } from "../services/dashboardHoldingsLoader";
 import type { DashboardKycSummary } from "../services/dashboardKycRepository";
 import { DashboardSummary } from "./DashboardSummary";
+import { DashboardSummarySkeleton } from "./DashboardSummarySkeleton";
 
 export type DashboardTab =
   | "holdings"
@@ -30,6 +31,7 @@ export type DashboardHeaderProps = {
   holdings: DashboardHoldingsResult | null;
   kyc: DashboardKycSummary | null;
   kycUnavailable: boolean;
+  loading: boolean;
   nicknameDraft: string;
   nicknameError: string | null;
   onBeginNicknameEdit(): void;
@@ -56,6 +58,7 @@ export function DashboardHeader({
   holdings,
   kyc,
   kycUnavailable,
+  loading,
   nicknameDraft,
   nicknameError,
   onBeginNicknameEdit,
@@ -71,7 +74,9 @@ export function DashboardHeader({
     <View style={styles.header}>
       <View style={styles.titleRow}>
         <View style={styles.titleGroup}>
-          <AppText style={styles.title}>Dashboard</AppText>
+          <AppText accessibilityRole="header" variant="pageTitle">
+            Dashboard
+          </AppText>
           {editingNickname ? (
             <View
               onTouchStart={(event) => event.stopPropagation()}
@@ -99,7 +104,11 @@ export function DashboardHeader({
               accessibilityLabel="Edit nickname"
               onPress={onBeginNicknameEdit}
             >
-              <AppText style={styles.nickname}>
+              <AppText
+                accessibilityLabel="Dashboard identity name"
+                numberOfLines={1}
+                style={styles.nickname}
+              >
                 {profile?.nickname ?? viewerEmail ?? "Set nickname"}
               </AppText>
             </Pressable>
@@ -124,17 +133,26 @@ export function DashboardHeader({
         </View>
       ) : null}
 
-      <DashboardSummary
-        commissionValue={commissionLabel(commission)}
-        kycTone={kyc?.approved ? "positive" : "default"}
-        kycValue={kycUnavailable ? "Unavailable" : kycLabel(kyc)}
-        pnlAmount={signedMoney(holdings?.summary.totalPnlUsdt ?? "0")}
-        pnlPercent={signedPercent(holdings?.summary.pnlPercent ?? "0")}
-        pnlTone={isNegative(holdings?.summary.totalPnlUsdt) ? "negative" : "positive"}
-        pointsValue={`${formatPoints(profile?.totalPoints)} points`}
-        portfolioValue={money(holdings?.summary.totalValueUsdt ?? "0")}
-        tierValue={`Tier ${formatTier(profile?.tier)}`}
-      />
+      {loading ? (
+        <DashboardSummarySkeleton />
+      ) : (
+        <DashboardSummary
+          assetCountValue={holdings ? String(holdings.summary.holdingsCount) : "Unavailable"}
+          commissionValue={commissionLabel(commission)}
+          kycTone={kyc?.approved ? "positive" : "default"}
+          kycValue={kycUnavailable ? "Unavailable" : kycLabel(kyc)}
+          pnlAmount={holdings ? signedMoney(holdings.summary.totalPnlUsdt) : "Unavailable"}
+          pnlPercent={holdings ? signedPercent(holdings.summary.pnlPercent) : ""}
+          pnlTone={!holdings
+            ? "default"
+            : isNegative(holdings.summary.totalPnlUsdt)
+              ? "negative"
+              : "positive"}
+          pointsValue={profile ? `${formatPoints(profile.totalPoints)} points` : "Unavailable"}
+          portfolioValue={holdings ? money(holdings.summary.totalValueUsdt) : "Unavailable"}
+          tierValue={profile ? `Tier ${formatTier(profile.tier)}` : "Unavailable"}
+        />
+      )}
 
       {holdings?.warnings.length ? (
         <AppText variant="caption">
@@ -146,6 +164,7 @@ export function DashboardHeader({
         compact
         onChange={onTabChange}
         options={DASHBOARD_TABS}
+        surface="glass"
         value={tab}
       />
     </View>
@@ -202,6 +221,7 @@ const styles = StyleSheet.create({
   },
   nickname: {
     color: colors.muted,
+    flexShrink: 1,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -223,20 +243,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.primarySoft,
     borderRadius: radii.lg,
-    height: 40,
+    height: 44,
     justifyContent: "center",
-    width: 40,
+    width: 44,
   },
   refreshButtonPressed: {
     opacity: 0.72,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-  },
   titleGroup: {
     flex: 1,
     gap: spacing.xs,
+    minWidth: 0,
   },
   titleRow: {
     alignItems: "flex-start",

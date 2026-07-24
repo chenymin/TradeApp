@@ -159,6 +159,118 @@ describe("DashboardScreen", () => {
     expect(renderer!.root.findByProps({ accessibilityLabel: "Commission summary" })).toBeTruthy();
   });
 
+  it("renders content-shaped loading without presenting a fake zero balance", async () => {
+    const dependencies = createDependencies();
+    const pending = new Promise<never>(() => undefined);
+    dependencies.profileLoader = vi.fn().mockReturnValue(pending);
+    dependencies.holdingsLoader = vi.fn().mockReturnValue(pending);
+    dependencies.kycLoader = vi.fn().mockReturnValue(pending);
+    dependencies.commissionLoader = vi.fn().mockReturnValue(pending);
+    let renderer: ReactTestRenderer | undefined;
+
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <DashboardScreen {...dependencies} viewerState={viewerState()} />,
+      );
+      await Promise.resolve();
+    });
+
+    const loadingSurface = (accessibilityLabel: string) => renderer!.root.find(
+      (node) => typeof node.type === "string" &&
+        node.props.accessibilityLabel === accessibilityLabel,
+    );
+    expect(loadingSurface("Dashboard loading").props.accessibilityRole)
+      .toBe("progressbar");
+    expect(loadingSurface("Dashboard rows loading").props.accessibilityRole)
+      .toBe("progressbar");
+    expect(JSON.stringify(renderer!.toJSON())).not.toContain("$0.00");
+
+    await act(async () => renderer!.unmount());
+  });
+
+  it("shows a real zero portfolio only after the loaders are ready", async () => {
+    const dependencies = createDependencies();
+    const readyHoldings = holdingsResult();
+    dependencies.holdingsLoader = vi.fn().mockResolvedValue({
+      ...readyHoldings,
+      holdings: [],
+      summary: {
+        holdingsCount: 0,
+        pnlPercent: "0",
+        totalInvestedUsdt: "0",
+        totalPnlUsdt: "0",
+        totalValueUsdt: "0",
+      },
+      transactions: [],
+    });
+
+    const renderer = await renderDashboard(dependencies);
+
+    expect(JSON.stringify(renderer.toJSON())).toContain("$0.00");
+    expect(renderer.root.findByProps({ accessibilityLabel: "Portfolio value metric" }))
+      .toBeTruthy();
+  });
+
+  it("keeps available portfolio data visible when another dashboard source fails", async () => {
+    const dependencies = createDependencies();
+    dependencies.profileLoader = vi.fn().mockRejectedValue(new Error("unavailable"));
+
+    const renderer = await renderDashboard(dependencies);
+    const output = JSON.stringify(renderer.toJSON());
+
+    expect(output).toContain("Profile unavailable");
+    expect(output).toContain("$60.00");
+    expect(renderer.root.findByProps({ accessibilityLabel: "Holding asset-1" }))
+      .toBeTruthy();
+  });
+
+  it("keeps long identity and portfolio values inside stable single-line slots", async () => {
+    const dependencies = createDependencies();
+    const longNickname = "Institutional Collector Account With A Long Name";
+    dependencies.profileLoader = vi.fn().mockResolvedValue({
+      id: "viewer-1",
+      inviteCode: "INVITE",
+      nickname: longNickname,
+      referralPoints: 10,
+      reputationPoints: 0,
+      taskPoints: 0,
+      tier: "A",
+      totalPoints: 34.5,
+      tradingPoints: 24.5,
+      userType: "investor",
+    });
+    const readyHoldings = holdingsResult();
+    dependencies.holdingsLoader = vi.fn().mockResolvedValue({
+      ...readyHoldings,
+      summary: {
+        ...readyHoldings.summary,
+        totalValueUsdt: "123456789012345.67",
+      },
+    });
+
+    const renderer = await renderDashboard(dependencies);
+
+    expect(renderer.root.findByProps({ accessibilityLabel: "Dashboard identity name" }).props)
+      .toMatchObject({ numberOfLines: 1 });
+    expect(renderer.root.findByProps({ accessibilityLabel: "Portfolio value" }).props)
+      .toMatchObject({
+        adjustsFontSizeToFit: true,
+        numberOfLines: 1,
+      });
+  });
+
+  it("keeps the existing refresh command wired to all dashboard loaders", async () => {
+    const dependencies = createDependencies();
+    const renderer = await renderDashboard(dependencies);
+
+    await press(renderer, "Refresh dashboard");
+
+    expect(dependencies.profileLoader).toHaveBeenCalledTimes(2);
+    expect(dependencies.holdingsLoader).toHaveBeenCalledTimes(2);
+    expect(dependencies.kycLoader).toHaveBeenCalledTimes(2);
+    expect(dependencies.commissionLoader).toHaveBeenCalledTimes(2);
+  });
+
   it("switches to transactions and opens only validated explorer URLs", async () => {
     const dependencies = createDependencies();
     let renderer: ReactTestRenderer | undefined;
@@ -362,40 +474,7 @@ function createDependencies() {
     }),
     externalLinkAdapter: { open: vi.fn().mockResolvedValue("opened" as const) },
     fetchAccessToken: vi.fn().mockResolvedValue("access-token"),
-    holdingsLoader: vi.fn().mockResolvedValue({
-      holdings: [{
-        assetId: "asset-1",
-        avgBuyPriceUsdt: "13",
-        currentPriceUsdt: "15",
-        currentShares: "4",
-        gainPercent: "15.384615384615384615",
-        imageUrl: null,
-        symbol: "ART",
-        title: "Artwork",
-        valueUsdt: "60",
-      }],
-      summary: {
-        holdingsCount: 1,
-        pnlPercent: "15.384615384615384615",
-        totalInvestedUsdt: "52",
-        totalPnlUsdt: "8",
-        totalValueUsdt: "60",
-      },
-      transactions: [{
-        amountUsdt: "20",
-        assetId: "asset-1",
-        chainId: 97,
-        explorerUrl: `https://testnet.bscscan.com/tx/0x${"a".repeat(64)}`,
-        id: "event-1",
-        priceUsdt: "10",
-        shares: "2",
-        symbol: "ART",
-        timestamp: "2026-07-15T00:00:00.000Z",
-        txHash: `0x${"a".repeat(64)}`,
-        type: "buy" as const,
-      }],
-      warnings: [],
-    }),
+    holdingsLoader: vi.fn().mockResolvedValue(holdingsResult()),
     kycLoader: vi.fn().mockResolvedValue({
       approved: true,
       notes: null,
@@ -465,6 +544,43 @@ function createDependencies() {
         }),
       },
     },
+  };
+}
+
+function holdingsResult() {
+  return {
+      holdings: [{
+        assetId: "asset-1",
+        avgBuyPriceUsdt: "13",
+        currentPriceUsdt: "15",
+        currentShares: "4",
+        gainPercent: "15.384615384615384615",
+        imageUrl: null,
+        symbol: "ART",
+        title: "Artwork",
+        valueUsdt: "60",
+      }],
+      summary: {
+        holdingsCount: 1,
+        pnlPercent: "15.384615384615384615",
+        totalInvestedUsdt: "52",
+        totalPnlUsdt: "8",
+        totalValueUsdt: "60",
+      },
+      transactions: [{
+        amountUsdt: "20",
+        assetId: "asset-1",
+        chainId: 97,
+        explorerUrl: `https://testnet.bscscan.com/tx/0x${"a".repeat(64)}`,
+        id: "event-1",
+        priceUsdt: "10",
+        shares: "2",
+        symbol: "ART",
+        timestamp: "2026-07-15T00:00:00.000Z",
+        txHash: `0x${"a".repeat(64)}`,
+        type: "buy" as const,
+      }],
+      warnings: [],
   };
 }
 

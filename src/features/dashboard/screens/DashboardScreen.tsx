@@ -17,6 +17,7 @@ import {
   DashboardHeader,
   type DashboardTab,
 } from "../components/DashboardHeader";
+import { DashboardRowsSkeleton } from "../components/DashboardRowsSkeleton";
 import type {
   DashboardHolding,
   DashboardTransaction,
@@ -227,6 +228,7 @@ export function DashboardScreen({
       holdings={holdings}
       kyc={kyc}
       kycUnavailable={kycState.status === "error"}
+      loading={status !== "ready"}
       nicknameDraft={nicknameDraft}
       nicknameError={nicknameError}
       onBeginNicknameEdit={() => {
@@ -284,24 +286,20 @@ export function DashboardScreen({
         data={rows}
         keyboardDismissMode="on-drag"
         keyExtractor={(row) => `${row.kind}:${row.id}`}
-        ListEmptyComponent={(
-          <View style={styles.empty}>
-            <AppText style={styles.emptyTitle}>
-              {status === "loading"
-                ? "Loading dashboard..."
-                : tab === "holdings"
-                  ? "No holdings yet"
-                  : "No transactions yet"}
-            </AppText>
-            {status !== "loading" ? (
+        ListEmptyComponent={status !== "ready"
+          ? <DashboardRowsSkeleton />
+          : (
+            <View style={styles.empty}>
+              <AppText style={styles.emptyTitle}>
+                {tab === "holdings" ? "No holdings yet" : "No transactions yet"}
+              </AppText>
               <AppText variant="caption">
                 {tab === "holdings"
                   ? "Assets appear after an indexed purchase and a positive chain balance."
                   : "Indexed purchases will appear here."}
               </AppText>
-            ) : null}
-          </View>
-        )}
+            </View>
+          )}
         ListHeaderComponent={renderHeader(load)}
         onRefresh={() => { void load(); }}
         refreshing={status === "loading"}

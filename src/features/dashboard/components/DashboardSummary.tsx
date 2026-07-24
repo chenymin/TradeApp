@@ -1,10 +1,3 @@
-import {
-  LayoutGrid,
-  ShieldCheck,
-  TrendingUp,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 
 import { AppText, colors, radii, spacing } from "../../../shared/ui";
@@ -12,6 +5,7 @@ import { AppText, colors, radii, spacing } from "../../../shared/ui";
 type MetricTone = "default" | "negative" | "positive";
 
 export type DashboardSummaryProps = {
+  assetCountValue: string;
   commissionValue: string;
   kycTone: MetricTone;
   kycValue: string;
@@ -23,10 +17,8 @@ export type DashboardSummaryProps = {
   tierValue: string;
 };
 
-type MetricTileProps = {
+type CompactMetricProps = {
   accessibilityLabel: string;
-  emphasized?: boolean;
-  icon: LucideIcon;
   label: string;
   secondaryValue?: string;
   tone?: MetricTone;
@@ -34,6 +26,7 @@ type MetricTileProps = {
 };
 
 export function DashboardSummary({
+  assetCountValue,
   commissionValue,
   kycTone,
   kycValue,
@@ -46,89 +39,90 @@ export function DashboardSummary({
 }: DashboardSummaryProps) {
   return (
     <View style={styles.summary}>
+      <View accessibilityLabel="Portfolio value metric" style={styles.hero}>
+        <AppText style={styles.heroLabel} variant="label">
+          Portfolio value
+        </AppText>
+        <AppText
+          accessibilityLabel="Portfolio value"
+          adjustsFontSizeToFit
+          minimumFontScale={0.68}
+          numberOfLines={1}
+          numeric
+          style={styles.heroValue}
+          variant="display"
+        >
+          {portfolioValue}
+        </AppText>
+        <View accessibilityLabel="Total PnL metric" style={styles.heroPnl}>
+          <AppText style={styles.heroPnlLabel} variant="caption">
+            Total PnL
+          </AppText>
+          <View style={styles.heroPnlValues}>
+            <AppText numeric style={[styles.heroPnlValue, toneStyle(pnlTone)]}>
+              {pnlAmount}
+            </AppText>
+            {pnlPercent ? (
+              <AppText numeric style={[styles.heroPnlPercent, toneStyle(pnlTone)]}>
+                {pnlPercent}
+              </AppText>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
       <View style={styles.metricGrid}>
-        <MetricTile
-          accessibilityLabel="Portfolio value metric"
-          emphasized
-          icon={Wallet}
-          label="Portfolio value"
-          value={portfolioValue}
-        />
-        <MetricTile
-          accessibilityLabel="Total PnL metric"
-          icon={TrendingUp}
-          label="Total PnL"
-          secondaryValue={pnlPercent}
-          tone={pnlTone}
-          value={pnlAmount}
-        />
-        <MetricTile
+        <CompactMetric
           accessibilityLabel="Tier and points metric"
-          icon={LayoutGrid}
           label="Tier / points"
           secondaryValue={pointsValue}
           value={tierValue}
         />
-        <MetricTile
+        <CompactMetric
           accessibilityLabel="KYC metric"
-          icon={ShieldCheck}
           label="KYC status"
           tone={kycTone}
           value={kycValue}
         />
-      </View>
-
-      <View accessibilityLabel="Commission summary" style={styles.commissionRow}>
-        <AppText variant="caption">Commission earned</AppText>
-        <AppText style={styles.commissionValue}>{commissionValue}</AppText>
+        <CompactMetric
+          accessibilityLabel="Commission summary"
+          label="Commission earned"
+          value={commissionValue}
+        />
+        <CompactMetric
+          accessibilityLabel="Asset count metric"
+          label="Assets"
+          value={assetCountValue}
+        />
       </View>
     </View>
   );
 }
 
-function MetricTile({
+function CompactMetric({
   accessibilityLabel,
-  emphasized = false,
-  icon: Icon,
   label,
   secondaryValue,
   tone = "default",
   value,
-}: MetricTileProps) {
-  const statusStyle = tone === "negative"
-    ? styles.negative
-    : tone === "positive"
-      ? styles.positive
-      : undefined;
-
+}: CompactMetricProps) {
   return (
-    <View
-      accessibilityLabel={accessibilityLabel}
-      style={[styles.metricTile, emphasized && styles.emphasizedTile]}
-    >
-      <View style={styles.metricHeading}>
-        <Icon
-          color={emphasized ? colors.primaryMuted : colors.muted}
-          size={17}
-          strokeWidth={2.2}
-        />
-        <AppText style={[styles.metricLabel, emphasized && styles.emphasizedLabel]}>
-          {label}
-        </AppText>
-      </View>
-
+    <View accessibilityLabel={accessibilityLabel} style={styles.metric}>
+      <AppText style={styles.metricLabel} variant="caption">
+        {label}
+      </AppText>
       <View style={styles.metricNumbers}>
         <AppText
-          style={[
-            styles.metricValue,
-            emphasized && styles.emphasizedValue,
-            !emphasized && statusStyle,
-          ]}
+          adjustsFontSizeToFit
+          minimumFontScale={0.76}
+          numberOfLines={1}
+          numeric
+          style={[styles.metricValue, toneStyle(tone)]}
         >
           {value}
         </AppText>
         {secondaryValue ? (
-          <AppText style={[styles.metricSecondary, statusStyle]}>
+          <AppText style={[styles.metricSecondary, toneStyle(tone)]}>
             {secondaryValue}
           </AppText>
         ) : null}
@@ -137,71 +131,74 @@ function MetricTile({
   );
 }
 
+function toneStyle(tone: MetricTone) {
+  if (tone === "negative") return styles.negative;
+  if (tone === "positive") return styles.positive;
+  return undefined;
+}
+
 const styles = StyleSheet.create({
-  commissionRow: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+  hero: {
+    backgroundColor: colors.ink,
     borderRadius: radii.lg,
-    borderWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    minHeight: 56,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    minHeight: 156,
+    padding: spacing.lg,
   },
-  commissionValue: {
-    flexShrink: 1,
-    fontSize: 16,
-    fontWeight: "800",
-    textAlign: "right",
-  },
-  emphasizedLabel: {
+  heroLabel: {
     color: colors.primaryMuted,
   },
-  emphasizedTile: {
-    backgroundColor: colors.text,
-    borderColor: colors.text,
+  heroPnl: {
+    borderTopColor: "rgba(255, 255, 255, 0.16)",
+    borderTopWidth: 1,
+    marginTop: "auto",
+    paddingTop: spacing.md,
   },
-  emphasizedValue: {
+  heroPnlLabel: {
+    color: colors.primaryMuted,
+  },
+  heroPnlPercent: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  heroPnlValue: {
     color: colors.surface,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  heroPnlValues: {
+    alignItems: "baseline",
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  heroValue: {
+    color: colors.surface,
+    marginTop: spacing.xs,
+  },
+  metric: {
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    gap: spacing.sm,
+    minHeight: 76,
+    paddingVertical: spacing.md,
+    width: "48%",
   },
   metricGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
     justifyContent: "space-between",
-  },
-  metricHeading: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: spacing.sm,
   },
   metricLabel: {
     color: colors.muted,
-    flex: 1,
-    fontSize: 12,
-    fontWeight: "600",
   },
   metricNumbers: {
     gap: spacing.xs,
   },
   metricSecondary: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "700",
   },
-  metricTile: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    justifyContent: "space-between",
-    minHeight: 116,
-    padding: spacing.md,
-    width: "48%",
-  },
   metricValue: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "800",
   },
   negative: {
@@ -211,6 +208,6 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   summary: {
-    gap: spacing.sm,
+    gap: spacing.md,
   },
 });

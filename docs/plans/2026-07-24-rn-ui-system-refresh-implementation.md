@@ -399,33 +399,33 @@ git commit -m "feat: refresh application navigation chrome"
 - 内聚与可测试性：summary/skeleton 是纯 props；screen tests 使用当前 fakes；不访问真实网络。
 - 可追溯：Dashboard normal/empty/partial/loading/long content/behavior regression 验收场景。
 
-- [ ] **Step 1：补 Dashboard RED state matrix tests**
+- [x] **Step 1：补 Dashboard RED state matrix tests**
 
 新增断言：loading 有 `Dashboard loading` progressbar 且没有 `$0.00`；ready zero 才显示 `$0.00`；partial warning 与 available data 共存；holding/transaction key 和 callbacks 不变；长 nickname/value 不溢出稳定 slots。
 
-- [ ] **Step 2：运行 RED Dashboard tests**
+- [x] **Step 2：运行 RED Dashboard tests**
 
 Run: `npm test -- --run src/features/dashboard/__tests__/DashboardScreen.test.tsx`  
 Expected: FAIL，当前 loading 显示 `Loading dashboard...` 且 summary 使用零值。
 
-- [ ] **Step 3：实现 Dashboard content-shaped skeletons**
+- [x] **Step 3：实现 Dashboard content-shaped skeletons**
 
 `DashboardSummarySkeleton` 复刻 hero + 2x2 metric grid；`DashboardRowsSkeleton` 复刻两条 title/subtitle/right-number row。二者只组合 shared Skeleton primitives，不接受业务数据。
 
-- [ ] **Step 4：重排 DashboardHeader/DashboardSummary**
+- [x] **Step 4：重排 DashboardHeader/DashboardSummary**
 
 增加显式 `loading` prop；loading 渲染 skeleton，ready 渲染 hero + compact metrics。refresh 仍调用 `onRefresh`，nickname edit/blur 提交逻辑不移动。Tabs 设置 `surface="glass"`。
 
-- [ ] **Step 5：将列表改为稳定分隔行与明确 empty/loading**
+- [x] **Step 5：将列表改为稳定分隔行与明确 empty/loading**
 
 FlatList 的 `data/keyExtractor/onRefresh/refreshing/renderItem` 保持；loading empty component 换 `DashboardRowsSkeleton`，ready empty 保留原业务解释，partial warning 可见。
 
-- [ ] **Step 6：运行 GREEN 与 Dashboard 关联测试**
+- [x] **Step 6：运行 GREEN 与 Dashboard 关联测试**
 
 Run: `npm test -- --run src/features/dashboard`  
 Expected: PASS；nickname、holdings、KYC、commission 和 explorer tests 全部通过。
 
-- [ ] **Step 7：提交 Task 4**
+- [x] **Step 7：提交 Task 4**
 
 ```bash
 git add src/features/dashboard/components src/features/dashboard/screens/DashboardScreen.tsx src/features/dashboard/__tests__/DashboardScreen.test.tsx
