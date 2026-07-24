@@ -184,6 +184,8 @@ PODS:
     - ExpoModulesCore
   - ExpoAsset (57.0.2):
     - ExpoModulesCore
+  - ExpoBlur (57.0.2):
+    - ExpoModulesCore
   - ExpoClipboard (57.0.0):
     - ExpoModulesCore
   - ExpoCrypto (57.0.0):
@@ -193,6 +195,8 @@ PODS:
   - ExpoFileSystem (57.0.0):
     - ExpoModulesCore
   - ExpoFont (57.0.0):
+    - ExpoModulesCore
+  - ExpoGlassEffect (57.0.1):
     - ExpoModulesCore
   - ExpoKeepAwake (57.0.0):
     - ExpoModulesCore
@@ -2328,11 +2332,13 @@ DEPENDENCIES:
   - expo-dev-menu-interface (from `../node_modules/expo-dev-menu-interface/ios`)
   - ExpoAppleAuthentication (from `../node_modules/expo-apple-authentication/ios`)
   - ExpoAsset (from `../node_modules/expo/node_modules/expo-asset/ios`)
+  - ExpoBlur (from `../node_modules/expo-blur/ios`)
   - ExpoClipboard (from `../node_modules/expo-clipboard/ios`)
   - ExpoCrypto (from `../node_modules/expo-crypto/ios`)
   - "ExpoDomWebView (from `../node_modules/expo/node_modules/@expo/dom-webview/ios`)"
   - ExpoFileSystem (from `../node_modules/expo-file-system/ios/ExpoFileSystem.podspec`)
   - ExpoFont (from `../node_modules/expo/node_modules/expo-font/ios/ExpoFont.podspec`)
+  - ExpoGlassEffect (from `../node_modules/expo-glass-effect/ios`)
   - ExpoKeepAwake (from `../node_modules/expo/node_modules/expo-keep-awake/ios`)
   - ExpoLinking (from `../node_modules/expo-linking/ios`)
   - "ExpoLogBox (from `../node_modules/expo/node_modules/@expo/log-box`)"
@@ -2457,6 +2463,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-apple-authentication/ios"
   ExpoAsset:
     :path: "../node_modules/expo/node_modules/expo-asset/ios"
+  ExpoBlur:
+    :path: "../node_modules/expo-blur/ios"
   ExpoClipboard:
     :path: "../node_modules/expo-clipboard/ios"
   ExpoCrypto:
@@ -2467,6 +2475,8 @@ EXTERNAL SOURCES:
     :podspec: "../node_modules/expo-file-system/ios/ExpoFileSystem.podspec"
   ExpoFont:
     :podspec: "../node_modules/expo/node_modules/expo-font/ios/ExpoFont.podspec"
+  ExpoGlassEffect:
+    :path: "../node_modules/expo-glass-effect/ios"
   ExpoKeepAwake:
     :path: "../node_modules/expo/node_modules/expo-keep-awake/ios"
   ExpoLinking:
@@ -2671,15 +2681,17 @@ SPEC CHECKSUMS:
   expo-dev-menu-interface: 7a59e803916fbfd1b96c75ff91ea8dddac7e722f
   ExpoAppleAuthentication: 30a9d0398f302ea2b85479f7ae6d2785f8a67965
   ExpoAsset: f9f1fc226653b9f7ab995873d9b4f929d2a916c7
+  ExpoBlur: 69e67b4fbfed6f7325377af2aefa8aa4f00cd2af
   ExpoClipboard: 67d46a8be4a50ec610c7b2f4966c0475aec6d969
   ExpoCrypto: f9db7ec10f772afa112c0e465f34bedbc38adf5f
   ExpoDomWebView: 73ba90107a5acc0017a09b06e66d8eb238e089b8
   ExpoFileSystem: ffcd56066188802f263254b6b2e60f74b6a0bdae
   ExpoFont: 35fd7ad72f697d3a9656545909972d8b9f60d5da
+  ExpoGlassEffect: 4b62afb489e6b84357701737ce002137c9d5fdbc
   ExpoKeepAwake: 8a96e2075b75641001f55393d7e6600a5b808f09
   ExpoLinking: db6d7a9e9348cca9ada7c39127ab30963deddba3
   ExpoLogBox: b39a76aab749833d58111c3be1264bb90f3b92d4
-  ExpoModulesCore: 6fbe21115de147d1c9e64b23484f2c679315eca7
+  ExpoModulesCore: c50c1d8129ea0a0ce7ee521d49bf83a3ecda0d53
   ExpoModulesJSI: ef7f197a8e7eeb245557f560ade794bfc1abdc79
   ExpoModulesWorklets: 10c1c68a4abbae5e279f8ed5f6c6fc5078bbba1e
   ExpoNativeExtensions: 05f083e8403ca51609ab633f5567b7a128a5c6fb
@@ -2688,7 +2700,7 @@ SPEC CHECKSUMS:
   ExpoWebBrowser: 32dfd25ad5d384028137a0de71991f28663562e0
   EXUpdatesInterface: 492cdb30f3889cc35d9e737a4b5fc3aec39d1131
   FBLazyVector: b3e7ad108f0d882e30445c5527d774e3fd432f3d
-  hermes-engine: 6eb00a84abcf85c72e0b8c271a9690ab385653bd
+  hermes-engine: f4843db9acc47a44d480115a4deea76141475472
   RCTDeprecation: 2a74a2c57675e64419bd89078efde81f7c1de90b
   RCTRequired: 30451112e6fef4e6f31b4e7eee0845156e35e4b0
   RCTSwiftUI: 5aaf0b07e747ba749dc6acc94d8bd41eea4b570f
