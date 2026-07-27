@@ -95,6 +95,10 @@ Feature slug：`rn-wallet-switching`
 - 禁止 `wallet-select` 签发或返回 `access_token` / `expires_in`，禁止 wallet selection 调用 Supabase `setSession` 或改变现有 token / expiry。
 - 禁止在本 Task 部署 production migration / Edge Function，或执行真实跨账户写入；部署必须另行明确批准。
 - 禁止用大型 action `switch` 堆叠全部状态副作用；reducer 只计算状态，workflow 执行依赖。
+- Do not infer WalletConnect chain support from a wallet's network-management UI; verify the wallet's approved namespace on the exact wallet version and platform.
+- Do not collapse connector-selected, provider-linked, platform-primary, and Viewer-active wallets into one state or use one as an implicit substitute for another.
+- Do not treat a visible button, completed first mutation, or passing unit workflow as proof that the next wallet mutation remains operable; verify the sequential UI journey.
+- Each feature implementation plan must define its own additional forbidden patterns and machine verification commands, then promote stable patterns here with `npm run ai:remember -- feature-name --write`.
 
 ## Machine Verification
 
