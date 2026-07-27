@@ -142,6 +142,43 @@
       "suppressedFindings": [
         "suggested-risk-tags"
       ]
+    },
+    "rn-ui-system-refresh": {
+      "slug": "rn-ui-system-refresh",
+      "title": "React Native UI System Refresh",
+      "createdAt": "2026-07-24",
+      "currentStage": "编码实现",
+      "paths": {
+        "requirement": "docs/requirements/2026-07-24-rn-ui-system-refresh.md",
+        "design": "docs/plans/2026-07-24-rn-ui-system-refresh-design.md",
+        "implementation": "docs/plans/2026-07-24-rn-ui-system-refresh-implementation.md",
+        "review": "docs/plans/2026-07-24-rn-ui-system-refresh-review.md",
+        "quality": "docs/plans/2026-07-24-rn-ui-system-refresh-quality-review.md",
+        "release": "docs/plans/2026-07-24-rn-ui-system-refresh-release.md"
+      },
+      "config": {
+        "language": "zh-CN",
+        "manifestPath": "docs/ai-delivery/features.json",
+        "riskProfilesPath": "docs/ai-delivery/risk-profiles.json",
+        "agentProfilesPath": "docs/ai-delivery/agent-profiles.json",
+        "executorProfilesPath": "docs/ai-delivery/executors.json",
+        "requirementsDir": "docs/requirements",
+        "plansDir": "docs/plans",
+        "templateDir": "docs/templates",
+        "promptDir": "docs/prompts",
+        "workflowPath": "docs/workflows/ai-delivery-workflow.md",
+        "prTemplatePath": ".github/pull_request_template.md",
+        "riskPacks": [],
+        "teamPreset": {
+          "defaultBranch": "",
+          "requiredGates": [],
+          "riskPacks": [],
+          "externalProviders": []
+        }
+      },
+      "suppressedFindings": [
+        "suggested-risk-tags"
+      ]
     }
   }
 }
